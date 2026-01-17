@@ -1,0 +1,180 @@
+
+
+import sys, os
+dev_code_dir = "/".join(os.path.dirname(os.path.realpath(__file__)).split("/")[:-1])
+sys.path.append(dev_code_dir)
+
+import numpy as np
+
+from lasso.dyna import FilterType
+
+########## ########## ########## ########## ########## ##########
+# NEEDS BELOW else BUG in vortex_radioss/animtod3plot
+########## ########## ########## ########## ########## ##########
+
+from scipy.spatial.distance import directed_hausdorff
+from simuflow.variables import FloatVariable
+from simuflow.graph_actions import WorkFlow, SimulationIterator
+from simuflow.dyna_actions import MultNodalFieldData_D3Plot, MultElementFieldData_D3Plot, MultElementNodalFieldData_D3Plot
+from simuflow.dyna_actions import D3PlotOperations
+from simuflow.radioss_actions import RunRadioss, RadiossCSVHistory, CSVNodeLocationHistory, CSVNodeLocation
+from simuflow.radioss_actions import FieldData, FieldDataHist
+from simuflow.radioss_actions import NodalFieldData_VTK, ElementNodalFieldData_VTK, MetaData_VTK
+
+import logging
+logging.basicConfig(filename='eval.log', filemode='w', level=logging.INFO )
+
+def test_seq( ):
+
+
+    chain = WorkFlow( 'RadiossChain' )
+
+    chain.add_action( RunRadioss( 'RadiosRun', fe_path='par_tens.k' ) )
+    chain.add_action( RadiossCSVHistory('hist_eval', '{"quantity":"EXTERNAL WORK" }' ) )
+
+    chain.add_action( MetaData_VTK( 'meta', state=2, required_part_id=3 ) )
+    chain.add_action( NodalFieldData_VTK('field', state=2,
+                                        required_part_id=3, 
+                                        node_data_names=[ 'NODE_ID', 'Displacement' ] ) )
+
+    chain.add_action( FieldDataHist('field_hist', 
+                                     required_part_id=3,
+                                     node_data_names=[ 'NODE_ID', 'Displacement' ],
+                                     el_data_names=['2DELEM_Specific_Energy', 'ELEMENT_ID'],
+                                     el_nodal_data_names=['2DELEM_Specific_Energy'] ) )
+
+    # iterator can runs different directories
+    simu_iter = SimulationIterator( "Iter", chain, copy_files=['par_tens.k'] )
+
+    simu_iter.clean_rundir() # clean_start=True) )
+
+    evals = simu_iter.eval( { 'SIG_Y':300., 'E':123.4 } )
+    #print( evals )
+    print(  evals.keys() )
+    #print( 'E', evals['E'] ) # FIXME, only passed in to eval exists
+    print( 'SIG_Y', evals['SIG_Y'] )
+    print( 'field.coords', evals['meta']['coords'].shape )
+    print( 'field.coords', evals['meta']['coords'] )
+    print( 'field.data', evals['field'].keys() )
+    print( '---------------------------------------- field_hist' )
+    print( 'field_hist.coords', evals['field_hist'][0]['coords'].shape )
+    print( 'field_hist.coords', evals['field_hist'][0]['coords'] )
+    print( 'field_hist.nodal.data', evals['field_hist'][0]['data'].keys() )
+    print( 'field_hist.element.data', evals['field_hist'][1]['data'].keys() )
+    print( '---------------------------------------- field_hist' )
+    print( evals['field_hist'][0]['coords'].shape )
+    assert evals['field_hist'][0]['coords'].shape == (21, 513, 3)
+    print( round( evals['field_hist'][0]['coords'][0][0][0],3) )
+    assert round( evals['field_hist'][0]['coords'][0][0][0],3) == 43.241
+    print( round( evals['field_hist'][0]['coords'][-1][-1][0],3) )
+    assert round( evals['field_hist'][0]['coords'][-1][-1][0],3) == 61.222
+
+    simu_iter.clean_rundir()
+
+def test_hist_node( ):
+
+    chain = WorkFlow( 'RadiossChain' )
+
+    chain.add_action( RunRadioss( 'RadiossRun', fe_path='par_tens.k' ) )
+    chain.add_action( CSVNodeLocationHistory('node_loc_h', 851 ) )
+    chain.add_action( CSVNodeLocation('node_loc', 851 ) )
+
+    # iterator can runs different directories
+    simu_iter = SimulationIterator( "Iter", chain, copy_files=['par_tens.k'] )
+
+    simu_iter.clean_rundir() # clean_start=True) )
+
+    evals = simu_iter.eval( { 'SIG_Y':300., 'E':123.4  } )
+    print( evals )
+
+    simu_iter.clean_rundir()
+
+def test_exp_des( ):
+
+    chain = WorkFlow( 'RadiossChain' )
+
+    chain.add_action( RunRadioss( 'RadiossRun', fe_path='par_tens_1p.k' )  )
+    chain.add_action( CSVNodeLocationHistory('node_loc_h', 851 ) )
+    chain.add_action( CSVNodeLocation('node_loc', 851 ) )
+
+
+    chain.add_action( NodalFieldData_VTK('field_eval_node',
+                                        required_part_id=3, # NYI, bug if multiple parts?
+                                        node_data_names=[ 'NODE_ID', 'Displacement' ] ) )
+
+    chain.add_action( ElementNodalFieldData_VTK('field_eval_element_node',
+                                        required_part_id=3, # NYI, bug if multiple parts?
+                                        el_nodal_data_names=[ 'NODE_ID', '2DELEM_Specific_Energy' ],) )
+
+    # needs testing
+    #chain.add_action( ElementFieldData_VTK('field_eval_element_node',
+    #                                    required_part_id=3, # NYI, bug if multiple parts?
+    #                                    el_data_names=[ 'NODE_ID', '2DELEM_Specific_Energy' ],) )
+
+    simu_iter = SimulationIterator( "Iter", chain, copy_files=['par_tens_1p.k'] )
+
+    simu_iter.clean_rundir() # clean_start=True) )
+
+    evals = simu_iter.eval( { 'SIG_Y':300., 'E':123.4, 'TERM': 40.0, 'WRITE_D3P': 10.0 } )
+    #print( evals )
+
+    print( '############################ EXP DES ###########################' )
+    pars, out = simu_iter.collect_for_varrange( { 'E':np.arange( 100., 102., 1.0 ), 'SIG_Y':[300.], 'TERM': [40.0], 'WRITE_D3P': [10.0]} )
+
+    print( '--- PARS --' )
+    print( pars )
+    print( '--- OUT --' )
+    for k,v in out.items():
+        print( '\t', k, type(v) )
+        if type(v) == list:
+            print( '\t\tlist len:', len(v) )
+            try:  print( '\t\tnp shape:', v[0].shape )
+            except: pass
+        elif type(v) == dict:
+            print( '\t\tdict keys:', v.keys() )
+    simu_iter.clean_rundir()
+
+def test_d3p( ):
+
+    chain = WorkFlow( 'RadiossChain' )
+
+    chain.add_action( RunRadioss( 'RadiosRun', fe_path='par_tens.k', create_d3plot=True ) )
+
+    # -------------
+
+    d3p = D3PlotOperations( 'field', is_radioss=True )
+    d3p.add_action( MultNodalFieldData_D3Plot('nfield', state=2, required_part_id=3,
+                                                         node_data_names=[ 'node_ids', 'node_displacement' ] ))
+    #d3p.add_action( MultElementNodalFieldData_D3Plot('nfield', state=2, required_part_id=3,  # TODO: map el to nodal
+    #                                                     element_nodal_data_names=[ 'node_ids', 'node_displacement' ] ))
+    d3p.add_action( MultElementFieldData_D3Plot('efield', state=2, required_part_id=3, element_type=FilterType.SHELL,
+                                                         element_data_names=[ 'element_shell_stress', 'element_shell_internal_energy' ] ))
+    chain.add_action( d3p )
+
+    # -------------
+
+    simu_iter = SimulationIterator( "Iter", chain, copy_files=['par_tens.k'] )
+    simu_iter.clean_rundir() # clean_start=True) )
+
+    evals = simu_iter.eval( { 'SIG_Y':300., 'E':123.4 } )
+    #print( evals )
+    print(  evals.keys() )
+    #print( 'E', evals['E'] ) # FIXME, only passed in to eval exists
+    print( 'SIG_Y', evals['SIG_Y'] )
+    #print( 'field.data', evals['field'].keys() )
+    #print( '---------------------------------------- field_hist' )
+    #print( 'field_hist.coords', evals['field_hist'][0]['coords'].shape )
+    assert round( evals['nfield']['node_displacement'][0][0] , 2 ) == 66.71 
+    assert round( evals['efield']['element_shell_stress'][0][0][0] , 3 ) == 0.034 
+
+    simu_iter.clean_rundir()
+
+if __name__ == '__main__':
+    #test_radios_eval()
+    #test_hist_eval( )
+    #test_hist_node( )
+    #test_seq( )
+    test_exp_des( )
+    #test_d3p( )
+
+
