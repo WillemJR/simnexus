@@ -7,16 +7,22 @@ Some of the actions can be performed on remove computers.
 Some actions depends on the outcomes of other actions and workflow delays
 the execution of these actions till the required prior actions have completed.
 
+LS-DYNA, Radioss, and OpenFOAM are currently supported.
+
+The library is designed to scale by using the Gemini CLI.
+
+
 ## Installation
 
 ```bash
-pip install .
+pip install simuflow
 ```
 
 ## Usage
 
 (Coming soon)
 
+## Documentation
 
+## License
 
-#
