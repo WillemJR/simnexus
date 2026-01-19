@@ -1,0 +1,299 @@
+
+import os
+from abc import ABC, abstractmethod
+import pandas
+import numpy as np
+
+from simuflow.args import EvalType
+
+import logging
+logger = logging.getLogger(__name__)
+
+from abc import ABC, abstractmethod
+
+from simuflow.util.observer import Subject, notify_observers
+
+from simuflow.variables import Variable
+
+
+class WorkAction(Subject):
+    """
+    Base class for operations on the data stream.
+
+
+    The  arguments to a class can be declared to be variables, e.g. Action( name=, cmd=, arg1=FloatVariable( 'E', 123.4 ) )
+    to be used as action.eval( {'E':3.} )
+    This requires that the subclass must used the decorators allow_variables_as_arguments and
+    assign_variables_values_to_members as:
+            @WorkAction.allow_variables_as_arguments
+            def __init__( self, name, cmd=None, v=None ):
+                ...
+
+            @WorkAction.assign_variables_values_to_members
+            def eval(self,  val_dict=None ):
+                ...
+    """
+
+    def __init__( self, name, cmd=None, lower_bound=None, upper_bound=None ):
+        """
+        args:
+            name (str) :
+            cmd (str) :
+            lower_bound (float) : Lower bound on output value during design (optimization)
+            upper_bound (float) : Lower bound on output value during design (optimization)
+        """
+        super().__init__()
+        self.name = name
+        self.cmd = cmd          # backward compatible with simulation
+        self.BASE_F_NAME = None # backward compatible with simulation
+        self.upper_bound = upper_bound # backward compatible with simulation
+        self.lower_bound = lower_bound # backward compatible with simulation
+        self.parent = None # typically workflow
+
+        self._results = None
+
+        self.eval_type = EvalType.NUMERICAL  
+
+    def _collect_arg_pars(self ):
+        self.par_dict = {}
+        for k,v in self.__dict__.items():
+            if isinstance(v, Variable ):
+                #breakpoint()
+                self.par_dict[k] = v
+                self.__dict__[k] = v.value
+
+
+    def _set_arg_pars(self, val_dict ):
+
+        for k,v in self.par_dict.items():
+            #breakpoint()
+            if v.name in val_dict:
+                self.__dict__[k] = val_dict[v.name]
+
+    def allow_variables_as_arguments( func ):
+        """ decorator setting arg pars
+            You cannot do computations with the variables because
+            the values are only set at the end.
+            This means child actions are created with the variables.
+        """
+        def wrapper( self, *args, **kwargs ):
+            v = func( self, *args, **kwargs )
+            self._collect_arg_pars() 
+            return v
+        return wrapper
+
+    def assign_variables_values_to_members( func ):
+        """ decorator setting arg pars """
+        def wrapper( self, val_dict ):
+            self._set_arg_pars( val_dict )
+            v = func( self, val_dict )
+            return v
+        return wrapper
+
+
+    def _reset_class_member_vals(self,  val_dict):
+        """
+        Reset values of 'action_name.member' in class. val_dict can be {'img_extraction.zoom': 12.3} and
+        if the class hass a member 'zoom' then that will be reset to 12.3
+
+        OUTDATED: use allow_variables_as_arguments and assign_variables_values_to_members decorators
+        """
+        if val_dict is None: return
+        needle = self.name+'.'
+        for variable_name in val_dict:
+            if needle in variable_name and variable_name.rfind( needle ) == 0:
+                subkey = variable_name.replace( needle, '' )
+                if subkey in self.__dict__:
+                    self.__dict__[  subkey] = val_dict[variable_name]
+                else:
+                    exit( f' *** ERROR Key \'{variable_name}\' not found in action \'{self.name}\' ' )
+
+
+    #@notify_observers
+    def _observed_eval(self,  val_dict=None ):
+        """
+        used by the call graph to check if jobs have finished
+
+        returns:
+            dict : { self.name:..., .... } # including items in val_dict
+        """
+        self._results =  val_dict.copy()
+        e = self.eval( val_dict )
+        self._results[self.name] = e
+        self._notify_observers( [self, 'Done'] )
+        return self._results 
+
+    def _observed_eval_async(self, val_dict=None):
+        import multiprocessing
+        import threading
+
+        """
+        Asynchronously run eval in a separate process.
+        Notifies observers only when the process finishes.
+        """
+        def eval_worker(val_dict, result_dict):
+            e = self.eval(val_dict)
+            result_dict[self.name] = e
+
+        def watcher(proc, result_dict):
+            proc.join()
+            # Update self._results in the main process
+            self._results = dict(result_dict)
+            self._notify_observers([self, 'Done'])
+
+        manager = multiprocessing.Manager()
+        result_dict = manager.dict(val_dict.copy() if val_dict else {})
+        p = multiprocessing.Process(target=eval_worker, args=(val_dict, result_dict))
+        p.start()
+        # Start watcher thread to notify when done
+        t = threading.Thread(target=watcher, args=(p, result_dict), daemon=True)
+        t.start()
+        # Return immediately, results will be set when done
+        return None
+
+    @abstractmethod
+    def eval(self,  val_dict=None ):
+        assert 0, 'should not be called'
+
+    def results(self):
+        #print( 'results v', self.name, self._results )
+        return self._results
+
+    def dump(self,  val_dict=None ):
+        pass
+
+    def eval_types(self):
+        return self.eval_type
+
+    def check_names( self, name_list=[] ):
+        """ Cannot have duplicates -- create a problem with callbacks """
+        if self.name in name_list: exit( f" *** Error Duplicate actions name \'{self.name}\'" )
+        name_list.append( self.name )
+
+    def __repr__(self ):
+        r = f'WorkAction: \'{self.name}\' {type(self)}' 
+        return r
+
+# ------------------- 
+
+
+class HistoryEvaluation(WorkAction):
+    """
+    Class to check if is history
+    """
+
+    @abstractmethod
+    def __init__( self, name, cmd ):
+        super().__init__(name, cmd )
+
+    def dump(self,  val_dict=None ):
+        h = val_dict[ self.name ]
+        np.save( self.name,  h )
+
+
+
+class CurveSimilarity(WorkAction):
+
+    def __init__( self, name, history_name, experimental_data, similarity_measure='pcm', normalize=False ):
+        """ 
+
+        Args:
+            name (str): name of this evaluation
+            history_name (str): is name of Eval object returning a history ( float[...,2] )
+            experimental_data(str):  [num_points,2] is history to match
+            similarity_measure=(str):  
+            normalize (bool):  pcm always normalize curves
+        """
+
+        super().__init__(name, None )
+        self.history_name = history_name
+        assert experimental_data.ndim == 2, 'Curve data should be of dimension [2,num_time_steps]'
+        self.experimental_data = experimental_data
+        self.similarity_measure = similarity_measure
+        self.normalize = normalize
+
+    def eval( self,  val_dict=None ) -> float:
+        """ Evaluate possibly using prev computed evaluation results in val_dict
+
+        Returns:
+            similarity_measure (float): 
+        """
+
+        import similaritymeasures
+        simulation_data = val_dict[ self.history_name ]
+        assert simulation_data.ndim == 2, 'Curve data should be of dimension [2,num_time_steps]'
+
+        ed, sd = self.experimental_data.copy(), simulation_data.copy()
+        ed_T, sd_T = ed.transpose(), sd.transpose()
+        if self.normalize:
+            xi, eta, xiP, etaP = similaritymeasures.normalizeTwoCurves( ed[0], ed[1],
+                                                                        sd[0], sd[1] )
+            ed_T[:,0] = xi
+            ed_T[:,1] = eta
+            sd_T[:,0] = xiP
+            sd_T[:,1] = etaP
+
+        match self.similarity_measure:
+            case 'pcm': # material parameter, Witkowski paper
+                sim = similaritymeasures.pcm( ed_T, sd_T )
+            case 'frechet_dist': # supports N-D data
+                # sensitive to outliers, dog-walking distance
+                sim = similaritymeasures.frechet_dist( ed_T, sd_T )
+            case 'area_between_two_curves': # material parameter
+                sim = similaritymeasures.area_between_two_curves( ed_T, sd_T )
+            case 'curve_length_measure': # material parameter
+                sim = similaritymeasures.curve_length_measure( ed_T, sd_T )
+            case 'dtw': # supports N-D data
+                # dynamic time warping # support more arguments # returns dtw distance and Cumulative distance matrix
+                sim = similaritymeasures.dtw( ed_T, sd_T )
+            case 'mae': # supports N-D data # must have same number of data points
+                sim = similaritymeasures.mae( ed_T, sd_T )
+            case 'mse': # supports N-D data # must have same number of data points
+                sim = similaritymeasures.mse( ed_T, sd_T )
+            case _:
+                exit( f' *** Error Unknown similarity measure {self.similarity_measure}' )
+
+        return sim
+
+
+
+class MathEvaluation(WorkAction):
+    """
+    Mathematical operation on results.
+    Returns: outcome of operation
+    """
+
+    #def __init__( self, name, cmd ):
+    #    super().__init__(name, cmd )
+
+    def eval(self,  val_dict=None ):
+        try:
+            v = eval( self.cmd, None, val_dict )
+        except NameError as err:
+            exit( f' *** Could not evaluate action \'{self.name}\'. Error is \'{err}\'. Either a named action was not defined or have not finished.' )
+        except Exception as err:
+            exit( f' *** Error in MathEvaluation \'{self.name}\'. {err}' )
+        return v
+
+
+
+class FunctionEvaluation(WorkAction):
+
+    """
+    mesh_pos, ndict, edict = simu.get_vtk_data( vtk_idx=2, part_id=3,
+                                        node_data_names=[ 'NODE_ID', 'Displacement' ], el_data_names=[] )
+    """
+
+    def __init__( self, name, func, *args, **kwargs  ):
+        super().__init__(name, None )
+        self.func= func
+        self.args= args
+        self.kwargs= kwargs
+
+    def eval(self,  val_dict=None ):
+        v = self.func( *self.args, **self.kwargs )
+        return v
+
+
+
+
