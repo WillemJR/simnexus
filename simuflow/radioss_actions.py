@@ -1,6 +1,5 @@
 
 import json
-import jinja2
 import subprocess
 import pandas
 import numpy as np
@@ -8,10 +7,10 @@ import numpy as np
 from pathlib import Path
 
 from simuflow.actions import WorkAction, HistoryEvaluation
-from simuflow.jinja_action import JinjaFile
 from simuflow.runfea import RunFEA
 
 import simuflow.VTK.read_vtk as read_vtk
+import simuflow.args
 
 import logging
 logger = logging.getLogger(__name__)
@@ -308,7 +307,7 @@ class RunRadioss(RunFEA):
 
     """ OpenRadioss simulation """
 
-    def __init__( self, name, cmd='rad_dyna_inp', fe_path=None, create_d3plot=True ):
+    def __init__( self, name, cmd='rad_dyna_inp', fe_path=simuflow.args.RADIOSS_DFLT_FNAME, create_d3plot=True ):
         """ 
 
         Args:
@@ -325,9 +324,6 @@ class RunRadioss(RunFEA):
         self.create_d3plot = create_d3plot
 
         self.evaluations = []
-
-        self.jjfile = JinjaFile(  self.fea_file_path )
-        par_names = self.jjfile.parameter_names()
 
 
     def _create_d3plot_file( self ):
@@ -346,21 +342,19 @@ class RunRadioss(RunFEA):
             exit( f' *** Error {self.fea_file_path} not in run directory. Likely not copied by Iterator.' )
 
         fea_file_path = Path(self.fea_file_path).resolve()
-        jj_environment = jinja2.Environment(
-            loader=jinja2.FileSystemLoader(fea_file_path.parent)
-        )
-        template = jj_environment.get_template(fea_file_path.name)
-
-
-        variable_dict = self.jjfile._check_var_dict( val_dict, val_format="%10.3g" )
-        new_file_as_str = template.render(  variable_dict )
+        
+        if val_dict is None: val_dict = {}
 
         with open( 'radioss_variables.json','w' ) as vf:
-            json.dump( variable_dict, vf )
+            json.dump( val_dict, vf )
 
         base_file_name = RADIOSS_BASE_F_NAME+'.k'
+        
+        with open( fea_file_path, 'r' ) as f_in:
+            content = f_in.read()
+        
         with open( base_file_name,  'w' ) as outfile:
-            outfile.write( new_file_as_str )
+            outfile.write( content )
             outfile.write( '\n' )
 
         self._run_solver_in_dir( base_file_name )
@@ -380,15 +374,12 @@ class RunRadioss(RunFEA):
 
         e.g write_deck( {'E':210.0, 'SIG_Y':sigy} )
         """
-
-        jj_environment = jinja2.Environment( loader=jinja2.FileSystemLoader("./") )
-        template = jj_environment.get_template( self.fea_file_path )
-
-        variable_dict = self.jjfile._check_var_dict( variable_dict, val_format="%10.3g" )
-        new_file_as_str = template.render(  variable_dict )
+        
+        with open( self.fea_file_path, 'r' ) as f_in:
+             content = f_in.read()
 
         with open( dpath,  'w' ) as outfile:
-            outfile.write( new_file_as_str )
+            outfile.write( content )
 
 
 

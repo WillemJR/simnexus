@@ -1,44 +1,80 @@
-
 import jinja2
 
 from pathlib import Path
 from jinja2 import meta
+from simuflow.actions import WorkAction
+import simuflow.args 
 
 """
 The file is for cases where variables / parameters are defined inside the input decks
 using the jinja format '{{VAR1}}}'.
 """
 
-class JinjaFile:
+class JinjaReplace(WorkAction):
     """
-    Mixin class. Uses jinja to replace parameters with values.
-    The parameters are indicated using double curly braces; e.g. '{{VAR1}}'
-    So a line of 
-    '1, 7.8000E-06, {{E}}, 0.3, {{SIG_Y}},  0.0, 0.0, 0.0'
-    becomes
-    '1, 7.8000E-06, 210.0e9, 0.3, 200.0e6,  0.0, 0.0, 0.0'
+    Action that uses Jinja2 to replace parameters in a file with values.
+
+    The parameters in the file are indicated using double curly braces, e.g., '{{VAR1}}'.
+    This action reads a template file, substitutes the parameters with provided values,
+    and writes the result to an output file.
+
+    Example:
+        A line in the input file:
+        '1, 7.8000E-06, {{E}}, 0.3, {{SIG_Y}},  0.0, 0.0, 0.0'
+        
+        With values E=210.0e9 and SIG_Y=200.0e6, becomes:
+        '1, 7.8000E-06, 210.0e9, 0.3, 200.0e6,  0.0, 0.0, 0.0'
+
+    Args:
+        name (str): The name of the action.
+        fea_file_path (str): Path to the Jinja2 template file.
+        output_file_path (str, optional): Path where the processed file will be written. 
+            Defaults to simuflow.args.RADIOSS_DFLT_FNAME.
+        val_format (str, optional): Format string for floating point values (e.g., "%10.3g"). 
+            Defaults to "%10.3g".
     """
 
-    def __init__( self, fea_file_path ):
+    @WorkAction.allow_variables_as_arguments
+    def __init__( self, name, fea_file_path,
+                  output_file_path=simuflow.args.RADIOSS_DFLT_FNAME, val_format="%10.3g" ):
+        WorkAction.__init__(self, name)
+        
         self.fea_file_path = fea_file_path 
+        self.output_file_path = output_file_path
+        if self.output_file_path is None:
+             self.output_file_path = fea_file_path
+        self.val_format = val_format
 
         self.par_names = None
         self.par_vals = None
+        
         self._get_parameters()
 
-        fea_file_path = Path(self.fea_file_path).resolve()
+        fea_file_path_obj = Path(self.fea_file_path).resolve()
         jj_environment = jinja2.Environment(
-            loader=jinja2.FileSystemLoader(fea_file_path.parent)
+            loader=jinja2.FileSystemLoader(fea_file_path_obj.parent)
         )
-        self.template = jj_environment.get_template(fea_file_path.name)
+        self.template = jj_environment.get_template(fea_file_path_obj.name)
 
 
     def parameter_names( self ):
+        """
+        Returns the set of parameter names found in the template.
+
+        Returns:
+            set: Set of parameter names.
+        """
         return self.par_names
 
     def _get_parameters( self ):
-        """extract all undefined variables from a jinja template file.
-        To define a variable for jinja: {% set x, y = 10, 20 %}
+        """
+        Extract all undefined variables from a jinja template file.
+        
+        Parses the template file to identify variables that need to be provided.
+        Updates self.par_names and self.undeclared_par_names.
+
+        Raises:
+            FileNotFoundError: If the template file does not exist.
         """
         if not Path( self.fea_file_path ).exists():
             raise FileNotFoundError(f"template file not found: {self.fea_file_path}")
@@ -56,10 +92,6 @@ class JinjaFile:
 
         variables = set()
 
-        def visit_name(node):
-            if isinstance(node, jinja2.nodes.Name) and node.ctx == 'load':
-                variables.add(node.name)
-
         for node in ast.find_all(jinja2.nodes.Name):
             if node.ctx == 'load':  # Loading a variable (not setting)
                 variables.add(node.name)
@@ -69,6 +101,19 @@ class JinjaFile:
 
 
     def _check_var_dict( self, variable_dict_in, val_format=None ):
+        """
+        Validates and formats the input variable dictionary.
+
+        Ensures all required parameters are present in the input dictionary.
+        Formats floating point values according to val_format.
+
+        Args:
+            variable_dict_in (dict): Dictionary of variable names and values.
+            val_format (str, optional): Format string for float values.
+
+        Returns:
+            dict: A new dictionary with formatted values and ensured keys.
+        """
         if variable_dict_in is None : variable_dict_in = {}
 
         new_vd = variable_dict_in.copy()
@@ -78,7 +123,7 @@ class JinjaFile:
                 #print( f' *** WARNING Variable \'{k}\' not used in file \'{self.fea_file_path}\'.' )
                 pass
         for i,k in enumerate(self.par_names):
-            if k not in variable_dict_in.keys() : 
+            if k not in variable_dict_in.keys() :
                 if self.par_vals is not None:
                     v = self.par_vals[i]
                 else:
@@ -96,8 +141,23 @@ class JinjaFile:
                 pass
             elif isinstance( v, float ):
                 new_vd[k] = val_format%(v)
-                #new_vd[k] = "%10.3g"%(v)
 
         return new_vd
 
+    @WorkAction.assign_variables_values_to_members
+    def eval(self, val_dict=None):
+        """
+        Executes the replacement action.
 
+        Args:
+            val_dict (dict, optional): Dictionary of variable values.
+
+        Returns:
+            bool: True if successful.
+        """
+        render_dict = self._check_var_dict(val_dict, val_format=self.val_format)
+        content = self.template.render( render_dict )
+        
+        with open( self.output_file_path, 'w') as f:
+            f.write(content)
+        return True

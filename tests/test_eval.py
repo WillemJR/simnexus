@@ -20,6 +20,7 @@ from simuflow.dyna_actions import D3PlotOperations
 from simuflow.radioss_actions import RunRadioss, RadiossCSVHistory, CSVNodeLocationHistory, CSVNodeLocation
 from simuflow.radioss_actions import FieldData, FieldDataHist
 from simuflow.radioss_actions import NodalFieldData_VTK, ElementNodalFieldData_VTK, MetaData_VTK
+from simuflow.jinja_action import JinjaReplace
 
 import logging
 logging.basicConfig(filename='eval.log', filemode='w', level=logging.INFO )
@@ -29,7 +30,8 @@ def test_seq( ):
 
     chain = WorkFlow( 'RadiossChain' )
 
-    chain.add_action( RunRadioss( 'RadiosRun', fe_path='par_tens.k' ) )
+    chain.add_action( JinjaReplace( name='SetVars', fea_file_path='par_tens.k' ) )
+    chain.add_action( RunRadioss( 'RadiosRun' ) )
     chain.add_action( RadiossCSVHistory('hist_eval', '{"quantity":"EXTERNAL WORK" }' ) )
 
     chain.add_action( MetaData_VTK( 'meta', state=2, required_part_id=3 ) )
@@ -75,7 +77,8 @@ def test_hist_node( ):
 
     chain = WorkFlow( 'RadiossChain' )
 
-    chain.add_action( RunRadioss( 'RadiossRun', fe_path='par_tens.k' ) )
+    chain.add_action( JinjaReplace( name='SetVars', fea_file_path='par_tens.k' ) )
+    chain.add_action( RunRadioss( 'RadiossRun' ) )
     chain.add_action( CSVNodeLocationHistory('node_loc_h', 851 ) )
     chain.add_action( CSVNodeLocation('node_loc', 851 ) )
 
@@ -93,7 +96,8 @@ def test_exp_des( ):
 
     chain = WorkFlow( 'RadiossChain' )
 
-    chain.add_action( RunRadioss( 'RadiossRun', fe_path='par_tens_1p.k' )  )
+    chain.add_action( JinjaReplace( name='SetVars', fea_file_path='par_tens_1p.k' ) )
+    chain.add_action( RunRadioss( 'RadiossRun' ) )
     chain.add_action( CSVNodeLocationHistory('node_loc_h', 851 ) )
     chain.add_action( CSVNodeLocation('node_loc', 851 ) )
 
@@ -138,7 +142,8 @@ def test_d3p( ):
 
     chain = WorkFlow( 'RadiossChain' )
 
-    chain.add_action( RunRadioss( 'RadiosRun', fe_path='par_tens.k', create_d3plot=True ) )
+    chain.add_action( JinjaReplace( name='SetVars', fea_file_path='par_tens.k' ) )
+    chain.add_action( RunRadioss( 'RadiossRun', create_d3plot=True ) )
 
     # -------------
 
@@ -174,7 +179,7 @@ if __name__ == '__main__':
     #test_hist_eval( )
     #test_hist_node( )
     #test_seq( )
-    test_exp_des( )
-    #test_d3p( )
+    #test_exp_des( )
+    test_d3p( )
 
 

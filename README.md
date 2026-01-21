@@ -26,3 +26,19 @@ pip install simuflow
 
 ## License
 
+## Todo
+
+* How does FloatVariable interact with RunRadioss and eval()? SimulationIterator( parameter_list= )
+
+* WorkArea should be argument to WorkFlow / Graph
+
+
+* LS-DYNA should use dynakw.parameters()
+
+* Git rid of RunFEA. All that does is make sure files are copied. Class FileRequiredments or class RequiredFile?
+* Part of above copy_files = in work_area and simulationIterator and remote
+
+* CurveSimilarity should be its own file. Move out of actions.
+
+* similaritymeasures and numpy are requirements.
+
