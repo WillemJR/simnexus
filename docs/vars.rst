@@ -12,7 +12,7 @@ First you have to define the variable
 
 .. code-block:: python
 
-        from work_flow.variables import FloatVariable
+        from simuflow.variables import FloatVariable
 
         temperature = FloatVariable( 'T', 75., lower_bound=10.0, upper_bound=200. )
         hv = FloatVariable( 'H', 40. )

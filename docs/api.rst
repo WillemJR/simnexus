@@ -2,16 +2,12 @@
 API Reference
 =============
 
-.. automodule:: args
+.. automodule:: simuflow.curve_similarity
    :members:
 
-.. automodule:: actions
+.. automodule:: simuflow.actions
    :members:
-   :undoc-members:
-   :show-inheritance:
 
-.. automodule:: variables
+.. automodule:: simuflow.variables
    :members:
-   :undoc-members:
-   :show-inheritance:
 

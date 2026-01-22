@@ -12,6 +12,7 @@ class RunFEA(WorkAction):
 
         Args:
             name (str):
+            cmd (str): not used
             fe_path (str):
         """
         super().__init__(name, cmd )

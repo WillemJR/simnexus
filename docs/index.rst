@@ -17,5 +17,6 @@ documentation for details.
 
    actions_descr
    vars
+   exa
    api
 

@@ -6,7 +6,8 @@ import numpy as np
 
 from pathlib import Path
 
-from simuflow.actions import WorkAction, HistoryEvaluation
+from simuflow.actions import WorkAction
+from simuflow.rare import HistoryEvaluation
 from simuflow.runfea import RunFEA
 
 import simuflow.VTK.read_vtk as read_vtk
@@ -122,7 +123,7 @@ class CSVNodeLocationHistory(HistoryEvaluation):
 
         return np.array( time ), np.array( (val_x, val_y, val_z) ) 
 
-    def dump(self,  val_dict=None ):
+    def _dump(self,  val_dict=None ):
         h = val_dict[ self.name ]
         np.savez( self.name,  time=h[0], xyz=h[1] )
 
@@ -137,7 +138,7 @@ class CSVNodeLocation(CSVNodeLocationHistory):
         h = super().eval( val_dict )
         return h[1][:, self.step]
 
-    def dump(self,  val_dict=None ):
+    def _dump(self,  val_dict=None ):
         pass
 
 
@@ -157,7 +158,7 @@ class ScalarEvaluation(RadiossCSVHistory):
         h = super().eval( val_dict )
         return h[1][ self.args['step'] ]
 
-    def dump(self,  val_dict=None ):
+    def _dump(self,  val_dict=None ):
         pass
 
 
@@ -192,7 +193,7 @@ class FieldData(WorkAction):
         v = read_vtk.read_part_mesh( vtk_file_name, *self.args, **self.kwargs )
         return v
 
-    def dump(self,  val_dict=None ):
+    def _dump(self,  val_dict=None ):
         pass
 
 class MetaData_VTK(FieldData):
@@ -299,7 +300,7 @@ class FieldDataHist(WorkAction):
         nvl, evl = {'coords':coords, 'data':ndata}, {'data':edata}
         return nvl, evl
 
-    def dump(self,  val_dict=None ):
+    def _dump(self,  val_dict=None ):
         pass
 
 

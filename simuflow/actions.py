@@ -1,4 +1,3 @@
-
 import os
 from abc import ABC, abstractmethod
 import pandas
@@ -156,16 +155,15 @@ class WorkAction(Subject):
         assert 0, 'should not be called'
 
     def results(self):
-        #print( 'results v', self.name, self._results )
         return self._results
 
-    def dump(self,  val_dict=None ):
+    def _dump(self,  val_dict=None ):
         pass
 
     def eval_types(self):
         return self.eval_type
 
-    def check_names( self, name_list=[] ):
+    def _check_names( self, name_list=[] ):
         """ Cannot have duplicates -- create a problem with callbacks """
         if self.name in name_list: exit( f" *** Error Duplicate actions name \'{self.name}\'" )
         name_list.append( self.name )
@@ -173,88 +171,6 @@ class WorkAction(Subject):
     def __repr__(self ):
         r = f'WorkAction: \'{self.name}\' {type(self)}' 
         return r
-
-# ------------------- 
-
-
-class HistoryEvaluation(WorkAction):
-    """
-    Class to check if is history
-    """
-
-    @abstractmethod
-    def __init__( self, name, cmd ):
-        super().__init__(name, cmd )
-
-    def dump(self,  val_dict=None ):
-        h = val_dict[ self.name ]
-        np.save( self.name,  h )
-
-
-
-class CurveSimilarity(WorkAction):
-
-    def __init__( self, name, history_name, experimental_data, similarity_measure='pcm', normalize=False ):
-        """ 
-
-        Args:
-            name (str): name of this evaluation
-            history_name (str): is name of Eval object returning a history ( float[...,2] )
-            experimental_data(str):  [num_points,2] is history to match
-            similarity_measure=(str):  
-            normalize (bool):  pcm always normalize curves
-        """
-
-        super().__init__(name, None )
-        self.history_name = history_name
-        assert experimental_data.ndim == 2, 'Curve data should be of dimension [2,num_time_steps]'
-        self.experimental_data = experimental_data
-        self.similarity_measure = similarity_measure
-        self.normalize = normalize
-
-    def eval( self,  val_dict=None ) -> float:
-        """ Evaluate possibly using prev computed evaluation results in val_dict
-
-        Returns:
-            similarity_measure (float): 
-        """
-
-        import similaritymeasures
-        simulation_data = val_dict[ self.history_name ]
-        assert simulation_data.ndim == 2, 'Curve data should be of dimension [2,num_time_steps]'
-
-        ed, sd = self.experimental_data.copy(), simulation_data.copy()
-        ed_T, sd_T = ed.transpose(), sd.transpose()
-        if self.normalize:
-            xi, eta, xiP, etaP = similaritymeasures.normalizeTwoCurves( ed[0], ed[1],
-                                                                        sd[0], sd[1] )
-            ed_T[:,0] = xi
-            ed_T[:,1] = eta
-            sd_T[:,0] = xiP
-            sd_T[:,1] = etaP
-
-        match self.similarity_measure:
-            case 'pcm': # material parameter, Witkowski paper
-                sim = similaritymeasures.pcm( ed_T, sd_T )
-            case 'frechet_dist': # supports N-D data
-                # sensitive to outliers, dog-walking distance
-                sim = similaritymeasures.frechet_dist( ed_T, sd_T )
-            case 'area_between_two_curves': # material parameter
-                sim = similaritymeasures.area_between_two_curves( ed_T, sd_T )
-            case 'curve_length_measure': # material parameter
-                sim = similaritymeasures.curve_length_measure( ed_T, sd_T )
-            case 'dtw': # supports N-D data
-                # dynamic time warping # support more arguments # returns dtw distance and Cumulative distance matrix
-                sim = similaritymeasures.dtw( ed_T, sd_T )
-            case 'mae': # supports N-D data # must have same number of data points
-                sim = similaritymeasures.mae( ed_T, sd_T )
-            case 'mse': # supports N-D data # must have same number of data points
-                sim = similaritymeasures.mse( ed_T, sd_T )
-            case _:
-                exit( f' *** Error Unknown similarity measure {self.similarity_measure}' )
-
-        return sim
-
 
 
 class MathEvaluation(WorkAction):
@@ -274,26 +190,6 @@ class MathEvaluation(WorkAction):
         except Exception as err:
             exit( f' *** Error in MathEvaluation \'{self.name}\'. {err}' )
         return v
-
-
-
-class FunctionEvaluation(WorkAction):
-
-    """
-    mesh_pos, ndict, edict = simu.get_vtk_data( vtk_idx=2, part_id=3,
-                                        node_data_names=[ 'NODE_ID', 'Displacement' ], el_data_names=[] )
-    """
-
-    def __init__( self, name, func, *args, **kwargs  ):
-        super().__init__(name, None )
-        self.func= func
-        self.args= args
-        self.kwargs= kwargs
-
-    def eval(self,  val_dict=None ):
-        v = self.func( *self.args, **self.kwargs )
-        return v
-
 
 
 

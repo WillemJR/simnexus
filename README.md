@@ -42,3 +42,5 @@ pip install simuflow
 
 * similaritymeasures and numpy are requirements.
 
+* Set up remote using grpc
+

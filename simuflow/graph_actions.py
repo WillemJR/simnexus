@@ -69,6 +69,7 @@ class WorkArea(WorkAction):
         """
         
         sim_path = Path.cwd().joinpath( self.name )
+        # NYI cannot run twice in same directory, because below?
         if sim_path.exists():
             exit( f' *** Error Results directory {sim_path} already exists. Restart is not yet supported.' )
 
@@ -96,11 +97,11 @@ class WorkArea(WorkAction):
 
         return ret
 
-    def check_names( self, name_list=[] ):
+    def _check_names( self, name_list=[] ):
         """ Cannot have duplicates -- create a problem with callbacks """
         if self.name in name_list: exit( f" *** Error Duplicate actions name \'{self.name}\'" )
         name_list.append( self.name )
-        self.graph.check_names( name_list )
+        self.graph._check_names( name_list )
 
 
 
@@ -131,7 +132,7 @@ class SimulationIterator(WorkAction):
         self.last_job_path = None
 
         if clean_start: self.clean_rundir()
-        self.check_names( [] )
+        self._check_names( [] )
 
         self.run_iter = 0
 
@@ -139,11 +140,11 @@ class SimulationIterator(WorkAction):
         sim_path = Path.cwd().joinpath( self.name )
         if sim_path.exists():  shutil.rmtree( sim_path )
 
-    def check_names( self, name_list=[] ):
+    def _check_names( self, name_list=[] ):
         """ Cannot have duplicates -- create a problem with callbacks """
         if self.name in name_list: exit( f" *** Error Duplicate actions name \'{self.name}\'" )
         name_list.append( self.name )
-        self.graph.check_names( name_list )
+        self.graph._check_names( name_list )
 
     def _in_last_run_dir( func ):
         """ decorator execute last run """
@@ -456,7 +457,7 @@ class DirectedGraph(WorkAction, Observer):
                         val_dict.update( nret )
     
         for n,e in self.child_actions.items():
-            e.dump( val_dict )
+            e._dump( val_dict )
 
         return val_dict
 
@@ -477,12 +478,12 @@ class DirectedGraph(WorkAction, Observer):
             types[e.name] = e.eval_types()
         return types
 
-    def check_names( self, name_list=[] ):
+    def _check_names( self, name_list=[] ):
         """ Cannot have duplicates -- create a problem with callbacks """
         if self.name in name_list: exit( f" *** Error Duplicate actions name \'{self.name}\'" )
         name_list.append( self.name )
         for n,e in self.child_actions.items():
-            e.check_names( name_list )
+            e._check_names( name_list )
 
     def get_action(self, name ):
         return self.child_actions[name]
