@@ -1,5 +1,7 @@
 
+import os
 import json
+import glob
 import subprocess
 import pandas
 import numpy as np
@@ -8,7 +10,6 @@ from pathlib import Path
 
 from simuflow.actions import WorkAction
 from simuflow.rare import HistoryEvaluation
-from simuflow.runfea import RunFEA
 
 import simuflow.VTK.read_vtk as read_vtk
 import simuflow.args
@@ -304,7 +305,7 @@ class FieldDataHist(WorkAction):
         pass
 
 
-class RunRadioss(RunFEA):
+class RunRadioss(WorkAction):
 
     """ OpenRadioss simulation """
 
@@ -320,7 +321,9 @@ class RunRadioss(RunFEA):
 
         assert fe_path is not None, 'No input OpenRadioss file specified. Specify the path to radioss input file.'
 
-        super().__init__( name, cmd, fe_path )
+        super().__init__(name, cmd )
+        self.fea_file_path = fe_path
+        self.fea_file_path = Path( self.fea_file_path ).name
 
         self.create_d3plot = create_d3plot
 
@@ -334,6 +337,18 @@ class RunRadioss(RunFEA):
             exit( ' *** Error Install vortex_radioss.animtod3plot from \'https://www.vortex-cae.com/vortex-radioss\'.' )
 
         readAndConvert( str( Path.cwd().joinpath( RADIOSS_BASE_F_NAME) )  )
+
+        # Rename generated d3plot files
+        # Pattern: filename.d3plot* -> d3plot*
+        pattern = f"{RADIOSS_BASE_F_NAME}.d3plot*"
+        for file_path in glob.glob(pattern):
+            # We only want to replace the prefix in the basename
+            base_name = os.path.basename(file_path)
+            if base_name.startswith(f"{RADIOSS_BASE_F_NAME}."):
+                new_name = base_name.replace(f"{RADIOSS_BASE_F_NAME}.", "", 1)
+                logger.info(f"Renaming {base_name} to {new_name}")
+                os.rename(file_path, new_name)
+
 
 
 
@@ -360,15 +375,11 @@ class RunRadioss(RunFEA):
 
         self._run_solver_in_dir( base_file_name )
 
-        # NYI: add to the incoming dict!
-        #for k,v in variable_dict.items():
-            #if not k in val_dict.keys(): val_dict[k] = eval(v)
-            #if not k in ret_dict.keys(): ret_dict[k] = eval(v)
 
         if self.create_d3plot : self._create_d3plot_file()
 
-        #return ret_dict 
         return True 
+
 
     def write_deck( self, dpath, variable_dict=None ):
         """ write FEA deck using given parameter values.

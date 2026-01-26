@@ -15,8 +15,8 @@ from lasso.dyna import FilterType
 from scipy.spatial.distance import directed_hausdorff
 from simuflow.variables import FloatVariable
 from simuflow.graph_actions import WorkFlow, SimulationIterator
-from simuflow.dyna_actions import MultNodalFieldData_D3Plot, MultElementFieldData_D3Plot, MultElementNodalFieldData_D3Plot
-from simuflow.dyna_actions import D3PlotOperations
+from simuflow.d3plot_actions import d3plot_Open, d3plot_MultNodalFieldData, \
+                                 d3plot_MultElementFieldData, d3plot_MultElementNodalFieldData
 from simuflow.radioss_actions import RunRadioss, RadiossCSVHistory, CSVNodeLocationHistory, CSVNodeLocation
 from simuflow.radioss_actions import FieldData, FieldDataHist
 from simuflow.radioss_actions import NodalFieldData_VTK, ElementNodalFieldData_VTK, MetaData_VTK
@@ -147,12 +147,12 @@ def test_d3p( ):
 
     # -------------
 
-    d3p = D3PlotOperations( 'field', is_radioss=True )
-    d3p.add_action( MultNodalFieldData_D3Plot('nfield', state=2, required_part_id=3,
+    d3p = d3plot_Open( 'field' )
+    d3p.add_action( d3plot_MultNodalFieldData('nfield', state=2, required_part_id=3,
                                                          node_data_names=[ 'node_ids', 'node_displacement' ] ))
-    #d3p.add_action( MultElementNodalFieldData_D3Plot('nfield', state=2, required_part_id=3,  # TODO: map el to nodal
+    #d3p.add_action( d3plot_MultElementNodalFieldData('nfield', state=2, required_part_id=3,  # TODO: map el to nodal
     #                                                     element_nodal_data_names=[ 'node_ids', 'node_displacement' ] ))
-    d3p.add_action( MultElementFieldData_D3Plot('efield', state=2, required_part_id=3, element_type=FilterType.SHELL,
+    d3p.add_action( d3plot_MultElementFieldData('efield', state=2, required_part_id=3, element_type=FilterType.SHELL,
                                                          element_data_names=[ 'element_shell_stress', 'element_shell_internal_energy' ] ))
     chain.add_action( d3p )
 

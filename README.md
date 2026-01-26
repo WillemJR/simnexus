@@ -28,17 +28,26 @@ pip install simuflow
 
 ## Todo
 
-* How does FloatVariable interact with RunRadioss and eval()? SimulationIterator( parameter_list= )
+* How does FloatVariable interact with eval()?
+     SimulationIterator( parameter_list= ) : for default values if not provided in eval
 
-* WorkArea should be argument to WorkFlow / Graph
+
+* WorkArea 
+    * WorkArea and SimIter should not have a name. Instead graphName_WA and graphName_SI
+    * WorkArea should have a path argument; no name
+    * WorkArea should be argument to WorkFlow / Graph
+    * SimIter should be subclass of WorkArea?
+    * Part of above copy_files = in work_area and simulationIterator and remote
 
 
-* LS-DYNA should use dynakw.parameters()
+* LS-DYNA
+    * should use dynakw.parameters()
 
-* Git rid of RunFEA. All that does is make sure files are copied. Class FileRequiredments or class RequiredFile?
-* Part of above copy_files = in work_area and simulationIterator and remote
-
-* CurveSimilarity should be its own file. Move out of actions.
+* D3Plot clean up
+    * Arguments doc and clean up
+    * readname xxxx_d3plot must be d3plot__xxxx
+    * Report BUG: coordinates is initial coordinates for all timesteps,
+               node_displacement are coordinates
 
 * similaritymeasures and numpy are requirements.
 

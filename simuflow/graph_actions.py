@@ -10,7 +10,6 @@ import numbers
 import numpy as np
 
 from simuflow.actions import WorkAction
-from simuflow.runfea import RunFEA
 from simuflow.util.observer import Observer
 import simuflow.args
 
@@ -20,8 +19,10 @@ logger = logging.getLogger(__name__)
 class WorkArea(WorkAction):
     """
     Evaluates graph in a seperate directory, possibly a remote directory (e.g. AWS).
-    Files may be copied to this area. Copying files from an area is allowed for remote exectution using the proxy.
-    On the local machine this will be a directory down from the work directory, e.g. CWD/WORK_AREA_NAME.
+    Files may be copied to this area.
+    Copying files from an area is allowed for remote exectution using the proxy.
+    On the local machine this will be a directory down from the work directory,
+    e.g. CWD/WORK_AREA_NAME.
 
     This can be nested with other WorkActions and remote execution.
     A SimulationIterator is restricted to be top level for now.
@@ -43,13 +44,14 @@ class WorkArea(WorkAction):
 
     def _reset_file_paths( self ):
         """
-        If RunRadioss has '../par_tens.k', then that is no longer correct from the iterator directory.
+        If solver has '../par_tens.k', then that is no longer correct from
+        the iterator directory.
         So if the file is copied then reset the name to be local .
         """
-        for e in self.graph.child_actions:
-            if isinstance( e, RunFEA ):
-                if e.fea_file_path in self.copy_paths:
-                    e.fea_file_path = Path( e.fea_file_path ).name
+        pass
+        #for e in self.graph.child_actions:
+        #        if e.fea_file_path in self.copy_paths:
+        #            e.fea_file_path = Path( e.fea_file_path ).name
 
 
 
@@ -88,9 +90,6 @@ class WorkArea(WorkAction):
         os.chdir( self.wa_path )
         logger.info( f'Running in directory {self.wa_path}' )
 
-        #with open( 'iter_variables.json','w' ) as vf:
-        #    json.dump( val_dict, vf )
-
         ret = self.graph.eval( val_dict )
 
         os.chdir( root_dir )
@@ -106,18 +105,21 @@ class WorkArea(WorkAction):
 
 
 
+
 class SimulationIterator(WorkAction):
     """
-    Calls the evaluation chain in different directories.
+    Calls a graph in different directories.
     Used to iterate over different parameters/design values.
     """
 
     def __init__( self, name, graph, parameter_list=[], copy_files=None, clean_start=False):
         """
         args:
-            name (str)
-            graph (str)
-            parameter_list (list) :
+            name (str) :
+            graph (str) :
+            parameter_list (list) : Only needed to provided default values to eval.
+            copy_files (list) : 
+            clean_start (bool) : 
         """
 
         super().__init__( name, "" )

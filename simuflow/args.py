@@ -49,3 +49,5 @@ RADIOSS_DFLT_FNAME = 'radioss_simuflow_file.k'
 OPT_RESULTS_DIR = 'OptimizationResults'
 ACTIONS_OUTPUT_PATH = 'actions_output.pkl'
 
+DYNA_DFLT_CMD  = 'ls-dyna'
+DYNA_BASE_FILE_NAME = 'dyna_action_inp'
