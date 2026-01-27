@@ -109,7 +109,7 @@ class d3plot_NodalFieldData(WorkAction):
         component (str):
         required_part_id (int): optional
     Returns:
-        node data
+        Nodal field data
     """
 
     def __init__( self, name, *args, **kwargs ):
@@ -141,7 +141,7 @@ class d3plot_MultNodalFieldData(WorkAction):
         node_data_names (list):
         required_part_id (int): optional
     Returns:
-        node data
+        nodal field data
     """
 
     def __init__( self, name, *args, **kwargs ):
@@ -173,7 +173,7 @@ class d3plot_MultElementNodalFieldData(WorkAction):
         required_part_id (int):
         element_nodal_data_names (list):
     Returns:
-        node data
+        nodal field data
     """
 
     def __init__( self, name, *args, **kwargs ):
@@ -208,7 +208,7 @@ class d3plot_MultElementFieldData(WorkAction):
         required_part_id (int):
         element_data_names (list):
     Returns:
-        node data
+        element field data
     """
 
     def __init__( self, name, *args, **kwargs ):

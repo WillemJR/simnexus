@@ -40,12 +40,12 @@ pip install simuflow
     * Part of above copy_files = in work_area and simulationIterator and remote
 
 
-* LS-DYNA
-    * should use dynakw.parameters()
+* DONE: LS-DYNA
+    * DONE: should use dynakw.parameters()
 
 * D3Plot clean up
     * Arguments doc and clean up
-    * readname xxxx_d3plot must be d3plot__xxxx
+    * DONE: readname xxxx_d3plot must be d3plot__xxxx
     * Report BUG: coordinates is initial coordinates for all timesteps,
                node_displacement are coordinates
 

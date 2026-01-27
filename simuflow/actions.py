@@ -17,34 +17,25 @@ from simuflow.variables import Variable
 
 class WorkAction(Subject):
     """
-    Base class for operations on the data stream.
+    Base class for the nodes in the graph.
+    Each action encapsulate an operations on the data stream.
 
-
-    The  arguments to a class can be declared to be variables, e.g. Action( name=, cmd=, arg1=FloatVariable( 'E', 123.4 ) )
-    to be used as action.eval( {'E':3.} )
-    This requires that the subclass must used the decorators allow_variables_as_arguments and
-    assign_variables_values_to_members as:
-            @WorkAction.allow_variables_as_arguments
-            def __init__( self, name, cmd=None, v=None ):
-                ...
-
-            @WorkAction.assign_variables_values_to_members
-            def eval(self,  val_dict=None ):
-                ...
+    args:
+        name (str) :
+        cmd (str) :
+        lower_bound (float) : Lower bound on output value during design
+        upper_bound (float) : Lower bound on output value during design
+    Returns:
+        Any
     """
 
     def __init__( self, name, cmd=None, lower_bound=None, upper_bound=None ):
         """
-        args:
-            name (str) :
-            cmd (str) :
-            lower_bound (float) : Lower bound on output value during design (optimization)
-            upper_bound (float) : Lower bound on output value during design (optimization)
         """
         super().__init__()
         self.name = name
         self.cmd = cmd          # backward compatible with simulation
-        self.BASE_F_NAME = None # backward compatible with simulation
+        #self.BASE_F_NAME = None # backward compatible with simulation
         self.upper_bound = upper_bound # backward compatible with simulation
         self.lower_bound = lower_bound # backward compatible with simulation
         self.parent = None # typically workflow
@@ -70,10 +61,29 @@ class WorkAction(Subject):
                 self.__dict__[k] = val_dict[v.name]
 
     def allow_variables_as_arguments( func ):
-        """ decorator setting arg pars
-            You cannot do computations with the variables because
-            the values are only set at the end.
-            This means child actions are created with the variables.
+        """ A decorator for the __init__() method allowing you to
+        use variables as arguments constructing this class.
+
+        The  arguments to a class can be declared to be variables,
+        e.g. Action( name=, cmd=, arg1=FloatVariable( 'E', 123.4 ) )
+        to be used as action.eval( {'E':3.} )
+        This requires that the subclass must used the decorators
+        allow_variables_as_arguments and
+        assign_variables_values_to_members as:
+
+        @WorkAction.allow_variables_as_arguments
+
+        def __init__( self, name, cmd=None, v=None ):
+            ...
+
+        @WorkAction.assign_variables_values_to_members
+
+        def eval(self,  val_dict=None ):
+            ...
+                    
+        You cannot do computations with the variables because
+        the values are only set at the end.
+        This means child actions are created with the variables.
         """
         def wrapper( self, *args, **kwargs ):
             v = func( self, *args, **kwargs )
@@ -82,7 +92,8 @@ class WorkAction(Subject):
         return wrapper
 
     def assign_variables_values_to_members( func ):
-        """ decorator setting arg pars """
+        """ A decorator for the eval() method allowing you to
+        use variables as arguments constructing this class."""
         def wrapper( self, val_dict ):
             self._set_arg_pars( val_dict )
             v = func( self, val_dict )

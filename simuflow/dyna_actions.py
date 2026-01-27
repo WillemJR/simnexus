@@ -17,16 +17,17 @@ import dynakw
 
 class RunDyna(WorkAction):
 
-    """ LS-DYNA simulation """
-
-    def __init__( self, name, cmd=simuflow.args.DYNA_DFLT_CMD, fe_path=None ):
-        """ 
+    """ This runs an LS-DYNA simulation.
+        It will substiture the \*PARAMETER values with
+        provided values.
 
         Args:
             name (str):
             cmd (str): path to ls-dyna executable or command
             fe_path (str): parameterized keyword file
-        """
+    """
+
+    def __init__( self, name, cmd=simuflow.args.DYNA_DFLT_CMD, fe_path=None ):
 
         assert fe_path is not None, 'No input LS-DYNA file specified.'
 
@@ -35,6 +36,7 @@ class RunDyna(WorkAction):
         self.fea_file_path = Path( self.fea_file_path ).name
 
     def eval( self,  val_dict=None ):
+        """ """
 
         if not Path( self.fea_file_path ).exists():
             exit( f' *** Error {self.fea_file_path} not in run directory. Likely not copied by Iterator.' )
