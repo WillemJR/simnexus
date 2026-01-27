@@ -2,7 +2,7 @@ import os
 import numpy as np
 
 
-from simuflow.actions import WorkAction
+from simflow.actions import WorkAction
 
 
 class CurveSimilarity(WorkAction):

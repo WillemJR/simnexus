@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "simuflow"
+name = "simflow"
 version = "0.1.0"
 description = "A Python module for modelling complex simulation workflows."
 readme = "README.md"
@@ -25,4 +25,4 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["simuflow*"]
+include = ["simflow*"]

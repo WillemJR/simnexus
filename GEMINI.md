@@ -1,6 +1,6 @@
 
 # Overview
-The 'simuflow' python module is for modelling of complex simulations worflows.
+The 'simflow' python module is for modelling of complex simulations worklows.
 The workflow consists of of actions assembled into a directed graph.
 The actions can be varied; e.g. a strutural evaluations, a mathematical operation, or a file edit.
 Part of the graph can be performed on remote computers. 
@@ -14,14 +14,14 @@ the execution of these actions till the required prior actions have completed.
 The project directory and core classes are given below.
 
 ```
-simuflow/
+simflow/
 ├── GEMINI.md
 ├── LICENSE
 ├── pyproject.toml
 ├── README.md
 ├── requirements.txt
 ├── docs/                   # documentation maintained using sphinx
-├── simuflow/               # 
+├── simflow/                # python code directory
 │   ├── __init__.py
 │   ├── actions.py          # base class for all action in the graph
 │   ├── args.py             # enums, constaints and named tuples used in input arguments
@@ -41,7 +41,7 @@ simuflow/
 
 # The Action base class
 
-The `WorkAction` base class (defined in `simuflow/actions.py`) is the base building block for operations in a workflow. It inherits from `Subject` to support the observer pattern, allowing the workflow manager (like `DirectedGraph` or `WorkFlow`) to track execution status.
+The `WorkAction` base class (defined in `simflow/actions.py`) is the base building block for operations in a workflow. It inherits from `Subject` to support the observer pattern, allowing the workflow manager (like `DirectedGraph` or `WorkFlow`) to track execution status.
 
 Key features:
 - **`eval(self, val_dict)`**: The abstract method that performs the action's logic. It receives a dictionary `val_dict` containing the current values of variables and results from prior actions. This method returns the data computed by the class.

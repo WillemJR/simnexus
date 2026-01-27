@@ -7,7 +7,7 @@ from itertools import product
 
 import numpy as np
 
-from simuflow.actions import WorkAction
+from simflow.actions import WorkAction
 
 import logging
 logger = logging.getLogger(__name__)

@@ -2,8 +2,8 @@ import jinja2
 
 from pathlib import Path
 from jinja2 import meta
-from simuflow.actions import WorkAction
-import simuflow.args 
+from simflow.actions import WorkAction
+import simflow.args 
 
 """
 The file is for cases where variables / parameters are defined inside the input decks
@@ -29,14 +29,14 @@ class JinjaReplace(WorkAction):
         name (str): The name of the action.
         fea_file_path (str): Path to the Jinja2 template file.
         output_file_path (str, optional): Path where the processed file will be written. 
-            Defaults to simuflow.args.RADIOSS_DFLT_FNAME.
+            Defaults to simflow.args.RADIOSS_DFLT_FNAME.
         val_format (str, optional): Format string for floating point values (e.g., "%10.3g"). 
             Defaults to "%10.3g".
     """
 
     @WorkAction.allow_variables_as_arguments
     def __init__( self, name, fea_file_path,
-                  output_file_path=simuflow.args.RADIOSS_DFLT_FNAME, val_format="%10.3g" ):
+                  output_file_path=simflow.args.RADIOSS_DFLT_FNAME, val_format="%10.3g" ):
         WorkAction.__init__(self, name)
         
         self.fea_file_path = fea_file_path 

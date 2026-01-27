@@ -8,11 +8,11 @@ import numpy as np
 
 from pathlib import Path
 
-from simuflow.actions import WorkAction
-from simuflow.rare import HistoryEvaluation
+from simflow.actions import WorkAction
+from simflow.rare import HistoryEvaluation
 
-import simuflow.VTK.read_vtk as read_vtk
-import simuflow.args
+import simflow.VTK.read_vtk as read_vtk
+import simflow.args
 
 import logging
 logger = logging.getLogger(__name__)
@@ -309,7 +309,7 @@ class RunRadioss(WorkAction):
 
     """ OpenRadioss simulation """
 
-    def __init__( self, name, cmd='rad_dyna_inp', fe_path=simuflow.args.RADIOSS_DFLT_FNAME, create_d3plot=True ):
+    def __init__( self, name, cmd='rad_dyna_inp', fe_path=simflow.args.RADIOSS_DFLT_FNAME, create_d3plot=True ):
         """ 
 
         Args:

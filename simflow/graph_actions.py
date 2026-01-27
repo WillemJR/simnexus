@@ -9,9 +9,9 @@ import numbers
 
 import numpy as np
 
-from simuflow.actions import WorkAction
-from simuflow.util.observer import Observer
-import simuflow.args
+from simflow.actions import WorkAction
+from simflow.util.observer import Observer
+import simflow.args
 
 import logging
 logger = logging.getLogger(__name__)
@@ -162,14 +162,14 @@ class SimulationIterator(WorkAction):
         """
         Called in run subdirectory.
         """
-        with open(simuflow.args.ACTIONS_OUTPUT_PATH, 'wb') as f:
+        with open(simflow.args.ACTIONS_OUTPUT_PATH, 'wb') as f:
             pickle.dump(evals, f)
 
     def read_outputs( self ):
         """
         Called in run subdirectory.
         """
-        with open(simuflow.args.ACTIONS_OUTPUT_PATH, 'rb') as f:
+        with open(simflow.args.ACTIONS_OUTPUT_PATH, 'rb') as f:
             ret = pickle.load(f)
         return ret
 

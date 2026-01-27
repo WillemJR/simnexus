@@ -15,7 +15,7 @@ The library is designed to scale by using the Gemini CLI.
 ## Installation
 
 ```bash
-pip install simuflow
+pip install simflow
 ```
 
 ## Usage

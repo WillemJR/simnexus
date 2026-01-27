@@ -3,16 +3,16 @@ from abc import ABC, abstractmethod
 import pandas
 import numpy as np
 
-from simuflow.args import EvalType
+from simflow.args import EvalType
 
 import logging
 logger = logging.getLogger(__name__)
 
 from abc import ABC, abstractmethod
 
-from simuflow.util.observer import Subject, notify_observers
+from simflow.util.observer import Subject, notify_observers
 
-from simuflow.variables import Variable
+from simflow.variables import Variable
 
 
 class WorkAction(Subject):

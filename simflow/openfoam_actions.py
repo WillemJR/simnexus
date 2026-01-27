@@ -13,9 +13,9 @@ from typing import List, Tuple, Optional
 import logging
 logger = logging.getLogger(__name__)
 
-from simuflow.args import Location
-from simuflow.actions import WorkAction
-from simuflow.util.openfoam_reader import OpenFOAMFieldReader
+from simflow.args import Location
+from simflow.actions import WorkAction
+from simflow.util.openfoam_reader import OpenFOAMFieldReader
 
 
 class OpenFOAM_Field( WorkAction ):

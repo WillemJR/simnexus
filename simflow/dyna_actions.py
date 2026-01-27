@@ -5,9 +5,9 @@ import json
 import subprocess
 from pathlib import Path
 
-import simuflow.args
-from simuflow.actions import WorkAction
-from simuflow.graph_actions import WorkFlow
+import simflow.args
+from simflow.actions import WorkAction
+from simflow.graph_actions import WorkFlow
 
 import logging
 logger = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ class RunDyna(WorkAction):
             fe_path (str): parameterized keyword file
     """
 
-    def __init__( self, name, cmd=simuflow.args.DYNA_DFLT_CMD, fe_path=None ):
+    def __init__( self, name, cmd=simflow.args.DYNA_DFLT_CMD, fe_path=None ):
 
         assert fe_path is not None, 'No input LS-DYNA file specified.'
 
@@ -48,7 +48,7 @@ class RunDyna(WorkAction):
         with open( 'dyna_variables.json','w' ) as vf:
             json.dump( val_dict, vf )
 
-        base_file_name = simuflow.args.DYNA_BASE_FILE_NAME+'.k'
+        base_file_name = simflow.args.DYNA_BASE_FILE_NAME+'.k'
         
         with dynakw.DynaKeywordReader( fea_file_path ) as dkr:
             # Get existing parameters
