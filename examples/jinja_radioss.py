@@ -3,12 +3,12 @@ import os
 import sys
 from pathlib import Path
 
-# Add project root to path to ensure simuflow is found
+# Add project root to path to ensure simflow is found
 sys.path.append( str(Path(__file__).parent.parent) )
 
-from simuflow.jinja_action import JinjaReplace
-from simuflow.radioss_actions import RunRadioss
-from simuflow.graph_actions import WorkFlow
+from simflow.jinja_action import JinjaReplace
+from simflow.radioss_actions import RunRadioss
+from simflow.graph_actions import WorkFlow
 
 def main():
     # Paths

@@ -2,18 +2,21 @@
 API Reference
 =============
 
-.. automodule:: simuflow.actions
+.. automodule:: simflow.actions
    :members:
 
-.. automodule:: simuflow.curve_similarity
+.. automodule:: simflow.curve_similarity
    :members:
 
-.. automodule:: simuflow.variables
+.. automodule:: simflow.variables
    :members:
 
-.. automodule:: simuflow.dyna_actions
+.. automodule:: simflow.dyna_actions
    :members:
 
-.. automodule:: simuflow.d3plot_actions
+.. automodule:: simflow.d3plot_actions
+   :members:
+
+.. automodule:: simflow.graph_actions
    :members:
 

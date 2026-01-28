@@ -48,7 +48,7 @@ def test_seq( ):
     # iterator can runs different directories
     simu_iter = SimulationIterator( "Iter", chain, copy_files=['par_tens.k'] )
 
-    simu_iter.clean_rundir() # clean_start=True) )
+    simu_iter.rm_rundir() # clean_start=True) )
 
     evals = simu_iter.eval( { 'SIG_Y':300., 'E':123.4 } )
     #print( evals )
@@ -71,7 +71,7 @@ def test_seq( ):
     print( round( evals['field_hist'][0]['coords'][-1][-1][0],3) )
     assert round( evals['field_hist'][0]['coords'][-1][-1][0],3) == 61.222
 
-    simu_iter.clean_rundir()
+    simu_iter.rm_rundir()
 
 def test_hist_node( ):
 
@@ -85,12 +85,12 @@ def test_hist_node( ):
     # iterator can runs different directories
     simu_iter = SimulationIterator( "Iter", chain, copy_files=['par_tens.k'] )
 
-    simu_iter.clean_rundir() # clean_start=True) )
+    simu_iter.rm_rundir() # clean_start=True) )
 
     evals = simu_iter.eval( { 'SIG_Y':300., 'E':123.4  } )
     print( evals )
 
-    simu_iter.clean_rundir()
+    simu_iter.rm_rundir()
 
 def test_exp_des( ):
 
@@ -117,7 +117,7 @@ def test_exp_des( ):
 
     simu_iter = SimulationIterator( "Iter", chain, copy_files=['par_tens_1p.k'] )
 
-    simu_iter.clean_rundir() # clean_start=True) )
+    simu_iter.rm_rundir() # clean_start=True) )
 
     evals = simu_iter.eval( { 'SIG_Y':300., 'E':123.4, 'TERM': 40.0, 'WRITE_D3P': 10.0 } )
     #print( evals )
@@ -136,7 +136,7 @@ def test_exp_des( ):
             except: pass
         elif type(v) == dict:
             print( '\t\tdict keys:', v.keys() )
-    simu_iter.clean_rundir()
+    simu_iter.rm_rundir()
 
 def test_d3p( ):
 
@@ -159,7 +159,7 @@ def test_d3p( ):
     # -------------
 
     simu_iter = SimulationIterator( "Iter", chain, copy_files=['par_tens.k'] )
-    simu_iter.clean_rundir() # clean_start=True) )
+    simu_iter.rm_rundir() # clean_start=True) )
 
     evals = simu_iter.eval( { 'SIG_Y':300., 'E':123.4 } )
     #print( evals )
@@ -172,7 +172,7 @@ def test_d3p( ):
     assert round( evals['nfield']['node_displacement'][0][0] , 2 ) == 66.71 
     assert round( evals['efield']['element_shell_stress'][0][0][0] , 3 ) == 0.034 
 
-    simu_iter.clean_rundir()
+    simu_iter.rm_rundir()
 
 if __name__ == '__main__':
     #test_radios_eval()

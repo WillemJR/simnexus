@@ -12,11 +12,11 @@ author = 'Willem Roux'
 release = '1.0.1'
 
 # ---
-import sys, os
-from pathlib import Path
+#import sys, os
+#from pathlib import Path
 
-sys.path.insert(0, str(Path('..', '..').resolve()))
-sys.path.insert(0, str(Path('..').resolve()))
+#sys.path.insert(0, str(Path('..', '..').resolve()))
+#sys.path.insert(0, str(Path('..').resolve()))
 #sys.path.insert(0, os.path.abspath('..'))
 
 # -- General configuration ---------------------------------------------------
@@ -36,5 +36,6 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'alabaster'
+#html_theme = 'alabaster'
+html_theme = 'classic'
 html_static_path = ['_static']

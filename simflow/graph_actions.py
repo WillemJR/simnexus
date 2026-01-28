@@ -18,28 +18,30 @@ logger = logging.getLogger(__name__)
 
 class WorkArea(WorkAction):
     """
-    Evaluates graph in a seperate directory, possibly a remote directory (e.g. AWS).
-    Files may be copied to this area.
-    Copying files from an area is allowed for remote exectution using the proxy.
-    On the local machine this will be a directory down from the work directory,
-    e.g. CWD/WORK_AREA_NAME.
+    Evaluates graph in a seperate directory.
+    Previous results in the directory are overwritten.
+    Required files may be copied to this area.
+    This can be nested with other WorkAreas (?).
 
-    This can be nested with other WorkActions and remote execution.
-    A SimulationIterator is restricted to be top level for now.
+    Arguments:
+        graph (DirectedGraph) : DirectedGraph or WorkFlow  
+        work_area_path (str) : Default is to ./{graph.name}
+        copy_files (list) : List of names of file to be copied to work area.
+    Returns:
+        dict: Output from graph (it adds nothing).
     """
 
-    def __init__( self, name, graph, copy_files=None, clean_start=False ):
+    def __init__( self, graph, work_area_path=None, copy_files=None ):
 
-        super().__init__( name, "" )
+        super().__init__( graph.name+'_WorkArea', "" )
         assert isinstance( graph, DirectedGraph ) # ?
         self.graph = graph
         self.copy_paths = copy_files
-
-        self.last_job_path = None
+        if work_area_path is None:
+            work_area_path = Path.cwd().joinpath( self.graph.name )
+        self.work_area_path = Path( work_area_path )
 
         self._reset_file_paths()
-
-        if clean_start: self.clean_rundir()
 
 
     def _reset_file_paths( self ):
@@ -59,24 +61,30 @@ class WorkArea(WorkAction):
         return self.graph.eval_types()
 
 
-    def clean_rundir( self ):
-        sim_path = Path.cwd().joinpath( self.name )
+    def rm_rundir( self ):
+        sim_path = self.work_area_path
         if sim_path.exists():  shutil.rmtree( sim_path )
+
+    def _clean_inrundir( self ):
+        sim_path = self.work_area_path
+        if sim_path.exists():
+            for item in sim_path.iterdir():
+                if item.is_dir():
+                    shutil.rmtree(item)
+                else:
+                    item.unlink()
 
 
     def eval(self,  val_dict=None ):
-        """ eval FEA analysis using given parameter values.
-
-        e.g iter.eval( {'E':210.0, 'SIG_Y':sigy} )
-        """
+        # see base class
         
-        sim_path = Path.cwd().joinpath( self.name )
-        # NYI cannot run twice in same directory, because below?
+        sim_path = self.work_area_path
         if sim_path.exists():
-            exit( f' *** Error Results directory {sim_path} already exists. Restart is not yet supported.' )
+            self._clean_inrundir()
 
         root_dir = Path.cwd()
-        self.wa_path = root_dir.joinpath( self.name )
+        #self.wa_path = root_dir.joinpath( self.name )
+        self.wa_path = self.work_area_path
         self.wa_path.mkdir(mode=0o777, parents=True, exist_ok=True)
 
         if self.copy_paths is not None:
@@ -108,19 +116,21 @@ class WorkArea(WorkAction):
 
 class SimulationIterator(WorkAction):
     """
-    Calls a graph in different directories.
+    Calls a graph in different subdirectories -- a subdirectory per design.
     Used to iterate over different parameters/design values.
+
+    args:
+        name (str) :
+        graph (DirectedGraph) : DirectedGraph or WorkFlow  
+        parameter_list (list) : Only needed to provided default values to eval.
+        copy_files (list) : 
+        clean_start (bool) : 
+
+    Returns:
+        dict: Output from graph (it adds nothing).
     """
 
     def __init__( self, name, graph, parameter_list=[], copy_files=None, clean_start=False):
-        """
-        args:
-            name (str) :
-            graph (str) :
-            parameter_list (list) : Only needed to provided default values to eval.
-            copy_files (list) : 
-            clean_start (bool) : 
-        """
 
         super().__init__( name, "" )
 
@@ -133,12 +143,12 @@ class SimulationIterator(WorkAction):
 
         self.last_job_path = None
 
-        if clean_start: self.clean_rundir()
+        if clean_start: self.rm_rundir()
         self._check_names( [] )
 
         self.run_iter = 0
 
-    def clean_rundir( self ):
+    def rm_rundir( self ):
         sim_path = Path.cwd().joinpath( self.name )
         if sim_path.exists():  shutil.rmtree( sim_path )
 
@@ -238,10 +248,7 @@ class SimulationIterator(WorkAction):
 
 
     def eval(self,  val_dict=None ):
-        """ eval FEA analysis using given parameter values.
-
-        e.g iter.eval( {'E':210.0, 'SIG_Y':sigy} )
-        """
+        # see base class
         
         for def_par in self.parameter_list:
             if def_par.name not in val_dict: val_dict[def_par.name]=def_par.value
@@ -419,6 +426,7 @@ class DirectedGraph(WorkAction, Observer):
         return in_dict
 
     def eval(self, val_dict={}):
+        # see base class
 
         source_names = []
         parent_names = set()
