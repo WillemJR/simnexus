@@ -39,7 +39,10 @@ class WorkArea(WorkAction):
         self.copy_paths = copy_files
         if work_area_path is None:
             work_area_path = Path.cwd().joinpath( self.graph.name )
-        self.work_area_path = Path( work_area_path )
+        
+        # Expand ~ and environment variables
+        expanded_path = os.path.expandvars(os.path.expanduser(str(work_area_path)))
+        self.work_area_path = Path(expanded_path)
 
         self._reset_file_paths()
 
@@ -154,7 +157,10 @@ class SimulationIterator(WorkAction):
 
         if work_area_path is None:
             work_area_path = Path.cwd().joinpath( self.graph.name )
-        self.work_area_path = Path( work_area_path )
+        
+        # Expand ~ and environment variables
+        expanded_path = os.path.expandvars(os.path.expanduser(str(work_area_path)))
+        self.work_area_path = Path(expanded_path)
 
         if clean_start: self.rm_rundir()
 

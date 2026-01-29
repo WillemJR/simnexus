@@ -1,7 +1,7 @@
 
 # Simflow
 
-A Python module for orchestrating complex simulation workflows across multiple solvers and compute environments.
+A Python module for orchestrating complex simulation workflows across multiple solvers and compute environments with native support for LS-DYNA, Radioss, and OpenFOAM.
 
 ## Overview
 
@@ -11,7 +11,7 @@ remote execution to results extraction and post-processing.
 The module is particularly suited for simulations that span multiple domains, such as combined structural and fluid dynamics analyses.
 
 
-Simflow has a specific focus on native support for
+Simflow has a native support for
 solvers like LS-DYNA, Radioss, and OpenFOAM. 
 
 ## Key Features
@@ -55,12 +55,15 @@ pip install simflow
 
 
 * WorkArea 
-    * WorkArea and SimIter should not have a name. Instead graphName_WA and graphName_SI
-    * WorkArea should have a path argument; no name
+    * DONE: WorkArea should not have a name. Instead graphName_WA and graphName_SI
+    * DONE: WorkArea should have a path argument; no name
     * WorkArea should be argument to WorkFlow / Graph
     * SimIter should be subclass of WorkArea?
     * Part of above copy_files = in work_area and simulationIterator and remote
 
+* Simiter 
+    * DONE: SimIter should not have a name. Instead graphName_WA and graphName_SI
+    * Write variable values -- right now it is the input to eval
 
 * DONE: LS-DYNA
     * DONE: should use dynakw.parameters()

@@ -201,6 +201,8 @@ def test_mdo():
     # TODO need to check duplicate names, duplicate nodes
 
     itr.rm_rundir()
+    area1.rm_rundir()
+    area2.rm_rundir()
 
 
 if __name__ == "__main__":
