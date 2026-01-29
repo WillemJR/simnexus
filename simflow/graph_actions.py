@@ -33,8 +33,8 @@ class WorkArea(WorkAction):
 
     def __init__( self, graph, work_area_path=None, copy_files=None ):
 
+        assert isinstance( graph, DirectedGraph ) 
         super().__init__( graph.name+'_WorkArea', "" )
-        assert isinstance( graph, DirectedGraph ) # ?
         self.graph = graph
         self.copy_paths = copy_files
         if work_area_path is None:
@@ -119,10 +119,12 @@ class SimulationIterator(WorkAction):
     Calls a graph in different subdirectories -- a subdirectory per design.
     Used to iterate over different parameters/design values.
 
+    This is designed as a top-level action.
+
     args:
-        name (str) :
         graph (DirectedGraph) : DirectedGraph or WorkFlow  
         parameter_list (list) : Only needed to provided default values to eval.
+        work_area_path (str) : Default is to ./{graph.name}
         copy_files (list) : 
         clean_start (bool) : 
 
@@ -130,12 +132,15 @@ class SimulationIterator(WorkAction):
         dict: Output from graph (it adds nothing).
     """
 
-    def __init__( self, name, graph, parameter_list=[], copy_files=None, clean_start=False):
+    def __init__( self, graph, parameter_list=[],
+                 work_area_path=None, copy_files=None, clean_start=False):
 
-        super().__init__( name, "" )
+        assert isinstance( graph, WorkAction ) 
+        #assert isinstance( graph, DirectedGraph ) # ? must be a graph
+
+        super().__init__( graph.name+'_Iter', "" )
 
         # todo copy_files
-        #assert isinstance( graph, DirectedGraph ) # ? must be a graph
 
         self.graph = graph
         self.parameter_list = parameter_list
@@ -143,13 +148,19 @@ class SimulationIterator(WorkAction):
 
         self.last_job_path = None
 
-        if clean_start: self.rm_rundir()
         self._check_names( [] )
 
         self.run_iter = 0
 
+        if work_area_path is None:
+            work_area_path = Path.cwd().joinpath( self.graph.name )
+        self.work_area_path = Path( work_area_path )
+
+        if clean_start: self.rm_rundir()
+
     def rm_rundir( self ):
-        sim_path = Path.cwd().joinpath( self.name )
+        #sim_path = Path.cwd().joinpath( self.name )
+        sim_path = self.work_area_path
         if sim_path.exists():  shutil.rmtree( sim_path )
 
     def _check_names( self, name_list=[] ):
@@ -190,14 +201,16 @@ class SimulationIterator(WorkAction):
 
         dir_idx = 0
         root_dir = Path.cwd()
-        wrk_dir = Path.cwd().joinpath( self.name ).joinpath( 'job_' + str( dir_idx ) )
+        #wrk_dir = Path.cwd().joinpath( self.name ).joinpath( 'job_' + str( dir_idx ) )
+        wrk_dir = self.work_area_path.joinpath( 'job_' + str( dir_idx ) )
 
         ret = []
         while wrk_dir.exists():
             os.chdir( wrk_dir )
             ret.append( self.read_outputs() )
             dir_idx += 1
-            wrk_dir = root_dir.joinpath( self.name ).joinpath( 'job_' + str( dir_idx ) )
+            #wrk_dir = root_dir.joinpath( self.name ).joinpath( 'job_' + str( dir_idx ) )
+            wrk_dir = self.work_area_path.joinpath( 'job_' + str( dir_idx ) )
             os.chdir( root_dir )
 
         return ret
@@ -236,12 +249,14 @@ class SimulationIterator(WorkAction):
         j_iter = 0
 
         root_dir = Path.cwd()
-        job_path = root_dir.joinpath( self.name )
+        #job_path = root_dir.joinpath( self.name )
+        job_path = self.work_area_path
         job_path = job_path.joinpath( 'job_' + str( j_iter ) )
         while job_path.exists() :
             dirs.append( job_path )
             j_iter = j_iter + 1
-            job_path = root_dir.joinpath( self.name )
+            #job_path = root_dir.joinpath( self.name )
+            job_path = self.work_area_path
             job_path = job_path.joinpath( 'job_' + str( j_iter ) )
         
         return dirs
@@ -253,12 +268,14 @@ class SimulationIterator(WorkAction):
         for def_par in self.parameter_list:
             if def_par.name not in val_dict: val_dict[def_par.name]=def_par.value
 
-        sim_path = Path.cwd().joinpath( self.name )
+        #sim_path = Path.cwd().joinpath( self.name )
+        sim_path = self.work_area_path
         if 0 == self.run_iter and sim_path.exists():
             exit( f' *** Error Results directory {sim_path} already exists. Restart is not yet supported.' )
 
         root_dir = Path.cwd()
-        self.last_job_path = root_dir.joinpath( self.name )
+        #self.last_job_path = root_dir.joinpath( self.name )
+        self.last_job_path = self.work_area_path
         self.last_job_path = self.last_job_path.joinpath( 'job_' + str( self.run_iter ) )
         self.last_job_path.mkdir(mode=0o777, parents=True, exist_ok=True)
 

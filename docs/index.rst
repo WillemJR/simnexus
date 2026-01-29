@@ -8,7 +8,7 @@
 Simflow
 =========
 
-A Python module for orchestrating complex simulation workflows across multiple solvers and compute environments.
+A Python module for orchestrating complex simulation workflows across multiple solvers and compute environments with native support for LS-DYNA, Radioss, and OpenFOAM.
 
 Overview
 --------
@@ -18,7 +18,7 @@ multi-physics simulation workflows — from input preparation and
 remote execution to results extraction and post-processing.
 The module is particularly suited for simulations that span multiple domains, such as combined structural and fluid dynamics analyses.
 
-Simflow has a specific focus on native support for
+Simflow has native support for
 solvers like LS-DYNA, Radioss, and OpenFOAM. 
 
 Key Features
@@ -47,7 +47,6 @@ Simflow streamlines the complexity of managing heterogeneous simulation environm
    :caption: Contents:
 
    actions_descr
-   exa
    vars
    exa
    api

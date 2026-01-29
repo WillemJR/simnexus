@@ -26,7 +26,7 @@ class WorkAction(Subject):
         lower_bound (float) : Lower bound on output value during design
         upper_bound (float) : Lower bound on output value during design
     Returns:
-        Any
+        Any: outcome of operation
     """
 
     def __init__( self, name, cmd=None, lower_bound=None, upper_bound=None ):
@@ -81,9 +81,10 @@ class WorkAction(Subject):
         def eval(self,  val_dict=None ):
             ...
                     
-        You cannot do computations with the variables because
-        the values are only set at the end.
-        This means child actions are created with the variables.
+        Child actions are created with the variables.
+
+        You cannot do computations with the variables in
+        __init__() because the values are only set at the end.
         """
         def wrapper( self, *args, **kwargs ):
             v = func( self, *args, **kwargs )
@@ -187,7 +188,12 @@ class WorkAction(Subject):
 class MathEvaluation(WorkAction):
     """
     Mathematical operation on results.
-    Returns: outcome of operation
+
+    args:
+        name (str) :
+        cmd (str) :
+    Returns:
+        Any: outcome of operation
     """
 
     #def __init__( self, name, cmd ):
