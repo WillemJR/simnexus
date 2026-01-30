@@ -21,7 +21,9 @@ class WorkArea(WorkAction):
     Evaluates graph in a seperate directory.
     Previous results in the directory are overwritten.
     Required files may be copied to this area.
-    This can be nested with other WorkAreas (?).
+
+    Use SimulationIterator if you wish to have a subdirectory
+    for each design evaluated.
 
     Arguments:
         graph (DirectedGraph) : DirectedGraph or WorkFlow  
@@ -119,8 +121,9 @@ class WorkArea(WorkAction):
 
 class SimulationIterator(WorkAction):
     """
-    Calls a graph in different subdirectories -- a subdirectory per design.
-    Used to iterate over different parameters/design values.
+    Used to evaluate different designs in different directories.
+    It calls the graph in different subdirectories -- a subdirectory per design.
+    Use WorkArea to overwrite the results in a directory.
 
     This is designed as a top-level action.
 
@@ -404,8 +407,8 @@ class SimulationIterator(WorkAction):
 class DirectedGraph(WorkAction, Observer):
     
     """
-    A directed graph implementation using edges keeping track of the parents.
-    The parents are used to determine the order of evaluation.
+    A directed graph used to determine the order of evaluation and
+    dependencies.
 
     Used e.g. for MDO for solvers run in parallel.
     """ 
@@ -423,7 +426,7 @@ class DirectedGraph(WorkAction, Observer):
 
         args:
             action (action) :
-            parents (action) : Optional argument. Creates an graph edge from the parents to this node.
+            parents (list) : Creates an graph edge from the parent actions to this node. The action will wait for the parent actions to finish.
         """
         if not isinstance(action, WorkAction):
             raise TypeError("Node must be an instance of WorkAction")
@@ -497,10 +500,12 @@ class DirectedGraph(WorkAction, Observer):
 
     def update(self, message):
         """
-        From observer subject
+        From observer pattern. Called by actions that have finished.
+
+        Arguments:
+            message (any) :
         """
         nname = message[0].name
-        #print( f'Observed action \'{nname}\' finished.' )
         logger.info( f'Observed action \'{nname}\' finished.' )
         self.finished.add(nname)
 

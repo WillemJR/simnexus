@@ -27,7 +27,7 @@ class JinjaReplace(WorkAction):
 
     Args:
         name (str): The name of the action.
-        fea_file_path (str): Path to the Jinja2 template file.
+        input_file_path (str): Path to the input file. This is the template file marked up using jinja delimiters
         output_file_path (str, optional): Path where the processed file will be written. 
             Defaults to simflow.args.RADIOSS_DFLT_FNAME.
         val_format (str, optional): Format string for floating point values (e.g., "%10.3g"). 
@@ -35,14 +35,14 @@ class JinjaReplace(WorkAction):
     """
 
     @WorkAction.allow_variables_as_arguments
-    def __init__( self, name, fea_file_path,
+    def __init__( self, name, input_file_path,
                   output_file_path=simflow.args.RADIOSS_DFLT_FNAME, val_format="%10.3g" ):
         WorkAction.__init__(self, name)
         
-        self.fea_file_path = fea_file_path 
+        self.input_file_path = input_file_path 
         self.output_file_path = output_file_path
         if self.output_file_path is None:
-             self.output_file_path = fea_file_path
+             self.output_file_path = input_file_path
         self.val_format = val_format
 
         self.par_names = None
@@ -50,11 +50,11 @@ class JinjaReplace(WorkAction):
         
         self._get_parameters()
 
-        fea_file_path_obj = Path(self.fea_file_path).resolve()
+        input_file_path_obj = Path(self.input_file_path).resolve()
         jj_environment = jinja2.Environment(
-            loader=jinja2.FileSystemLoader(fea_file_path_obj.parent)
+            loader=jinja2.FileSystemLoader(input_file_path_obj.parent)
         )
-        self.template = jj_environment.get_template(fea_file_path_obj.name)
+        self.template = jj_environment.get_template(input_file_path_obj.name)
 
 
     def parameter_names( self ):
@@ -76,10 +76,10 @@ class JinjaReplace(WorkAction):
         Raises:
             FileNotFoundError: If the template file does not exist.
         """
-        if not Path( self.fea_file_path ).exists():
-            raise FileNotFoundError(f"template file not found: {self.fea_file_path}")
+        if not Path( self.input_file_path ).exists():
+            raise FileNotFoundError(f"template file not found: {self.input_file_path}")
 
-        with open(self.fea_file_path, 'r', encoding='utf-8') as file:
+        with open(self.input_file_path, 'r', encoding='utf-8') as file:
             template_source = file.read()
 
         self.env = jinja2.Environment()
@@ -120,7 +120,7 @@ class JinjaReplace(WorkAction):
         
         for k in new_vd.keys():
             if k not in self.par_names:
-                #print( f' *** WARNING Variable \'{k}\' not used in file \'{self.fea_file_path}\'.' )
+                #print( f' *** WARNING Variable \'{k}\' not used in file \'{self.input_file_path}\'.' )
                 pass
         for i,k in enumerate(self.par_names):
             if k not in variable_dict_in.keys() :

@@ -15,12 +15,11 @@ from lasso.dyna import FilterType
 from scipy.spatial.distance import directed_hausdorff
 from simflow.variables import FloatVariable
 from simflow.graph_actions import WorkFlow, SimulationIterator
-from simflow.d3plot_actions import d3plot_Open, d3plot_MultNodalFieldData, \
-                                 d3plot_MultElementFieldData, d3plot_MultElementNodalFieldData
+from simflow.d3plot_actions import d3plot_File
 from simflow.radioss_actions import RunRadioss, RadiossCSVHistory, CSVNodeLocationHistory, CSVNodeLocation
 from simflow.radioss_actions import FieldData, FieldDataHist
 from simflow.radioss_actions import NodalFieldData_VTK, ElementNodalFieldData_VTK, MetaData_VTK
-from simflow.jinja_action import JinjaReplace
+from simflow.jinja_actions import JinjaReplace
 
 import logging
 logging.basicConfig(filename='eval.log', filemode='w', level=logging.INFO )
@@ -30,7 +29,7 @@ def test_seq( ):
 
     chain = WorkFlow( 'RadiossChain' )
 
-    chain.add_action( JinjaReplace( name='SetVars', fea_file_path='par_tens.k' ) )
+    chain.add_action( JinjaReplace( name='SetVars', input_file_path='tests/par_tens.k' ) )
     chain.add_action( RunRadioss( 'RadiosRun' ) )
     chain.add_action( RadiossCSVHistory('hist_eval', '{"quantity":"EXTERNAL WORK" }' ) )
 
@@ -46,7 +45,7 @@ def test_seq( ):
                                      el_nodal_data_names=['2DELEM_Specific_Energy'] ) )
 
     # iterator can runs different directories
-    simu_iter = SimulationIterator( chain, copy_files=['par_tens.k'] )
+    simu_iter = SimulationIterator( chain, copy_files=['tests/par_tens.k'] )
 
     simu_iter.rm_rundir() # clean_start=True) )
 
@@ -77,13 +76,13 @@ def test_hist_node( ):
 
     chain = WorkFlow( 'RadiossChain' )
 
-    chain.add_action( JinjaReplace( name='SetVars', fea_file_path='par_tens.k' ) )
+    chain.add_action( JinjaReplace( name='SetVars', input_file_path='tests/par_tens.k' ) )
     chain.add_action( RunRadioss( 'RadiossRun' ) )
     chain.add_action( CSVNodeLocationHistory('node_loc_h', 851 ) )
     chain.add_action( CSVNodeLocation('node_loc', 851 ) )
 
     # iterator can runs different directories
-    simu_iter = SimulationIterator( chain, copy_files=['par_tens.k'] )
+    simu_iter = SimulationIterator( chain, copy_files=['tests/par_tens.k'] )
 
     simu_iter.rm_rundir() # clean_start=True) )
 
@@ -96,7 +95,7 @@ def test_exp_des( ):
 
     chain = WorkFlow( 'RadiossChain' )
 
-    chain.add_action( JinjaReplace( name='SetVars', fea_file_path='par_tens_1p.k' ) )
+    chain.add_action( JinjaReplace( name='SetVars', input_file_path='tests/par_tens_1p.k' ) )
     chain.add_action( RunRadioss( 'RadiossRun' ) )
     chain.add_action( CSVNodeLocationHistory('node_loc_h', 851 ) )
     chain.add_action( CSVNodeLocation('node_loc', 851 ) )
@@ -115,7 +114,7 @@ def test_exp_des( ):
     #                                    required_part_id=3, # NYI, bug if multiple parts?
     #                                    el_data_names=[ 'NODE_ID', '2DELEM_Specific_Energy' ],) )
 
-    simu_iter = SimulationIterator( chain, copy_files=['par_tens_1p.k'] )
+    simu_iter = SimulationIterator( chain, copy_files=['tests/par_tens_1p.k'] )
 
     simu_iter.rm_rundir() # clean_start=True) )
 
@@ -142,23 +141,23 @@ def test_d3p( ):
 
     chain = WorkFlow( 'RadiossChain' )
 
-    chain.add_action( JinjaReplace( name='SetVars', fea_file_path='par_tens.k' ) )
+    chain.add_action( JinjaReplace( name='SetVars', input_file_path='tests/par_tens.k' ) )
     chain.add_action( RunRadioss( 'RadiossRun', create_d3plot=True ) )
 
     # -------------
 
-    d3p = d3plot_Open( 'field' )
-    d3p.add_action( d3plot_MultNodalFieldData('nfield', state=2, required_part_id=3,
-                                                         node_data_names=[ 'node_ids', 'node_displacement' ] ))
-    #d3p.add_action( d3plot_MultElementNodalFieldData('nfield', state=2, required_part_id=3,  # TODO: map el to nodal
-    #                                                     element_nodal_data_names=[ 'node_ids', 'node_displacement' ] ))
-    d3p.add_action( d3plot_MultElementFieldData('efield', state=2, required_part_id=3, element_type=FilterType.SHELL,
-                                                         element_data_names=[ 'element_shell_stress', 'element_shell_internal_energy' ] ))
+    d3p = d3plot_File( 'field' )
+    d3p.MultNodalFieldData('nfield', state=2, required_part_id=3,
+                                                         node_data_names=[ 'node_ids', 'node_displacement' ] )
+    #d3p.MultElementNodalFieldData('nfield', state=2, required_part_id=3,  # TODO: map el to nodal
+    #                                                     element_nodal_data_names=[ 'node_ids', 'node_displacement' ] )
+    d3p.MultElementFieldData('efield', state=2, required_part_id=3, element_type=FilterType.SHELL,
+                                                         element_data_names=[ 'element_shell_stress', 'element_shell_internal_energy' ] )
     chain.add_action( d3p )
 
     # -------------
 
-    simu_iter = SimulationIterator( chain, copy_files=['par_tens.k'] )
+    simu_iter = SimulationIterator( chain, copy_files=['tests/par_tens.k'] )
     simu_iter.rm_rundir() # clean_start=True) )
 
     evals = simu_iter.eval( { 'SIG_Y':300., 'E':123.4 } )

@@ -6,7 +6,7 @@ from pathlib import Path
 # Add project root to path to ensure simflow is found
 sys.path.append( str(Path(__file__).parent.parent) )
 
-from simflow.jinja_action import JinjaReplace
+from simflow.jinja_actions import JinjaReplace
 from simflow.radioss_actions import RunRadioss
 from simflow.graph_actions import WorkFlow
 
@@ -24,7 +24,7 @@ def main():
     # and writes to 'par_tens_ready.k'
     jinja_act = JinjaReplace( 
         name='prepare_deck', 
-        fea_file_path=str(input_deck),
+        input_file_path=str(input_deck),
         #output_file_path=str(ready_deck),
         val_format="%10.3g"
     )

@@ -20,3 +20,7 @@ API Reference
 .. automodule:: simflow.graph_actions
    :members:
 
+.. automodule:: simflow.jinja_actions
+   :members:
+
+

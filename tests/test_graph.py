@@ -1,10 +1,11 @@
 
 import sys, os
 sys.path.append( "/".join(os.path.dirname(os.path.realpath(__file__)).split("/")[:-2]) )
+from pathlib import Path
 
 import simflow
 import simflow.radioss_actions
-import simflow.jinja_action
+import simflow.jinja_actions
 from simflow.variables import FloatVariable
 from simflow.graph_actions import DirectedGraph, WorkFlow, WorkArea, SimulationIterator
 from simflow.actions import WorkAction
@@ -46,6 +47,8 @@ def test_chain():
     assert result == {'V1': 5, 'V2': 3, 'S1': 1, 'B': 1, 'C': 1}
 
 def test_area(): 
+    fe_path = Path(__file__).parent.parent / "tests" / "spring.k"
+
     head_a = ExampleNode("Head")
     node_b11 = ExampleNode("Branch_11")
     tail_a = ExampleNode("Tail")
@@ -55,7 +58,7 @@ def test_area():
     graph.add_action( node_b11, [head_a] )
     graph.add_action( tail_a, [node_b11 ] )
 
-    area = WorkArea( graph, copy_files=['spring.k'] )
+    area = WorkArea( graph, copy_files=[fe_path] )
 
     result = area.eval( {"V1": 5, "Unused": -1} )
 

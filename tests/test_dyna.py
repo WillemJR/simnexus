@@ -4,7 +4,7 @@ from pathlib import Path
 
 from simflow.graph_actions import WorkFlow, WorkArea
 from simflow.dyna_actions import RunDyna
-from simflow.d3plot_actions import d3plot_Open, d3plot_NodalValue
+from simflow.d3plot_actions import d3plot_File
 
 def test_dyna_run_extract():
 
@@ -17,9 +17,9 @@ def test_dyna_run_extract():
     wf.add_action(run_dyna)
     
     # Results are extracted from the d3plot file.
-    d3p = d3plot_Open( 'field' )
-    d3p.add_action( d3plot_NodalValue('n5', state=1, nid=5, component= 'node_displacement'  ))
-    d3p.add_action( d3plot_NodalValue('c5', state=1, nid=5, component= 'node_coordinates'  ))
+    d3p = d3plot_File( 'field' )
+    d3p.NodalValue('n5', state=1, nid=5, component= 'node_displacement'  )
+    d3p.NodalValue('c5', state=1, nid=5, component= 'node_coordinates'  )
     wf.add_action( d3p )
 
     # Create WorkArea. We copy the spring.k file to the run directory
