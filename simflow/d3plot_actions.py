@@ -16,8 +16,8 @@ from lasso.dyna import D3plot, ArrayType, FilterType
 
 class d3plot_File(WorkFlow):
     """
-    This opens the d3plot file subsequent actions.
-    The subsequent d3plot read operations must be added to this file using the add_action method.
+    This opens the d3plot file for data extractions.
+    The subsequent d3plot read operations must be added using methods on this method.
 
     Args:
         name (str):

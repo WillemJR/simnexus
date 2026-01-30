@@ -307,17 +307,17 @@ class FieldDataHist(WorkAction):
 
 class RunRadioss(WorkAction):
 
-    """ OpenRadioss simulation """
-
-    def __init__( self, name, cmd='rad_dyna_inp', fe_path=simflow.args.RADIOSS_DFLT_FNAME, create_d3plot=True ):
-        """ 
+    """ Runs an openRadioss simulation
 
         Args:
             name (str):
-            cmd (str): path to radioss executable
-            fe_fname (str): parameterized keyword file
-            create_d3plot(bool): 
-        """
+            cmd (str): path to ls-dyna executable or command
+            fe_path (str): parameterized keyword file
+            create_d3plot (bool): Creates a d3plot files using
+                            vortex_radioss.animtod3plot.Anim_to_D3plot
+    """
+
+    def __init__( self, name, cmd='rad_dyna_inp', fe_path=simflow.args.RADIOSS_DFLT_FNAME, create_d3plot=True ):
 
         assert fe_path is not None, 'No input OpenRadioss file specified. Specify the path to radioss input file.'
 

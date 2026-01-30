@@ -18,7 +18,7 @@ import dynakw
 class RunDyna(WorkAction):
 
     """ This runs an LS-DYNA simulation.
-        It will substiture the \*PARAMETER values with
+        It will substitute the \*PARAMETER values with
         provided values.
 
         Args:
