@@ -1,4 +1,3 @@
-
 # Overview
 The 'simflow' python module is for modelling of complex simulations worklows.
 The workflow consists of of actions assembled into a directed graph.
@@ -22,16 +21,17 @@ simflow/
 ├── requirements.txt
 ├── docs/                   # documentation maintained using sphinx
 ├── simflow/                # python code directory
+│   ├── GEMINI.md           # implementaion details of the classes
 │   ├── __init__.py
-│   ├── actions.py          # base class for all action in the graph
+│   ├── actions.py          # base class for all actions in the graph
 │   ├── args.py             # enums, constaints and named tuples used in input arguments
 │   ├── graph_actions.py    # graph containing sequence of actions.
-│   ├── dyna_actions.py
-│   ├── d3plot_actions.py   # read data from a d3plot file
-│   ├── jinja_actions.py
-│   ├── radioss_actions.py
-│   ├── openfoam_actions.py    
-│   ├── remote_actions.py
+│   ├── dyna_actions.py     # execution of ls-dyna
+│   ├── d3plot_actions.py   # read ls-dyna data from a d3plot file
+│   ├── jinja_actions.py    # substition of variables in a file with jinja markup
+│   ├── radioss_actions.py  #  execution of Radioss and openRadioss
+│   ├── openfoam_actions.py #  execution of OpenFOAM
+│   ├── remote_actions.py   # remote execution
 │   ├── variables.py        # variable definition
 │   └── ...
 └── tests/                  # unit tests
@@ -60,11 +60,15 @@ Actions are organized into a `DirectedGraph` or the simpler linear`WorkFlow` to 
 Asynchronous Execution: `_observed_eval_async` allows running the action in a separate process, which is useful for parallelizing independent tasks in a `DirectedGraph`.
 
 
+# Remote execution
+The `simflow.remote_actions` module enables executing of actions on remote compute resources. It consists of the following:
+- **`ServerAction` (Remote)**: A gRPC server that accepts tasks, executes them in isolated temporary directories, and returns results.
+- **`RemoteAction` (Client)**: A wrapper that serializes a target `WorkAction` and its inputs (via `pickle`), sends them to the server, and retrieves the results and generated files.
 
 
-# Results directory structure 
+# Results directory structure for SimulationIterator
 
-The sesults directory structure is needed to postprocess and display results.
+The results directory structure is needed to postprocess and display results.
 
 OptimizationResults/
 ├── opt_hist.json
@@ -81,8 +85,8 @@ OptimizationResults/
 │   └── actions_output.pkl
 
 
-The {NAME} is a name of a directory that is input to the program.
-In side that directory are the job subdirectories named job_0, job_1, ..., job_{n}.
+The {NAME} is a name of a directory that is input to the program, typically the name of the graph.
+Inside that directory are the job subdirectories named job_0, job_1, ..., job_{n}.
 Inside each subdirectory are files named iter_variables.json and actions_output.pkl.
 We want to plot the data in these two files.
 
@@ -98,7 +102,3 @@ The actions_output.pkl is a binary file written using the pickle module.
 The content of the file is a dictionary. 
 and the values can be integers, floats, a numpy float, a list of floats,
 a numpy 1D array of floats, or an image stored as an numpy array.
-
-
-
-

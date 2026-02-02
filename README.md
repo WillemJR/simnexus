@@ -53,25 +53,18 @@ pip install simflow
 * How does FloatVariable interact with eval()?
      SimulationIterator( parameter_list= ) : for default values if not provided in eval
 
-
 * WorkArea 
-    * DONE: WorkArea should not have a name. Instead graphName_WA and graphName_SI
-    * DONE: WorkArea should have a path argument; no name
-    * WorkArea should be argument to WorkFlow / Graph
+    * WorkArea should be argument to WorkFlow / Graph. copy_files?
     * SimIter should be subclass of WorkArea?
     * Part of above copy_files = in work_area and simulationIterator and remote
 
 * Simiter 
-    * DONE: SimIter should not have a name. Instead graphName_WA and graphName_SI
-    * Write variable values -- right now it is the input to eval
-
-* DONE: LS-DYNA
-    * DONE: should use dynakw.parameters()
+    * DONE: Write variable values -- right now it is the input to eval
 
 * D3Plot clean up
+    * DONE: Make e.g. Nodal history method of d3plot_Open()
     * argument specifying how results are read. Component names differ
     * Arguments doc and clean up
-    * DONE: readname xxxx_d3plot must be d3plot__xxxx
     * Report BUG: coordinates is initial coordinates for all timesteps,
                node_displacement are coordinates
 

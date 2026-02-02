@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package simflow;
+
+service SimFlowRemote {
+  rpc RunAction (ActionRequest) returns (ActionResponse) {}
+}
+
+message File {
+  string name = 1;
+  bytes content = 2;
+}
+
+message ActionRequest {
+  string action_name = 1;
+  bytes pickled_action = 2; // Optional: if we want to send the whole action object
+  bytes pickled_val_dict = 3;
+  repeated File input_files = 4;
+  repeated string output_patterns = 5;
+}
+
+message ActionResponse {
+  bool success = 1;
+  string error_message = 2;
+  bytes pickled_results = 3; // The result dictionary
+  repeated File output_files = 4;
+}
