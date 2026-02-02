@@ -42,7 +42,7 @@ class FunctionEvaluation(WorkAction):
         self.args= args
         self.kwargs= kwargs
 
-    def eval(self,  val_dict=None ):
+    def solve(self,  val_dict=None ):
         v = self.func( *self.args, **self.kwargs )
         return v
 

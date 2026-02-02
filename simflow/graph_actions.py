@@ -80,7 +80,7 @@ class WorkArea(WorkAction):
                     item.unlink()
 
 
-    def eval(self,  val_dict=None ):
+    def solve(self,  val_dict=None ):
         # see base class
         
         sim_path = self.work_area_path
@@ -103,7 +103,7 @@ class WorkArea(WorkAction):
         os.chdir( self.wa_path )
         logger.info( f'Running in directory {self.wa_path}' )
 
-        ret = self.graph.eval( val_dict )
+        ret = self.graph.solve( val_dict )
 
         os.chdir( root_dir )
 
@@ -271,7 +271,7 @@ class SimulationIterator(WorkAction):
         return dirs
 
 
-    def eval(self,  val_dict=None ):
+    def solve(self,  val_dict=None ):
         # see base class
         
         for def_par in self.parameter_list:
@@ -301,7 +301,7 @@ class SimulationIterator(WorkAction):
         with open( 'iter_variables.json','w' ) as vf:
             json.dump( val_dict, vf )
 
-        ret = self.graph.eval( val_dict )
+        ret = self.graph.solve( val_dict )
 
         self.write_outputs( ret )
 
@@ -383,7 +383,7 @@ class SimulationIterator(WorkAction):
             print( f'\n\tRunning evaluation {iexp+1} of {len(exp_des)} {pars_vals}' )
             logger.info( f'\n\t Parameters: {pars_vals}' )
             logger.info(   f'\t Dependent parameters: {dependent_pars}' )
-            evals = self.eval( pars_vals )
+            evals = self.solve( pars_vals )
             for k,v in evals.items():
                 if isinstance(v,numbers.Number):
                     logger.info( f'\t\t Action: {k},{v}' )
@@ -451,7 +451,7 @@ class DirectedGraph(WorkAction, Observer):
         in_dict = { k:v for p in p_list for k,v in p.results().items() }
         return in_dict
 
-    def eval(self, val_dict={}):
+    def solve(self, val_dict={}):
         # see base class
 
         source_names = []

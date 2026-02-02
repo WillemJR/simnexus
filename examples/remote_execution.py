@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.INFO)
 
 # 1. Define a simple action to run remotely
 class MyRemoteTask(WorkAction):
-    def eval(self, val_dict=None):
+    def solve(self, val_dict=None):
         print(f"  [Remote] Executing MyRemoteTask with inputs: {val_dict}")
         
         # Perform computation
@@ -69,7 +69,7 @@ if __name__ == "__main__":
     # 4. Execute
     try:
         print(f"Sending task to remote... Data: {data}")
-        result = remote_task.eval(data)
+        result = remote_task.solve(data)
         print(f"Received Result: {result}")
         
         # Verify file reception

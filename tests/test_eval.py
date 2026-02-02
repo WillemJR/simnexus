@@ -22,7 +22,7 @@ from simflow.radioss_actions import NodalFieldData_VTK, ElementNodalFieldData_VT
 from simflow.jinja_actions import JinjaReplace
 
 import logging
-logging.basicConfig(filename='eval.log', filemode='w', level=logging.INFO )
+logging.basicConfig(filename='solve.log', filemode='w', level=logging.INFO )
 
 def test_seq( ):
 
@@ -49,7 +49,7 @@ def test_seq( ):
 
     simu_iter.rm_rundir() # clean_start=True) )
 
-    evals = simu_iter.eval( { 'SIG_Y':300., 'E':123.4 } )
+    evals = simu_iter.solve( { 'SIG_Y':300., 'E':123.4 } )
     #print( evals )
     print(  evals.keys() )
     #print( 'E', evals['E'] ) # FIXME, only passed in to eval exists
@@ -86,7 +86,7 @@ def test_hist_node( ):
 
     simu_iter.rm_rundir() # clean_start=True) )
 
-    evals = simu_iter.eval( { 'SIG_Y':300., 'E':123.4  } )
+    evals = simu_iter.solve( { 'SIG_Y':300., 'E':123.4  } )
     print( evals )
 
     simu_iter.rm_rundir()
@@ -118,7 +118,7 @@ def test_exp_des( ):
 
     simu_iter.rm_rundir() # clean_start=True) )
 
-    evals = simu_iter.eval( { 'SIG_Y':300., 'E':123.4, 'TERM': 40.0, 'WRITE_D3P': 10.0 } )
+    evals = simu_iter.solve( { 'SIG_Y':300., 'E':123.4, 'TERM': 40.0, 'WRITE_D3P': 10.0 } )
     #print( evals )
 
     print( '############################ EXP DES ###########################' )
@@ -160,7 +160,7 @@ def test_d3p( ):
     simu_iter = SimulationIterator( chain, copy_files=['tests/par_tens.k'] )
     simu_iter.rm_rundir() # clean_start=True) )
 
-    evals = simu_iter.eval( { 'SIG_Y':300., 'E':123.4 } )
+    evals = simu_iter.solve( { 'SIG_Y':300., 'E':123.4 } )
     #print( evals )
     print(  evals.keys() )
     #print( 'E', evals['E'] ) # FIXME, only passed in to eval exists

@@ -29,7 +29,7 @@ class OpenFOAM_Field( WorkAction ):
         self.field_var = field_variable
 
     @WorkAction.assign_variables_values_to_members
-    def eval( self, val_dict ):
+    def solve( self, val_dict ):
         time_dir = str(int(self.time))
         reader = OpenFOAMFieldReader( case_dir = self.case_name )
         field_type, field_data = reader.field( self.field_var, time_dir = time_dir, location = self.location)
@@ -47,7 +47,7 @@ class OpenFOAM_History( WorkAction ):
         self.field_var = field_variable
 
     @WorkAction.assign_variables_values_to_members
-    def eval( self, val_dict ):
+    def solve( self, val_dict ):
         reader = OpenFOAMFieldReader( case_dir = self.case_name )
         reslts = reader.point_history( field_name=self.field_var, point_idx=self.point_idx )
         return reslts

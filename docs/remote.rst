@@ -60,7 +60,7 @@ Here is a complete example of defining a task and running it on a local "remote"
 
     # 1. Define the task logic
     class AnalysisTask(WorkAction):
-        def eval(self, val_dict=None):
+        def solve(self, val_dict=None):
             # This code runs on the remote server
             x = val_dict.get('x', 0)
             result = x * 2
@@ -83,13 +83,13 @@ Here is a complete example of defining a task and running it on a local "remote"
     )
 
     # 3. Execute
-    # The eval() method will:
+    # The solve() method will:
     #   - Send 'task' and 'val_dict' to the server
     #   - Send 'local_config.ini'
     #   - Wait for completion
     #   - Return the result (x * 2)
     #   - Download 'output.txt' to the local current directory
-    result = remote_task.eval({'x': 21})
+    result = remote_task.solve({'x': 21})
 
 Implementation Details
 ----------------------

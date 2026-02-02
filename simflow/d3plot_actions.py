@@ -30,7 +30,7 @@ class d3plot_File(WorkFlow):
         super().__init__(name, None )
         self.d3plot_rootname = d3plot_rootname
 
-    def eval( self,  val_dict=None ):
+    def solve( self,  val_dict=None ):
         fname = self.d3plot_rootname 
         if not Path( fname ).exists():
             msg =  f"*** Error Cannot open '{fname}'. No such file in {Path.cwd()}" 
@@ -39,7 +39,7 @@ class d3plot_File(WorkFlow):
 
         d3plot = D3plot( fname )
         self.d3plot = d3plot
-        return super().eval( val_dict ) # graph method
+        return super().solve( val_dict ) # graph method
         
     def _node_idx_for_part( self, pid ):
         #f1 =  self._node_idx_for_shells_in_part(pid) # TODO maybe cache?
@@ -135,7 +135,7 @@ class _d3plot_PartMetaData(WorkAction):
     Returns:
             node ids, cell conn
     """
-    def eval( self,  val_dict=None ):
+    def solve( self,  val_dict=None ):
         d3p = self.parent.d3plot
 
         node_ids = d3p.arrays['node_ids']
@@ -160,7 +160,7 @@ class _d3plot_NodalFieldData(WorkAction):
         self.args= args
         self.kwargs= kwargs
 
-    def eval( self,  val_dict=None ):
+    def solve( self,  val_dict=None ):
         d3plot_File.check_if_d3plot_child(self)
         d3p = self.parent.d3plot
         try:
@@ -192,7 +192,7 @@ class _d3plot_MultNodalFieldData(WorkAction):
         self.args= args
         self.kwargs= kwargs
 
-    def eval( self,  val_dict=None ):
+    def solve( self,  val_dict=None ):
         d3plot_File.check_if_d3plot_child(self)
         d3p = self.parent.d3plot
         try:
@@ -224,7 +224,7 @@ class _d3plot_MultElementNodalFieldData(WorkAction):
         self.args= args
         self.kwargs= kwargs
 
-    def eval( self,  val_dict=None ):
+    def solve( self,  val_dict=None ):
         d3plot_File.check_if_d3plot_child(self)
         d3p = self.parent.d3plot
         try:
@@ -259,7 +259,7 @@ class _d3plot_MultElementFieldData(WorkAction):
         self.args= args
         self.kwargs= kwargs
 
-    def eval( self,  val_dict=None ):
+    def solve( self,  val_dict=None ):
         d3plot_File.check_if_d3plot_child(self)
         d3p = self.parent.d3plot
         try:
@@ -279,8 +279,8 @@ class _d3plot_MultElementFieldData(WorkAction):
 
 class _d3plot_NodalValue( _d3plot_NodalFieldData):
 
-    def eval( self,  val_dict=None ):
-        data = super().eval( val_dict )
+    def solve( self,  val_dict=None ):
+        data = super().solve( val_dict )
         #print( 'super data', data )
 
         assert 'nid' in self.kwargs, '\'nid\' is an required argument for d3plot_NodalValue.' 
@@ -300,13 +300,13 @@ class _d3plot_NodalValue( _d3plot_NodalFieldData):
 
 class _d3plot_NodalHistory( _d3plot_NodalValue):
 
-    def eval( self,  val_dict=None ):
+    def solve( self,  val_dict=None ):
 
         ns = self.parent.num_state()
 
         hist = []
         for istate in range( ns ):
             self.kwargs['state'] = istate
-            data = super().eval( val_dict )
+            data = super().solve( val_dict )
             hist.append( data )
         return np.array( (self.parent.d3plot.arrays['timesteps'],hist) )

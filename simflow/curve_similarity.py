@@ -25,7 +25,7 @@ class CurveSimilarity(WorkAction):
         self.similarity_measure = similarity_measure
         self.normalize = normalize
 
-    def eval( self,  val_dict=None ) -> float:
+    def solve( self,  val_dict=None ) -> float:
         """ Evaluate possibly using prev computed evaluation results in val_dict
 
         Returns:

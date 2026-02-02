@@ -13,7 +13,6 @@ from simflow.graph_actions import WorkFlow
 def main():
     # Paths
     input_deck = Path('tests/par_tens.k')
-    #ready_deck = Path('par_tens_ready.k')
 
     if not input_deck.exists():
         print(f"Error: {input_deck} not found. Run from project root.")
@@ -25,7 +24,6 @@ def main():
     jinja_act = JinjaReplace( 
         name='prepare_deck', 
         input_file_path=str(input_deck),
-        #output_file_path=str(ready_deck),
         val_format="%10.3g"
     )
 
@@ -35,49 +33,27 @@ def main():
     # Here we use a dummy command for demonstration.
     run_rad = RunRadioss( 
         name='run_solver', 
-        #fe_path=str(ready_deck),
         cmd='echo "Running Radioss Solver..."'
     )
 
     # 3. Create a workflow and add actions
-    wf = WorkFlow( 'tensile_test_workflow' )
+    wf = WorkFlow( 'RadiossWF' )
     wf.add_action( jinja_act )
     wf.add_action( run_rad )
 
     # 4. Execute the workflow
     # Provide values for the variables defined in the Jinja template
-    val_dict = {
-        'E': 210000.0, 
-        'SIG_Y': 250.0
-    }
+    val_dict = { 'E': 210000.0, 'SIG_Y': 250.0 }
 
     print("Starting workflow...")
     print(f"Parameters: {val_dict}")
     
     try:
-        wf.eval( val_dict )
+        wf.solve( val_dict )
         print("Workflow completed.")
     except Exception as e:
         print(f"Workflow execution stopped (expected if solver is missing): {e}")
 
-    # Verification
-    if ready_deck.exists():
-        print(f"\nVerification: '{ready_deck}' was created.")
-        with open(ready_deck, 'r') as f:
-            content = f.read()
-            # Check a few lines around the substitution
-            # In par_tens.k: 1, 7.8000E-06, {{E}}, 0.3, {{SIG_Y}}, ...
-            if "2.1e+05" in content and "250" in content:
-                print("Verification: Substitution successful.")
-                # find the line
-                for line in content.splitlines():
-                     if "2.1e+05" in line:
-                         print(f"Substituted line: {line.strip()}")
-            else:
-                print("Verification: Substitution content check failed.")
-    
-    if Path('run_file.k').exists():
-         print("Verification: 'run_file.k' was created by RunRadioss.")
-
 if __name__ == "__main__":
     main()
+

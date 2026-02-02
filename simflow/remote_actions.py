@@ -39,7 +39,7 @@ class RemoteAction(WorkAction):
         self.input_files = input_files or []
         self.output_patterns = output_patterns or []
 
-    def eval(self, val_dict=None):
+    def solve(self, val_dict=None):
         # 1. Prepare Request
         req = remote_actions_pb2.ActionRequest()
         req.action_name = self.target_action.name
@@ -116,7 +116,7 @@ class SimFlowService(remote_actions_pb2_grpc.SimFlowRemoteServicer):
             
             # We need to make sure the action doesn't crash
             try:
-                result = action.eval(val_dict)
+                result = action.solve(val_dict)
                 resp.success = True
                 resp.pickled_results = pickle.dumps(result)
             except Exception as e:

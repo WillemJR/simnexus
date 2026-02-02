@@ -31,7 +31,7 @@ def test_dyna_run_extract():
     
     # Run
     try:
-        results = wrk_area.eval(params)
+        results = wrk_area.solve(params)
         print("Results:", results)
     except Exception as e:
         print(f"Simulation execution failed: {e}")

@@ -15,15 +15,15 @@ from simflow.actions import WorkAction
 
 # Example subclass of WorkAction
 class ExampleNode(WorkAction):
-    def eval(self, val_dict=None):
-        # Example evaluation logic
+    def solve(self, val_dict=None):
+        # Example solve logic
         print( 'vd', self.name, val_dict)
         input_val = val_dict.get(self.name, 0) if val_dict else 0
         return input_val + 1
 import time
 class ExampleNodeLong(WorkAction):
-    def eval(self, val_dict=None):
-        # Example evaluation logic
+    def solve(self, val_dict=None):
+        # Example solve logic
         print( 'vd', self.name, val_dict)
         input_val = val_dict.get(self.name, 0) if val_dict else 0
         time.sleep(3)
@@ -40,8 +40,8 @@ def test_chain():
     graph = WorkFlow( 'WF', actions = [ node_a, node_b, node_c ] )
 
     # Evaluate starting from node A
-    #result = graph.eval( {"S1": 5,'E':3 })
-    result = graph.eval( {"V1": 5,'V2':3 })
+    #result = graph.solve( {"S1": 5,'E':3 })
+    result = graph.solve( {"V1": 5,'V2':3 })
     print("Final result:", result)
 
     assert result == {'V1': 5, 'V2': 3, 'S1': 1, 'B': 1, 'C': 1}
@@ -60,7 +60,7 @@ def test_area():
 
     area = WorkArea( graph, copy_files=[fe_path] )
 
-    result = area.eval( {"V1": 5, "Unused": -1} )
+    result = area.solve( {"V1": 5, "Unused": -1} )
 
     print("Final result:", result)
 
@@ -80,11 +80,11 @@ def test_iter():
 
     itr = SimulationIterator( graph, copy_files=['/home/willem/DEV/A_DEV/work_flow/TST/u_bend.k']  )
 
-    result = itr.eval( {"V1": 5, "Unused": -1} )
+    result = itr.solve( {"V1": 5, "Unused": -1} )
     print("Result:", result)
     assert result ==  {'V1': 5, 'Unused': -1, 'Head': 1, 'Branch_11': 1, 'Tail': 1}
 
-    result = itr.eval( {"V1": 4, "Unused": -1} )
+    result = itr.solve( {"V1": 4, "Unused": -1} )
     print("Result:", result)
     assert result == {'V1': 4, 'Unused': -1, 'Head': 1, 'Branch_11': 1, 'Tail': 1}
     
@@ -105,7 +105,7 @@ def test_split_stream():
     graph.add_action( node_b2, [head_a] )
     graph.add_action( tail_a, [node_b12, node_b2] )
 
-    result = graph.eval( {"V1": 5, "Unused": -1} )
+    result = graph.solve( {"V1": 5, "Unused": -1} )
 
     print("Final result:", result)
 
@@ -155,7 +155,7 @@ def test_graph():
     graph.add_edge(node_b, node_c)
 
     # Evaluate starting from node A
-    result = graph.eval( {"H": 1})
+    result = graph.solve( {"H": 1})
     print("Final result:", result)
 
     assert result == {'H': 1, 'S1': 1, 'B': 1, 'CC': 1, 'D': 1, 'C': 1, 'E': 1, 'S2': 1}
@@ -197,7 +197,7 @@ def test_mdo():
 
     itr = SimulationIterator( graph_main, clean_start=True )
 
-    result = itr.eval( {"V1": 5, "Unused": -1} )
+    result = itr.solve( {"V1": 5, "Unused": -1} )
     print("Result:", result)
     #assert result ==  {'Head': 6, 'Unused': -1, 'Branch_11': 1, 'Tail': 1}
 

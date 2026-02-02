@@ -18,7 +18,7 @@ def test_work_area_custom_path():
     params = {'x': 5}
     
     try:
-        res = wa.eval(params)
+        res = wa.solve(params)
         assert res['calc'] == 10
         assert custom_path.exists()
     finally:
@@ -45,7 +45,7 @@ def test_simulation_iterator_special_paths(path_template):
     try:
         # Run iteration
         params = {'x': 100}
-        res = sim_iter.eval(params) 
+        res = sim_iter.solve(params) 
         
         # Verify
         assert res['calc'] == 101

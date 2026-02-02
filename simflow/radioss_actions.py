@@ -55,7 +55,7 @@ class RadiossCSVHistory(HistoryEvaluation):
         self.parent_simu = None
 
 
-    def eval( self, val_dict=None ):
+    def solve( self, val_dict=None ):
 
         df = pandas.read_csv( RADIOSS_BASE_F_NAME+'T01.csv' )
 
@@ -92,7 +92,7 @@ class CSVNodeLocationHistory(HistoryEvaluation):
         self.parent_simu = None
 
 
-    def eval( self, val_dict=None ):
+    def solve( self, val_dict=None ):
         """ Extraction of Radioss nodal location history 
 
         Returns:
@@ -135,8 +135,8 @@ class CSVNodeLocation(CSVNodeLocationHistory):
         super().__init__(name, node_id )
         self.step = step
 
-    def eval( self,  val_dict=None ):
-        h = super().eval( val_dict )
+    def solve( self,  val_dict=None ):
+        h = super().solve( val_dict )
         return h[1][:, self.step]
 
     def _dump(self,  val_dict=None ):
@@ -154,9 +154,9 @@ class ScalarEvaluation(RadiossCSVHistory):
         self.args = json.loads( cmd )
         self.parent_simu = None
 
-    def eval( self,  val_dict=None ):
+    def solve( self,  val_dict=None ):
         #h = self.get_radios_hist( val_dict )
-        h = super().eval( val_dict )
+        h = super().solve( val_dict )
         return h[1][ self.args['step'] ]
 
     def _dump(self,  val_dict=None ):
@@ -182,7 +182,7 @@ class FieldData(WorkAction):
         self.kwargs= kwargs
 
 
-    def eval( self,  val_dict=None ):
+    def solve( self,  val_dict=None ):
         breakpoint()
         assert( 0 ), 'Deprecated use NodalFieldData_VTK etc'
 
@@ -208,7 +208,7 @@ class MetaData_VTK(FieldData):
         cells
         coords
     """
-    def eval( self,  val_dict=None ):
+    def solve( self,  val_dict=None ):
         data = super().eval_old( val_dict )
         ndata = data[0]
         edata = data[1]
@@ -228,7 +228,7 @@ class NodalFieldData_VTK(FieldData):
     Returns:
         node data
     """
-    def eval( self,  val_dict=None ):
+    def solve( self,  val_dict=None ):
         data = super().eval_old( val_dict )[0]['data']
         return data
 
@@ -244,7 +244,7 @@ class ElementNodalFieldData_VTK(FieldData):
     Returns:
         node data
     """
-    def eval( self,  val_dict=None ):
+    def solve( self,  val_dict=None ):
         data = super().eval_old( val_dict )[0]['data']
         return data
 
@@ -261,7 +261,7 @@ class ElementFieldData_VTK(FieldData):
     Returns:
         node data
     """
-    def eval( self,  val_dict=None ):
+    def solve( self,  val_dict=None ):
         assert 0, 'not tested'
         data = super().eval_old( val_dict )[1]['data']
         return data
@@ -278,7 +278,7 @@ class FieldDataHist(WorkAction):
         self.kwargs= kwargs
 
 
-    def eval( self,  val_dict=None ):
+    def solve( self,  val_dict=None ):
         coords = []
         #data =  # node_data_names
         # el_nodal_data_names becomes node data
@@ -352,7 +352,7 @@ class RunRadioss(WorkAction):
 
 
 
-    def eval( self,  val_dict=None ):
+    def solve( self,  val_dict=None ):
 
         if not Path( self.fea_file_path ).exists():
             exit( f' *** Error {self.fea_file_path} not in run directory. Likely not copied by Iterator.' )

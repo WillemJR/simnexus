@@ -66,7 +66,7 @@ class WorkAction(Subject):
 
         The  arguments to a class can be declared to be variables,
         e.g. Action( name=, cmd=, arg1=FloatVariable( 'E', 123.4 ) )
-        to be used as action.eval( {'E':3.} )
+        to be used as action.solve( {'E':3.} )
         This requires that the subclass must used the decorators
         allow_variables_as_arguments and
         assign_variables_values_to_members as:
@@ -78,7 +78,7 @@ class WorkAction(Subject):
 
         @WorkAction.assign_variables_values_to_members
 
-        def eval(self,  val_dict=None ):
+        def solve(self,  val_dict=None ):
             ...
                     
         Child actions are created with the variables.
@@ -93,7 +93,7 @@ class WorkAction(Subject):
         return wrapper
 
     def assign_variables_values_to_members( func ):
-        """ A decorator for the eval() method allowing you to
+        """ A decorator for the solve() method allowing you to
         use variables as arguments constructing this class."""
         def wrapper( self, val_dict ):
             self._set_arg_pars( val_dict )
@@ -129,7 +129,7 @@ class WorkAction(Subject):
             dict : { self.name:..., .... } # including items in val_dict
         """
         self._results =  val_dict.copy()
-        e = self.eval( val_dict )
+        e = self.solve( val_dict )
         self._results[self.name] = e
         self._notify_observers( [self, 'Done'] )
         return self._results 
@@ -139,11 +139,11 @@ class WorkAction(Subject):
         import threading
 
         """
-        Asynchronously run eval in a separate process.
+        Asynchronously run solve in a separate process.
         Notifies observers only when the process finishes.
         """
         def eval_worker(val_dict, result_dict):
-            e = self.eval(val_dict)
+            e = self.solve(val_dict)
             result_dict[self.name] = e
 
         def watcher(proc, result_dict):
@@ -163,7 +163,7 @@ class WorkAction(Subject):
         return None
 
     @abstractmethod
-    def eval(self,  val_dict=None ):
+    def solve(self,  val_dict=None ):
         assert 0, 'should not be called'
 
     def results(self):
@@ -199,7 +199,7 @@ class MathEvaluation(WorkAction):
     #def __init__( self, name, cmd ):
     #    super().__init__(name, cmd )
 
-    def eval(self,  val_dict=None ):
+    def solve(self,  val_dict=None ):
         try:
             v = eval( self.cmd, None, val_dict )
         except NameError as err:

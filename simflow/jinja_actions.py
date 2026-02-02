@@ -145,7 +145,7 @@ class JinjaReplace(WorkAction):
         return new_vd
 
     @WorkAction.assign_variables_values_to_members
-    def eval(self, val_dict=None):
+    def solve(self, val_dict=None):
         """
         Executes the replacement action.
 

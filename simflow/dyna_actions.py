@@ -35,7 +35,7 @@ class RunDyna(WorkAction):
         self.fea_file_path = fe_path
         self.fea_file_path = Path( self.fea_file_path ).name
 
-    def eval( self,  val_dict=None ):
+    def solve( self,  val_dict=None ):
         """ """
 
         if not Path( self.fea_file_path ).exists():
