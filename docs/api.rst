@@ -5,10 +5,10 @@ API Reference
 .. automodule:: simflow.actions
    :members:
 
-.. automodule:: simflow.curve_similarity
+.. automodule:: simflow.variables
    :members:
 
-.. automodule:: simflow.variables
+.. automodule:: simflow.graph_actions
    :members:
 
 .. automodule:: simflow.dyna_actions
@@ -17,10 +17,10 @@ API Reference
 .. automodule:: simflow.d3plot_actions
    :members:
 
-.. automodule:: simflow.graph_actions
+.. automodule:: simflow.jinja_actions
    :members:
 
-.. automodule:: simflow.jinja_actions
+.. automodule:: simflow.curve_similarity
    :members:
 
 

@@ -50,11 +50,15 @@ pip install simflow
 
 ## Todo
 
+* Documentation
+    Several: variables, graph, examples.
+
 * How does FloatVariable interact with eval()?
      SimulationIterator( parameter_list= ) : for default values if not provided in eval
 
 * WorkArea 
     * WorkArea should be argument to WorkFlow / Graph. copy_files?
+            self.work_area = WorkArea(self)?
     * SimIter should be subclass of WorkArea?
     * Part of above copy_files = in work_area and simulationIterator and remote
 
@@ -62,7 +66,6 @@ pip install simflow
     * DONE: Write variable values -- right now it is the input to eval
 
 * D3Plot clean up
-    * DONE: Make e.g. Nodal history method of d3plot_Open()
     * argument specifying how results are read. Component names differ
     * Arguments doc and clean up
     * Report BUG: coordinates is initial coordinates for all timesteps,
@@ -71,4 +74,5 @@ pip install simflow
 * similaritymeasures and numpy are requirements.
 
 * Set up remote using grpc
+   * Advanced? Graph defined on remote.
 

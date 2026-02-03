@@ -411,14 +411,26 @@ class DirectedGraph(WorkAction, Observer):
     dependencies.
 
     Used e.g. for MDO for solvers run in parallel.
+
+    Arguments:
+        name (str) : 
+        asynch (list) : 
+        work_area_path (str) : 
+    Returns:
+        dict: Dictionary containing action_name:action_result pairs
     """ 
 
-    def __init__(self, name, asynch=False):
+    def __init__(self, name, asynch=False, work_area_path=None):
         #self.adjacency_list = defaultdict(list)
         super().__init__( name, "" )
         self.parent_list = defaultdict(list)
         self.child_actions = {}
         self.asynch = asynch
+        self.work_area_path = work_area_path
+        if self.work_area_path:
+            self.work_area = WorkArea( self, work_area_path=self.work_area_path )
+        else:
+            self.work_area = None
 
     def add_action(self, action, parents=None):
         """
@@ -453,6 +465,14 @@ class DirectedGraph(WorkAction, Observer):
 
     def solve(self, val_dict={}):
         # see base class
+
+        if self.work_area:
+            if not hasattr(self, '_in_work_area') or not self._in_work_area:
+                self._in_work_area = True
+                try:
+                    return self.work_area.solve(val_dict)
+                finally:
+                    self._in_work_area = False
 
         source_names = []
         parent_names = set()
@@ -537,17 +557,29 @@ class DirectedGraph(WorkAction, Observer):
 class WorkFlow(DirectedGraph):
     """
     Calls a chain of evaluations. Results get passed down the chain.
+    Used when everything is sequential.
 
-    Used e.g. when everything is sequential.
+    Arguments:
+        name (str) : 
+        actions (list) : 
+        work_area_path (str) : 
+    Returns:
+        dict: Dictionary containing action_name:action_result pairs
     """
 
-    def __init__( self, name, actions=None ):
-        super().__init__( name  )
+    def __init__( self, name, actions=None, work_area_path=None ):
+        super().__init__( name, work_area_path=work_area_path )
         self.sequence = []
         if actions is not None:
             for e in actions: self.add_action(e)
 
     def add_action( self, action ):
+        """
+        Adds action to workflow.
+
+        Arguments:
+            name (action) : Action to add
+        """
         assert action.name != 'objective',  'objective is set using the \'set_call_protocol\' method.'
         action.parent = self
 
