@@ -53,8 +53,8 @@ pip install simflow
 * Documentation
     Several: variables, graph, examples.
 
-* How does FloatVariable interact with eval()?
-     SimulationIterator( parameter_list= ) : for default values if not provided in eval
+* How does FloatVariable interact with solve()?
+     SimulationIterator( parameter_list= ) : for default values if not provided in solve
 
 * WorkArea 
     * WorkArea should be argument to WorkFlow / Graph. copy_files?
@@ -63,7 +63,7 @@ pip install simflow
     * Part of above copy_files = in work_area and simulationIterator and remote
 
 * Simiter 
-    * DONE: Write variable values -- right now it is the input to eval
+    * DONE: Write variable values -- right now it is the input to solve
 
 * D3Plot clean up
     * argument specifying how results are read. Component names differ

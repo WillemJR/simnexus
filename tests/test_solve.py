@@ -52,7 +52,7 @@ def test_seq( ):
     evals = simu_iter.solve( { 'SIG_Y':300., 'E':123.4 } )
     #print( evals )
     print(  evals.keys() )
-    #print( 'E', evals['E'] ) # FIXME, only passed in to eval exists
+    #print( 'E', evals['E'] ) # FIXME, only passed in to solve exists
     print( 'SIG_Y', evals['SIG_Y'] )
     print( 'field.coords', evals['meta']['coords'].shape )
     print( 'field.coords', evals['meta']['coords'] )
@@ -163,7 +163,7 @@ def test_d3p( ):
     evals = simu_iter.solve( { 'SIG_Y':300., 'E':123.4 } )
     #print( evals )
     print(  evals.keys() )
-    #print( 'E', evals['E'] ) # FIXME, only passed in to eval exists
+    #print( 'E', evals['E'] ) # FIXME, only passed in to solve exists
     print( 'SIG_Y', evals['SIG_Y'] )
     #print( 'field.data', evals['field'].keys() )
     #print( '---------------------------------------- field_hist' )

@@ -12,7 +12,7 @@ class CurveSimilarity(WorkAction):
 
         Args:
             name (str): name of this evaluation
-            history_name (str): is name of Eval object returning a history ( float[...,2] )
+            history_name (str): is name of WorkAction object returning a history ( float[...,2] )
             experimental_data(str):  [num_points,2] is history to match
             similarity_measure=(str):  
             normalize (bool):  pcm always normalize curves

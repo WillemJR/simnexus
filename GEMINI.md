@@ -44,14 +44,14 @@ simflow/
 The `WorkAction` base class (defined in `simflow/actions.py`) is the base building block for operations in a workflow. It inherits from `Subject` to support the observer pattern, allowing the workflow manager (like `DirectedGraph` or `WorkFlow`) to track execution status.
 
 Key features:
-- **`eval(self, val_dict)`**: The abstract method that performs the action's logic. It receives a dictionary `val_dict` containing the current values of variables and results from prior actions. This method returns the data computed by the class.
+- **`solve(self, val_dict)`**: The abstract method that performs the action's logic. It receives a dictionary `val_dict` containing the current values of variables and results from prior actions. This method returns the data computed by the class.
 
 Subclasses of `WorkAction` implement specific tasks, such as `MathEvaluation` (performing calculations), or `CurveSimilarity` (comparing simulation results to experimental data).
 
 # Variables 
 Actions can accept `Variable` objects as arguments during initialization.
 
-The decorators `@WorkAction.allow_variables_as_arguments` and `@WorkAction.assign_variables_values_to_members` of an action are used to automatically resolve these variables to their numeric values from `val_dict` before `eval` is executed.
+The decorators `@WorkAction.allow_variables_as_arguments` and `@WorkAction.assign_variables_values_to_members` of an action are used to automatically resolve these variables to their numeric values from `val_dict` before `solve` is executed.
 
 
 # Setting up a workflow

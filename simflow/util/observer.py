@@ -7,7 +7,7 @@ def notify_observers(func):
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         result = func(self, *args, **kwargs)
-        self._notify_observers(f"Eval \'{self.name}\' Done")
+        self._notify_observers(f"Action \'{self.name}\' Done")
         return result
     return wrapper
 
