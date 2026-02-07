@@ -12,76 +12,101 @@ from simflow.remote_actions import RemoteAction, ServerAction
 
 logging.basicConfig(level=logging.INFO)
 
-# 1. Define a simple action to run remotely
-class MyRemoteTask(WorkAction):
+# --- 1. Define Actions to run remotely ---
+
+class AdderAction(WorkAction):
+    """Adds two numbers and creates a result file."""
     def solve(self, val_dict=None):
-        print(f"  [Remote] Executing MyRemoteTask with inputs: {val_dict}")
-        
-        # Perform computation
+        print(f"  [Remote] Executing AdderAction with inputs: {val_dict}")
         a = val_dict.get('a', 0)
         b = val_dict.get('b', 0)
         result = a + b
         
-        # Create a file
-        with open('result.txt', 'w') as f:
+        # Create a file to demonstrate file retrieval
+        with open('adder_result.txt', 'w') as f:
             f.write(f"The result of {a} + {b} is {result}\n")
             
         return result
 
-# 2. Server setup
+class MultiplierAction(WorkAction):
+    """Multiplies two numbers."""
+    def solve(self, val_dict=None):
+        print(f"  [Remote] Executing MultiplierAction with inputs: {val_dict}")
+        a = val_dict.get('a', 1)
+        b = val_dict.get('b', 1)
+        return a * b
+
+# --- 2. Server setup ---
+
 def run_server():
+    """
+    This normally runs remotely.
+    For the example a separate thread is used.
+    """
+    # Use port 50051 for the demo
     server = ServerAction(port=50051)
+    
+    # Register actions (Graphs) on the server
+    server.add_graph("adder", AdderAction("Adder"), "Adds 'a' and 'b', returns result and 'adder_result.txt'")
+    server.add_graph("multiplier", MultiplierAction("Multiplier"), "Multiplies 'a' and 'b'")
+    
     server.start()
     try:
-        # Keep running
         server.wait_for_termination()
     except KeyboardInterrupt:
         server.stop()
 
+# --- 3. Main Execution ---
+
 if __name__ == "__main__":
     # Start server in a separate thread for this demo
-    # In real usage, this would be on a different machine
     server_thread = threading.Thread(target=run_server, daemon=True)
     server_thread.start()
     
     # Give server a moment to start
     time.sleep(1)
     
-    # 3. Client setup
     print("\n--- Starting Client ---")
     
-    # Define the task to be run remotely
-    task = MyRemoteTask("adder")
+    # Create a generic RemoteAction client for discovery
+    client = RemoteAction(name="discovery_client", server_address='localhost:50051')
     
-    # Create the RemoteAction wrapper
-    # We want to retrieve 'result.txt'
-    remote_task = RemoteAction(
-        name="remote_adder",
-        target_action=task,
+    # 4. Discovery: Query available actions
+    print("\nQuerying available actions from server...")
+    available = client.available_actions()
+    for name, desc in available.items():
+        print(f"  - {name}: {desc}")
+    
+    # 5. Execute Actions
+    data = {'a': 12, 'b': 5}
+    
+    # Case A: Execute the Adder (with file retrieval)
+    print(f"\nExecuting 'adder' with data {data}...")
+    adder_client = RemoteAction(
+        name="run_adder",
+        target_action_name="adder",
         server_address='localhost:50051',
-        input_files=[], # No input files for this demo
-        output_patterns=['result.txt', ] 
+        output_patterns=['adder_result.txt']
     )
     
-    # Data context
-    data = {'a': 10, 'b': 32}
+    res_add = adder_client.solve(data)
+    print(f"Adder Result: {res_add}")
     
-    # 4. Execute
-    try:
-        print(f"Sending task to remote... Data: {data}")
-        result = remote_task.solve(data)
-        print(f"Received Result: {result}")
-        
-        # Verify file reception
-        if os.path.exists('result.txt'):
-            with open('result.txt', 'r') as f:
-                content = f.read()
-            print(f"Received File Content: {content.strip()}")
-            os.remove('result.txt') # Cleanup
-        else:
-            print("Error: result.txt was not received!")
-            
-    except Exception as e:
-        print(f"Execution failed: {e}")
-        
-    print("--- Done ---")
+    # Verify file reception
+    if os.path.exists('adder_result.txt'):
+        with open('adder_result.txt', 'r') as f:
+            print(f"Received File Content: {f.read().strip()}")
+        os.remove('adder_result.txt') # Cleanup
+    
+    # Case B: Execute the Multiplier
+    print(f"\nExecuting 'multiplier' with data {data}...")
+    mult_client = RemoteAction(
+        name="run_multiplier",
+        target_action_name="multiplier",
+        server_address='localhost:50051'
+    )
+    
+    res_mult = mult_client.solve(data)
+    print(f"Multiplier Result: {res_mult}")
+    
+    print("\n--- Done ---")

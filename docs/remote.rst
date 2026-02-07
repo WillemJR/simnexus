@@ -8,8 +8,8 @@ Architecture
 
 The remote execution system consists of two main components:
 
-1.  **Server (`ServerAction` or `NamedServerAction`)**: A process running on the remote machine that listens for incoming tasks. It executes each task in an isolated temporary directory. It can hold pre-registered "named" graphs.
-2.  **Client (`RemoteAction`)**: A special action type in your local workflow that wraps a standard action. It can either serialize a local action and send it to the server, or refer to a pre-registered action on the server by name.
+1.  **Server (`ServerAction` or `NamedServerAction`)**: A process running on the remote machine that listens for incoming tasks. It executes each task in an isolated temporary directory. It holds pre-registered "named" graphs.
+2.  **Client (`RemoteAction`)**: A special action type in your local workflow that refers to a pre-registered action on the server by name.
 
 .. warning::
     **Security Notice**: The data transfer relies on Python's `pickle` module for maximum flexibility. `pickle` is **not secure** against erroneous or maliciously constructed data. Never unpickle data received from an untrusted or unauthenticated source. This feature should only be used within trusted networks (e.g., internal HPC clusters, VPNs).
@@ -43,12 +43,11 @@ On the remote machine (or container), you need to start the `ServerAction`. You 
 Defining Remote Actions
 -----------------------
 
-To run an action remotely, you wrap it in a `RemoteAction`. You can either provide a `target_action` object (which will be sent to the server) or a `target_action_name` (which must correspond to an action registered on the server).
+To run an action remotely, you use a `RemoteAction`. You must provide a `target_action_name` which corresponds to an action registered on the server.
 
 Arguments:
     - ``name``: The name of the remote action wrapper.
-    - ``target_action``: (Optional) The actual `WorkAction` instance you want to execute remotely.
-    - ``target_action_name``: (Optional) The name of a pre-registered action on the server.
+    - ``target_action_name``: The name of a pre-registered action on the server.
     - ``server_address``: The address (`host:port`) of the remote server.
     - ``input_files``: A list of local file paths that need to be sent to the remote server.
     - ``output_patterns``: (Optional) A list of file patterns to retrieve.

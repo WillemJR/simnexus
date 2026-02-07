@@ -22,29 +22,23 @@ logger = logging.getLogger(__name__)
 
 class RemoteAction(WorkAction):
     """
-    Executes a wrapped WorkAction on a remote server via gRPC.
-    Can either send a target_action object or specify a target_action_name
-    to execute a pre-registered action on the server.
+    Executes a registered WorkAction on a remote server via gRPC.
+    Requires a target_action_name to execute a pre-registered action on the server.
     """
-    def __init__(self, name, target_action=None, server_address=None, input_files=None, output_patterns=None, target_action_name=None):
+    def __init__(self, name, target_action_name=None, server_address=None, input_files=None, output_patterns=None):
         """
         Args:
             name (str): Name of this action.
-            target_action (WorkAction, optional): The action to execute remotely (sent via pickle).
+            target_action_name (str, optional): Name of a pre-registered action on the server.
             server_address (str): 'host:port' of the remote server.
             input_files (list): List of file paths (local) to send to the remote.
             output_patterns (list): List of glob patterns for files to retrieve from remote.
-            target_action_name (str, optional): Name of a pre-registered action on the server.
         """
         super().__init__(name)
-        self.target_action = target_action
         self.target_action_name = target_action_name
         self.server_address = server_address
         self.input_files = input_files or []
         self.output_patterns = output_patterns or []
-
-        if not self.target_action and not self.target_action_name:
-            raise ValueError("Either target_action or target_action_name must be provided.")
 
     def available_actions(self):
         """
@@ -63,16 +57,14 @@ class RemoteAction(WorkAction):
             raise
 
     def solve(self, val_dict=None):
+        if not self.target_action_name:
+            raise ValueError("target_action_name must be provided to execute a remote action.")
+
         # 1. Prepare Request
         req = remote_actions_pb2.ActionRequest()
         
-        if self.target_action:
-            req.action_name = self.target_action.name
-            # Security Warning: pickling code/objects is dangerous if the server is untrusted.
-            req.pickled_action = pickle.dumps(self.target_action)
-        elif self.target_action_name:
-            req.action_name = self.target_action_name
-            req.target_action_name = self.target_action_name
+        req.action_name = self.target_action_name
+        req.target_action_name = self.target_action_name
         
         req.pickled_val_dict = pickle.dumps(val_dict)
         if self.output_patterns:
@@ -146,9 +138,7 @@ class SimFlowService(remote_actions_pb2_grpc.SimFlowRemoteServicer):
                     f.write(f_msg.content)
             
             # 2. Resolve action
-            if request.pickled_action:
-                action = pickle.loads(request.pickled_action)
-            elif request.target_action_name:
+            if request.target_action_name:
                 if request.target_action_name in self.actions_registry:
                     action = self.actions_registry[request.target_action_name]['graph']
                 else:
@@ -157,7 +147,7 @@ class SimFlowService(remote_actions_pb2_grpc.SimFlowRemoteServicer):
                     return resp
             else:
                 resp.success = False
-                resp.error_message = "Neither pickled_action nor target_action_name provided."
+                resp.error_message = "target_action_name not provided."
                 return resp
             
             val_dict = pickle.loads(request.pickled_val_dict)

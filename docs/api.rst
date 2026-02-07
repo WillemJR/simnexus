@@ -23,4 +23,7 @@ API Reference
 .. automodule:: simflow.curve_similarity
    :members:
 
+.. automodule:: simflow.remote_actions
+   :members:
+
 

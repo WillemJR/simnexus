@@ -40,6 +40,7 @@ and a DirectedGraph, which allows execution to branch and execute
 actions in parallel.
 
 To use a WorkFlow to evaluate actions sequentially:
+
 .. code-block:: python
 
     from simflow.dyna_actions import RunDyna
@@ -57,6 +58,7 @@ To use a WorkFlow to evaluate actions sequentially:
     print( 'Displacement of node 5', ret['n5'] ) 
 
 To use a DirectedGraph:
+
 .. code-block:: python
 
     from simflow.dyna_actions import RunDyna
@@ -65,4 +67,19 @@ Defining an user-action
 ------------------------
 You can create you own action by inheredting from WorkAction 
 and defining the actin in the 'solve()' method.
+
+.. code-block:: python
+    from simflow.actions import WorkAction
+
+    class AdderAction(WorkAction):
+        """Adds two numbers and creates a result file."""
+        def solve(self, val_dict=None):
+            print(f"  [Remote] Executing AdderAction with inputs: {val_dict}")
+            a = val_dict.get('a', 0)
+            b = val_dict.get('b', 0)
+            result = a + b
+
+            return result
+
+
 
