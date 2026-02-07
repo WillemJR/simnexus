@@ -62,8 +62,8 @@ Asynchronous Execution: `_observed_eval_async` allows running the action in a se
 
 # Remote execution
 The `simflow.remote_actions` module enables executing of actions on remote compute resources. It consists of the following:
-- **`ServerAction` (Remote)**: A gRPC server that accepts tasks, executes them in isolated temporary directories, and returns results.
-- **`RemoteAction` (Client)**: A wrapper that serializes a target `WorkAction` and its inputs (via `pickle`), sends them to the server, and retrieves the results and generated files.
+- **`ServerAction` / `NamedServerAction` (Remote)**: A gRPC server that accepts tasks, executes them in isolated temporary directories, and returns results. It supports registering named graphs via `add_graph(name, graph, description)` to avoid re-transmitting large graphs.
+- **`RemoteAction` (Client)**: A wrapper that serializes a target `WorkAction` and its inputs (via `pickle`), sends them to the server, and retrieves the results and generated files. It can also refer to pre-registered graphs on the server using `target_action_name`. Discoverability of server-side actions is provided via `available_actions()`.
 
 
 # Results directory structure for SimulationIterator

@@ -4,6 +4,18 @@ package simflow;
 
 service SimFlowRemote {
   rpc RunAction (ActionRequest) returns (ActionResponse) {}
+  rpc GetAvailableActions (Empty) returns (AvailableActionsResponse) {}
+}
+
+message Empty {}
+
+message ActionInfo {
+  string name = 1;
+  string description = 2;
+}
+
+message AvailableActionsResponse {
+  repeated ActionInfo actions = 1;
 }
 
 message File {
@@ -17,6 +29,7 @@ message ActionRequest {
   bytes pickled_val_dict = 3;
   repeated File input_files = 4;
   repeated string output_patterns = 5;
+  string target_action_name = 6; // name of action already on server
 }
 
 message ActionResponse {

@@ -6,8 +6,8 @@
 The `simflow.remote_actions` module enables executing actions on remote compute resources.
 
 **Architecture:**
-- **`ServerAction` (Remote)**: A gRPC server that accepts tasks, executes them in isolated temporary directories, and returns results.
-- **`RemoteAction` (Client)**: A wrapper that serializes a target `WorkAction` and its inputs (via `pickle`), sends them to the server, and retrieves the results and generated files.
+- **`ServerAction` / `NamedServerAction` (Remote)**: A gRPC server that accepts tasks, executes them in isolated temporary directories, and returns results. Supports `add_graph(name, graph, description)` for pre-registering workflows.
+- **`RemoteAction` (Client)**: A wrapper that serializes a target `WorkAction` or specifies a `target_action_name` to execute a pre-registered graph.
 
 **Protocol:**
 - Defined in `simflow/protos/remote_actions.proto`.

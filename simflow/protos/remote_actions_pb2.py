@@ -24,19 +24,25 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n#simflow/protos/remote_actions.proto\x12\x07simflow\"%\n\x04\x46ile\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x02 \x01(\x0c\"\x93\x01\n\rActionRequest\x12\x13\n\x0b\x61\x63tion_name\x18\x01 \x01(\t\x12\x16\n\x0epickled_action\x18\x02 \x01(\x0c\x12\x18\n\x10pickled_val_dict\x18\x03 \x01(\x0c\x12\"\n\x0binput_files\x18\x04 \x03(\x0b\x32\r.simflow.File\x12\x17\n\x0foutput_patterns\x18\x05 \x03(\t\"v\n\x0e\x41\x63tionResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x15\n\rerror_message\x18\x02 \x01(\t\x12\x17\n\x0fpickled_results\x18\x03 \x01(\x0c\x12#\n\x0coutput_files\x18\x04 \x03(\x0b\x32\r.simflow.File2O\n\rSimFlowRemote\x12>\n\tRunAction\x12\x16.simflow.ActionRequest\x1a\x17.simflow.ActionResponse\"\x00\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n#simflow/protos/remote_actions.proto\x12\x07simflow\"\x07\n\x05\x45mpty\"/\n\nActionInfo\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x13\n\x0b\x64\x65scription\x18\x02 \x01(\t\"@\n\x18\x41vailableActionsResponse\x12$\n\x07\x61\x63tions\x18\x01 \x03(\x0b\x32\x13.simflow.ActionInfo\"%\n\x04\x46ile\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x02 \x01(\x0c\"\xaf\x01\n\rActionRequest\x12\x13\n\x0b\x61\x63tion_name\x18\x01 \x01(\t\x12\x16\n\x0epickled_action\x18\x02 \x01(\x0c\x12\x18\n\x10pickled_val_dict\x18\x03 \x01(\x0c\x12\"\n\x0binput_files\x18\x04 \x03(\x0b\x32\r.simflow.File\x12\x17\n\x0foutput_patterns\x18\x05 \x03(\t\x12\x1a\n\x12target_action_name\x18\x06 \x01(\t\"v\n\x0e\x41\x63tionResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x15\n\rerror_message\x18\x02 \x01(\t\x12\x17\n\x0fpickled_results\x18\x03 \x01(\x0c\x12#\n\x0coutput_files\x18\x04 \x03(\x0b\x32\r.simflow.File2\x9b\x01\n\rSimFlowRemote\x12>\n\tRunAction\x12\x16.simflow.ActionRequest\x1a\x17.simflow.ActionResponse\"\x00\x12J\n\x13GetAvailableActions\x12\x0e.simflow.Empty\x1a!.simflow.AvailableActionsResponse\"\x00\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'simflow.protos.remote_actions_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
-  _globals['_FILE']._serialized_start=48
-  _globals['_FILE']._serialized_end=85
-  _globals['_ACTIONREQUEST']._serialized_start=88
-  _globals['_ACTIONREQUEST']._serialized_end=235
-  _globals['_ACTIONRESPONSE']._serialized_start=237
-  _globals['_ACTIONRESPONSE']._serialized_end=355
-  _globals['_SIMFLOWREMOTE']._serialized_start=357
-  _globals['_SIMFLOWREMOTE']._serialized_end=436
+  _globals['_EMPTY']._serialized_start=48
+  _globals['_EMPTY']._serialized_end=55
+  _globals['_ACTIONINFO']._serialized_start=57
+  _globals['_ACTIONINFO']._serialized_end=104
+  _globals['_AVAILABLEACTIONSRESPONSE']._serialized_start=106
+  _globals['_AVAILABLEACTIONSRESPONSE']._serialized_end=170
+  _globals['_FILE']._serialized_start=172
+  _globals['_FILE']._serialized_end=209
+  _globals['_ACTIONREQUEST']._serialized_start=212
+  _globals['_ACTIONREQUEST']._serialized_end=387
+  _globals['_ACTIONRESPONSE']._serialized_start=389
+  _globals['_ACTIONRESPONSE']._serialized_end=507
+  _globals['_SIMFLOWREMOTE']._serialized_start=510
+  _globals['_SIMFLOWREMOTE']._serialized_end=665
 # @@protoc_insertion_point(module_scope)

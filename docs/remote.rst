@@ -8,8 +8,8 @@ Architecture
 
 The remote execution system consists of two main components:
 
-1.  **Server (`ServerAction`)**: A process running on the remote machine that listens for incoming tasks. It executes each task in an isolated temporary directory.
-2.  **Client (`RemoteAction`)**: A special action type in your local workflow that wraps a standard action. It serializes the action and its inputs, sends them to the server, waits for the result, and retrieves any generated files.
+1.  **Server (`ServerAction` or `NamedServerAction`)**: A process running on the remote machine that listens for incoming tasks. It executes each task in an isolated temporary directory. It can hold pre-registered "named" graphs.
+2.  **Client (`RemoteAction`)**: A special action type in your local workflow that wraps a standard action. It can either serialize a local action and send it to the server, or refer to a pre-registered action on the server by name.
 
 .. warning::
     **Security Notice**: The data transfer relies on Python's `pickle` module for maximum flexibility. `pickle` is **not secure** against erroneous or maliciously constructed data. Never unpickle data received from an untrusted or unauthenticated source. This feature should only be used within trusted networks (e.g., internal HPC clusters, VPNs).
@@ -17,14 +17,19 @@ The remote execution system consists of two main components:
 Setting up the Server
 ---------------------
 
-On the remote machine (or container), you need to start the `ServerAction`. This server will listen for incoming gRPC requests.
+On the remote machine (or container), you need to start the `ServerAction`. You can also register specific graphs that clients can then trigger by name.
 
 .. code-block:: python
 
-    from simflow.remote_actions import ServerAction
+    from simflow.remote_actions import NamedServerAction
+    from my_project import MyHeavyWorkflow
 
     # Start the server on port 50051
-    server = ServerAction(port=50051)
+    server = NamedServerAction(port=50051)
+    
+    # Pre-register a workflow
+    workflow = MyHeavyWorkflow("simulation_v1")
+    server.add_graph("heavy_sim", workflow, "Runs the standard heavy simulation v1")
     
     print("Server is running...")
     server.start()
@@ -38,58 +43,47 @@ On the remote machine (or container), you need to start the `ServerAction`. This
 Defining Remote Actions
 -----------------------
 
-To run an action remotely, you wrap it in a `RemoteAction`.
+To run an action remotely, you wrap it in a `RemoteAction`. You can either provide a `target_action` object (which will be sent to the server) or a `target_action_name` (which must correspond to an action registered on the server).
 
 Arguments:
     - ``name``: The name of the remote action wrapper.
-    - ``target_action``: The actual `WorkAction` instance you want to execute remotely.
+    - ``target_action``: (Optional) The actual `WorkAction` instance you want to execute remotely.
+    - ``target_action_name``: (Optional) The name of a pre-registered action on the server.
     - ``server_address``: The address (`host:port`) of the remote server.
     - ``input_files``: A list of local file paths that need to be sent to the remote server.
-    - ``output_patterns``: (Optional) A list of file patterns to retrieve (currently, the server attempts to return all created files).
+    - ``output_patterns``: (Optional) A list of file patterns to retrieve.
 
-Example
--------
+Discovering Available Actions
+-----------------------------
 
-Here is a complete example of defining a task and running it on a local "remote" server.
+If a server has pre-registered actions, you can query them from the client:
 
 .. code-block:: python
 
-    import os
-    from simflow.actions import WorkAction
+    remote = RemoteAction(name="query", server_address='remote-host:50051')
+    actions = remote.available_actions()
+    for name, desc in actions.items():
+        print(f"Action: {name} - {desc}")
+
+Example: Using a Named Action
+-----------------------------
+
+Using a named action reduces network overhead as the graph structure itself is already on the server.
+
+.. code-block:: python
+
     from simflow.remote_actions import RemoteAction
 
-    # 1. Define the task logic
-    class AnalysisTask(WorkAction):
-        def solve(self, val_dict=None):
-            # This code runs on the remote server
-            x = val_dict.get('x', 0)
-            result = x * 2
-            
-            # Write a file on the remote server
-            with open('output.txt', 'w') as f:
-                f.write(f"Result is {result}")
-            
-            return result
-
-    # 2. Configure the remote wrapper
-    task = AnalysisTask("remote_analysis")
-    
+    # Configure the remote wrapper using a named action
     remote_task = RemoteAction(
         name="remote_wrapper",
-        target_action=task,
-        server_address='localhost:50051',  # Address of the running ServerAction
-        input_files=['local_config.ini'],  # Files to send
-        output_patterns=['output.txt']     # Files to expect back
+        target_action_name="heavy_sim",
+        server_address='remote-host:50051',
+        output_patterns=['results.csv']
     )
 
-    # 3. Execute
-    # The solve() method will:
-    #   - Send 'task' and 'val_dict' to the server
-    #   - Send 'local_config.ini'
-    #   - Wait for completion
-    #   - Return the result (x * 2)
-    #   - Download 'output.txt' to the local current directory
-    result = remote_task.solve({'x': 21})
+    # Execute
+    result = remote_task.solve({'param1': 100})
 
 Implementation Details
 ----------------------

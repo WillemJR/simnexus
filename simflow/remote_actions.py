@@ -23,29 +23,57 @@ logger = logging.getLogger(__name__)
 class RemoteAction(WorkAction):
     """
     Executes a wrapped WorkAction on a remote server via gRPC.
+    Can either send a target_action object or specify a target_action_name
+    to execute a pre-registered action on the server.
     """
-    def __init__(self, name, target_action, server_address, input_files=None, output_patterns=None):
+    def __init__(self, name, target_action=None, server_address=None, input_files=None, output_patterns=None, target_action_name=None):
         """
         Args:
             name (str): Name of this action.
-            target_action (WorkAction): The action to execute remotely.
+            target_action (WorkAction, optional): The action to execute remotely (sent via pickle).
             server_address (str): 'host:port' of the remote server.
             input_files (list): List of file paths (local) to send to the remote.
             output_patterns (list): List of glob patterns for files to retrieve from remote.
+            target_action_name (str, optional): Name of a pre-registered action on the server.
         """
         super().__init__(name)
         self.target_action = target_action
+        self.target_action_name = target_action_name
         self.server_address = server_address
         self.input_files = input_files or []
         self.output_patterns = output_patterns or []
 
+        if not self.target_action and not self.target_action_name:
+            raise ValueError("Either target_action or target_action_name must be provided.")
+
+    def available_actions(self):
+        """
+        Queries the remote server for available registered actions.
+        
+        Returns:
+            dict: A dictionary mapping action names to their descriptions.
+        """
+        try:
+            with grpc.insecure_channel(self.server_address, options=OPTIONS) as channel:
+                stub = remote_actions_pb2_grpc.SimFlowRemoteStub(channel)
+                resp = stub.GetAvailableActions(remote_actions_pb2.Empty())
+                return {a.name: a.description for a in resp.actions}
+        except grpc.RpcError as e:
+            logger.error(f"Error querying available actions: {e}")
+            raise
+
     def solve(self, val_dict=None):
         # 1. Prepare Request
         req = remote_actions_pb2.ActionRequest()
-        req.action_name = self.target_action.name
         
-        # Security Warning: pickling code/objects is dangerous if the server is untrusted.
-        req.pickled_action = pickle.dumps(self.target_action)
+        if self.target_action:
+            req.action_name = self.target_action.name
+            # Security Warning: pickling code/objects is dangerous if the server is untrusted.
+            req.pickled_action = pickle.dumps(self.target_action)
+        elif self.target_action_name:
+            req.action_name = self.target_action_name
+            req.target_action_name = self.target_action_name
+        
         req.pickled_val_dict = pickle.dumps(val_dict)
         if self.output_patterns:
             req.output_patterns.extend(self.output_patterns)
@@ -90,6 +118,17 @@ class RemoteAction(WorkAction):
 
 
 class SimFlowService(remote_actions_pb2_grpc.SimFlowRemoteServicer):
+    def __init__(self, actions_registry=None):
+        self.actions_registry = actions_registry or {}
+
+    def GetAvailableActions(self, request, context):
+        resp = remote_actions_pb2.AvailableActionsResponse()
+        for name, info in self.actions_registry.items():
+            action_info = resp.actions.add()
+            action_info.name = name
+            action_info.description = info.get('description', '')
+        return resp
+
     def RunAction(self, request, context):
         resp = remote_actions_pb2.ActionResponse()
         tmp_dir = tempfile.mkdtemp(prefix=f"simflow_remote_{request.action_name}_")
@@ -106,15 +145,24 @@ class SimFlowService(remote_actions_pb2_grpc.SimFlowRemoteServicer):
                 with open(f_msg.name, 'wb') as f:
                     f.write(f_msg.content)
             
-            # 2. Unpickle action and arguments
-            action = pickle.loads(request.pickled_action)
+            # 2. Resolve action
+            if request.pickled_action:
+                action = pickle.loads(request.pickled_action)
+            elif request.target_action_name:
+                if request.target_action_name in self.actions_registry:
+                    action = self.actions_registry[request.target_action_name]['graph']
+                else:
+                    resp.success = False
+                    resp.error_message = f"Action '{request.target_action_name}' not found on server."
+                    return resp
+            else:
+                resp.success = False
+                resp.error_message = "Neither pickled_action nor target_action_name provided."
+                return resp
+            
             val_dict = pickle.loads(request.pickled_val_dict)
             
             # 3. Execute
-            # Ensure the action uses the current directory (tmp_dir)
-            # Many actions in simflow likely write to CWD.
-            
-            # We need to make sure the action doesn't crash
             try:
                 result = action.solve(val_dict)
                 resp.success = True
@@ -135,8 +183,6 @@ class SimFlowService(remote_actions_pb2_grpc.SimFlowRemoteServicer):
                         found_files.add(match)
 
             for fname in found_files:
-                # potentially filter out input files if needed, but maybe not necessary
-                # limit size?
                 if os.path.getsize(fname) > MAX_MESSAGE_LENGTH:
                     logger.warning(f"File {fname} too large to send back via gRPC")
                     continue
@@ -159,18 +205,29 @@ class SimFlowService(remote_actions_pb2_grpc.SimFlowRemoteServicer):
 class ServerAction:
     """
     Starts a gRPC server to execute actions remotely.
+    Can be configured with pre-registered actions (graphs).
     """
     def __init__(self, port=50051, max_workers=10):
         self.port = port
         self.max_workers = max_workers
         self.server = None
+        self.actions_registry = {}
+
+    def add_graph(self, name, graph, description=""):
+        """
+        Registers a graph (WorkAction) with a name and description.
+        """
+        self.actions_registry[name] = {'graph': graph, 'description': description}
 
     def start(self):
         self.server = grpc.server(
             futures.ThreadPoolExecutor(max_workers=self.max_workers),
             options=OPTIONS
         )
-        remote_actions_pb2_grpc.add_SimFlowRemoteServicer_to_server(SimFlowService(), self.server)
+        remote_actions_pb2_grpc.add_SimFlowRemoteServicer_to_server(
+            SimFlowService(self.actions_registry), 
+            self.server
+        )
         self.server.add_insecure_port(f'[::]:{self.port}')
         logger.info(f"Server starting on port {self.port}...")
         self.server.start()
@@ -182,3 +239,9 @@ class ServerAction:
     def stop(self):
         if self.server:
             self.server.stop(0)
+
+class NamedServerAction(ServerAction):
+    """
+    Alias for ServerAction supporting named graphs.
+    """
+    pass

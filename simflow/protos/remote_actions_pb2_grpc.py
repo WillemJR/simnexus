@@ -39,12 +39,23 @@ class SimFlowRemoteStub(object):
                 request_serializer=simflow_dot_protos_dot_remote__actions__pb2.ActionRequest.SerializeToString,
                 response_deserializer=simflow_dot_protos_dot_remote__actions__pb2.ActionResponse.FromString,
                 _registered_method=True)
+        self.GetAvailableActions = channel.unary_unary(
+                '/simflow.SimFlowRemote/GetAvailableActions',
+                request_serializer=simflow_dot_protos_dot_remote__actions__pb2.Empty.SerializeToString,
+                response_deserializer=simflow_dot_protos_dot_remote__actions__pb2.AvailableActionsResponse.FromString,
+                _registered_method=True)
 
 
 class SimFlowRemoteServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def RunAction(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetAvailableActions(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -57,6 +68,11 @@ def add_SimFlowRemoteServicer_to_server(servicer, server):
                     servicer.RunAction,
                     request_deserializer=simflow_dot_protos_dot_remote__actions__pb2.ActionRequest.FromString,
                     response_serializer=simflow_dot_protos_dot_remote__actions__pb2.ActionResponse.SerializeToString,
+            ),
+            'GetAvailableActions': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetAvailableActions,
+                    request_deserializer=simflow_dot_protos_dot_remote__actions__pb2.Empty.FromString,
+                    response_serializer=simflow_dot_protos_dot_remote__actions__pb2.AvailableActionsResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -86,6 +102,33 @@ class SimFlowRemote(object):
             '/simflow.SimFlowRemote/RunAction',
             simflow_dot_protos_dot_remote__actions__pb2.ActionRequest.SerializeToString,
             simflow_dot_protos_dot_remote__actions__pb2.ActionResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetAvailableActions(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/simflow.SimFlowRemote/GetAvailableActions',
+            simflow_dot_protos_dot_remote__actions__pb2.Empty.SerializeToString,
+            simflow_dot_protos_dot_remote__actions__pb2.AvailableActionsResponse.FromString,
             options,
             channel_credentials,
             insecure,
