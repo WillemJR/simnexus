@@ -68,6 +68,7 @@ You can create your own action by subclassing WorkAction
 and defining the action in the 'solve()' method.
 
 .. code-block:: python
+
     from simflow.actions import WorkAction
 
     class AdderAction(WorkAction):
