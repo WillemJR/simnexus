@@ -11,6 +11,7 @@ from simflow.graph_actions import DirectedGraph, WorkFlow, WorkArea, SimulationI
 from simflow.actions import WorkAction
 
 
+fe_path = Path(__file__).parent.parent / "tests" / "spring.k"
 
 
 # Example subclass of WorkAction
@@ -78,7 +79,7 @@ def test_iter():
     graph.add_action( node_b11, [head_a] )
     graph.add_action( tail_a, [node_b11 ] )
 
-    itr = SimulationIterator( graph, copy_files=['/home/willem/DEV/A_DEV/work_flow/TST/u_bend.k']  )
+    itr = SimulationIterator( graph, copy_files=[fe_path]  )
 
     result = itr.solve( {"V1": 5, "Unused": -1} )
     print("Result:", result)
@@ -183,13 +184,13 @@ def test_mdo():
 
     graph1 = DirectedGraph( 'SOLVER_1' )
     graph1.add_action( node_b11 )
-    area1 = WorkArea( graph1, copy_files=['/home/willem/DEV/A_DEV/work_flow/TST/u_bend.k'] )
+    area1 = WorkArea( graph1, copy_files=[fe_path] )
 
     graph_main.add_action( area1, [head_a ] )
 
     graph2 = DirectedGraph( 'SOLVER_2' )
     graph2.add_action( node_b22 )
-    area2 = WorkArea( graph2, copy_files=['/home/willem/DEV/A_DEV/work_flow/TST/u_bend.k'] )
+    area2 = WorkArea( graph2, copy_files=[fe_path] )
 
     graph_main.add_action( area2, [head_a ] )
 

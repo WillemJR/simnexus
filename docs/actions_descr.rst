@@ -1,11 +1,11 @@
 
 A graph of actions
 ==================
-All of the steps in a simulations are encapsulated in actions.
+All the steps in a simulation are encapsulated in actions.
 The basic action types can be a change to an input deck, running an OpenFOAM analysis, or
 extracting results from an analysis.
 
-Some actions are use for control e.g. to set up the simulation as a graph where some actions depend on other actions.
+Some actions are used for control e.g. to set up the simulation as a graph where some actions depend on other actions.
 
 The diagram below illustrates a workflow where a single geometry creation step leads to two parallel analysis branches: one for OpenRadioss and another for LS-DYNA. Each branch includes meshing and parameterization steps, and finally, the results from both solvers are combined to compute the overall design performance.
 
@@ -15,7 +15,7 @@ The diagram below illustrates a workflow where a single geometry creation step l
 
 Using an action
 ---------------
-An action define an operation in the workflow.
+An action defines an operation in the workflow.
 It can be anything from a geometry creation, an FEA analysis, 
 to mathematical computations.
 Once you have an action defined, you can call the 'solve()' method
@@ -28,14 +28,14 @@ as a numpy array.
 
         from simflow.dyna_actions import RunDyna
         dyna = RunDyna("RunSpring", fe_path="spring.k")
-        ret = dyna.solve( {'K'=100.} )
+        ret = dyna.solve( {'K': 100.} )
 
 You can chain actions to edit a mesh or extract results as described below.
 
 Setting up a graph
 ------------------
 Two types of graphs are available:
-firstly, a WorkFlow, a simple version executing the actions sequently;
+firstly, a WorkFlow, a simple version executing the actions sequentially;
 and a DirectedGraph, which allows execution to branch and execute
 actions in parallel.
 
@@ -51,9 +51,8 @@ To use a WorkFlow to evaluate actions sequentially:
     d3p = d3plot_File( 'field' )
     d3p.NodalValue('n5', state=1, nid=5, component= 'node_displacement'  )
     wf.add_action( d3p )
-    wf.add_action( dyna.solve( {'K'=100.} )
 
-    ret = dyna.solve( {'K'=100.} )
+    ret = wf.solve( {'K': 100.} )
 
     print( 'Displacement of node 5', ret['n5'] ) 
 
@@ -63,10 +62,10 @@ To use a DirectedGraph:
 
     from simflow.dyna_actions import RunDyna
 
-Defining an user-action
+Defining a user action
 ------------------------
-You can create you own action by inheredting from WorkAction 
-and defining the actin in the 'solve()' method.
+You can create your own action by subclassing WorkAction 
+and defining the action in the 'solve()' method.
 
 .. code-block:: python
     from simflow.actions import WorkAction

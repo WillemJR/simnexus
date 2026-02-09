@@ -2,13 +2,13 @@
 Variables
 =========
 Variables are used to parameterize the simulation for design changes,
-creating ML training data, and design optimzation.
+creating ML training data, and design optimization.
 
 
 Using a variable as an argument to an action
 --------------------------------------------
 
-First you have to define the variable
+First, you have to define the variable
 
 .. code-block:: python
 
