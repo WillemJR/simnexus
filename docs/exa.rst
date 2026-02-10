@@ -20,8 +20,8 @@ The study can be parameterized using the \*PARAMETER keyword.
     wf = WorkFlow("DynaWorkflow")
 
     # 2. Add an action to run LS-DYNA
-    # The 'fe_path' file should contain *PARAMETER keywords for substitution
-    run_dyna = RunDyna("RunSimulation", fe_path="model.k")
+    # The 'input_path' file contains *PARAMETER keywords for substitution
+    run_dyna = RunDyna("RunSimulation", input_path="model.k")
     wf.add_action(run_dyna)
 
     # 3. Add an action to extract results from d3plot

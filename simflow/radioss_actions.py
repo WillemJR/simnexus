@@ -312,17 +312,17 @@ class RunRadioss(WorkAction):
         Args:
             name (str):
             cmd (str): path to ls-dyna executable or command
-            fe_path (str): parameterized keyword file
+            input_path (str): parameterized keyword file
             create_d3plot (bool): Creates a d3plot files using
                             vortex_radioss.animtod3plot.Anim_to_D3plot
     """
 
-    def __init__( self, name, cmd='rad_dyna_inp', fe_path=simflow.args.RADIOSS_DFLT_FNAME, create_d3plot=True ):
+    def __init__( self, name, cmd='rad_dyna_inp', input_path=simflow.args.RADIOSS_DFLT_FNAME, create_d3plot=True ):
 
-        assert fe_path is not None, 'No input OpenRadioss file specified. Specify the path to radioss input file.'
+        assert input_path is not None, 'No input OpenRadioss file specified. Specify the path to radioss input file.'
 
         super().__init__(name, cmd )
-        self.fea_file_path = fe_path
+        self.fea_file_path = input_path
         self.fea_file_path = Path( self.fea_file_path ).name
 
         self.create_d3plot = create_d3plot

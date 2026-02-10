@@ -29,12 +29,7 @@ def main():
 
     # 2. Define RunRadioss to run the simulation
     # It takes the substituted file 'par_tens_ready.k' as input.
-    # Note: In a real scenario, set 'cmd' to your Radioss executable path (e.g. 'starter_linux64_gf').
-    # Here we use a dummy command for demonstration.
-    run_rad = RunRadioss( 
-        name='run_solver', 
-        cmd='echo "Running Radioss Solver..."'
-    )
+    run_rad = RunRadioss( name='rad', cmd='radioss_using_dyna_inp' )
 
     # 3. Create a workflow and add actions
     wf = WorkFlow( 'RadiossWF' )

@@ -24,15 +24,15 @@ class RunDyna(WorkAction):
         Args:
             name (str):
             cmd (str): path to ls-dyna executable or command
-            fe_path (str): parameterized keyword file
+            input_path (str): parameterized keyword file
     """
 
-    def __init__( self, name, cmd=simflow.args.DYNA_DFLT_CMD, fe_path=None ):
+    def __init__( self, name, cmd=simflow.args.DYNA_DFLT_CMD, input_path=None ):
 
-        assert fe_path is not None, 'No input LS-DYNA file specified.'
+        assert input_path is not None, 'No input LS-DYNA file specified.'
 
         super().__init__(name, cmd )
-        self.fea_file_path = fe_path
+        self.fea_file_path = input_path
         self.fea_file_path = Path( self.fea_file_path ).name
 
     def solve( self,  val_dict=None ):

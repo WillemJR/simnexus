@@ -13,7 +13,7 @@ def test_dyna_run_extract():
 
     wf = WorkFlow("SpringWorkFlow")
     
-    run_dyna = RunDyna("RunSpring", fe_path=str(fe_path))
+    run_dyna = RunDyna("RunSpring", input_path=str(fe_path))
     wf.add_action(run_dyna)
     
     # Results are extracted from the d3plot file.

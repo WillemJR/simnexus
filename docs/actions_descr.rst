@@ -27,43 +27,14 @@ as a numpy array.
 .. code-block:: python
 
         from simflow.dyna_actions import RunDyna
-        dyna = RunDyna("RunSpring", fe_path="spring.k")
+        dyna = RunDyna("RunSpring", input_path="spring.k")
         ret = dyna.solve( {'K': 100.} )
 
 You can chain actions to edit a mesh or extract results as described below.
 
-Setting up a graph
-------------------
-Two types of graphs are available:
-firstly, a WorkFlow, a simple version executing the actions sequentially;
-and a DirectedGraph, which allows execution to branch and execute
-actions in parallel.
-
-To use a WorkFlow to evaluate actions sequentially:
-
-.. code-block:: python
-
-    from simflow.dyna_actions import RunDyna
-    from simflow.graph_actions import WorkFlow
-
-    wf = WorkFlow("SpringWorkFlow")
-    wf.add_action( RunDyna("RunSpring", fe_path="spring.k") )
-    d3p = d3plot_File( 'field' )
-    d3p.NodalValue('n5', state=1, nid=5, component= 'node_displacement'  )
-    wf.add_action( d3p )
-
-    ret = wf.solve( {'K': 100.} )
-
-    print( 'Displacement of node 5', ret['n5'] ) 
-
-To use a DirectedGraph:
-
-.. code-block:: python
-
-    from simflow.dyna_actions import RunDyna
 
 Defining a user action
-------------------------
+========================
 You can create your own action by subclassing WorkAction 
 and defining the action in the 'solve()' method.
 
@@ -81,5 +52,58 @@ and defining the action in the 'solve()' method.
 
             return result
 
+
+
+Setting up a graph
+------------------
+Two types of graphs are available:
+firstly, a WorkFlow, a simple version executing the actions sequentially;
+and a DirectedGraph, which allows execution to branch and execute
+actions in parallel.
+
+To use a WorkFlow to evaluate actions sequentially:
+
+.. code-block:: python
+
+    from simflow.dyna_actions import RunDyna
+    from simflow.graph_actions import WorkFlow
+
+    wf = WorkFlow("SpringWorkFlow")
+    wf.add_action( RunDyna("RunSpring", input_path="spring.k") )
+    d3p = d3plot_File( 'field' )
+    d3p.NodalValue('n5', state=1, nid=5, component= 'node_displacement'  )
+    wf.add_action( d3p )
+
+    ret = wf.solve( {'K': 100.} )
+
+    print( 'Displacement of node 5', ret['n5'] ) 
+
+To use a DirectedGraph:
+
+.. code-block:: python
+
+    # FINISH TEST : ADD AS EXAMPLE
+    from simflow.dyna_actions import RunDyna
+    from simflow.graph_actions import DirectedGraph
+
+    dg = DirectedGraph( 'MDO' )
+
+    # OpenRadioss branch
+    rr = dg.add_action( RunRadioss( name='rad',
+                                    cmd='radioss_using_dyna_inp',
+                                    create_d3plot=True ) )
+
+
+    # LS-DYNA branch
+    rs = dg.add_action( RunDyna("RunSpring", input_path="spring.k") )
+
+    d3p = d3plot_File( 'field' )
+    d3p.NodalValue('n5', state=1, nid=5, component= 'node_displacement'  )
+    d3p.NodalValue('c5', state=1, nid=5, component= 'node_coordinates'  )
+    dg.add_action( d3p, = 
+
+
+    # Merge back
+    dg.add_action( tail_a, [rr, d3p ] )
 
 
