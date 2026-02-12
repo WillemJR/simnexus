@@ -6,7 +6,7 @@ from typing import List, Tuple, Optional
 import numpy as np
 from pathlib import Path
 
-from work_flow.args import Location
+from simflow.args import Location
 
 import logging
 logger = logging.getLogger(__name__)
