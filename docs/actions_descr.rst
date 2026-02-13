@@ -27,14 +27,15 @@ as a numpy array.
 .. code-block:: python
 
         from simflow.dyna_actions import RunDyna
-        dyna = RunDyna("RunSpring", input_path="spring.k")
+        dyna = RunDyna(name="RunSpring", input_path="spring.k")
         ret = dyna.solve( {'K': 100.} )
 
 You can chain actions to edit a mesh or extract results as described below.
 
+# what does solve do?
 
 Defining a user action
-========================
+-------------------------
 You can create your own action by subclassing WorkAction 
 and defining the action in the 'solve()' method.
 
@@ -68,10 +69,10 @@ To use a WorkFlow to evaluate actions sequentially:
     from simflow.dyna_actions import RunDyna
     from simflow.graph_actions import WorkFlow
 
-    wf = WorkFlow("SpringWorkFlow")
-    wf.add_action( RunDyna("RunSpring", input_path="spring.k") )
-    d3p = d3plot_File( 'field' )
-    d3p.NodalValue('n5', state=1, nid=5, component= 'node_displacement'  )
+    wf = WorkFlow(name="SpringWorkFlow")
+    wf.add_action( RunDyna(name="RunSpring", input_path="spring.k") )
+    d3p = d3plot_File( name='field' )
+    d3p.NodalValue(name='n5', state=1, nid=5, component= 'node_displacement'  )
     wf.add_action( d3p )
 
     ret = wf.solve( {'K': 100.} )
@@ -86,7 +87,7 @@ To use a DirectedGraph:
     from simflow.dyna_actions import RunDyna
     from simflow.graph_actions import DirectedGraph
 
-    dg = DirectedGraph( 'MDO' )
+    dg = DirectedGraph( name='MDO' )
 
     # OpenRadioss branch
     rr = dg.add_action( RunRadioss( name='rad',
@@ -95,15 +96,14 @@ To use a DirectedGraph:
 
 
     # LS-DYNA branch
-    rs = dg.add_action( RunDyna("RunSpring", input_path="spring.k") )
+    rs = dg.add_action( RunDyna(name="RunSpring", input_path="spring.k") )
 
-    d3p = d3plot_File( 'field' )
-    d3p.NodalValue('n5', state=1, nid=5, component= 'node_displacement'  )
-    d3p.NodalValue('c5', state=1, nid=5, component= 'node_coordinates'  )
-    dg.add_action( d3p, = 
+    d3p = d3plot_File( name='field' )
+    d3p.NodalValue(name='n5', state=1, nid=5, component= 'node_displacement'  )
+    dg.add_action( d3p, parents= [rs] )
 
 
     # Merge back
-    dg.add_action( tail_a, [rr, d3p ] )
+    dg.add_action( tail_a, parents=[rr, d3p ] )
 
 

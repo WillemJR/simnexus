@@ -8,7 +8,8 @@
 Simflow
 =========
 
-A Python module for orchestrating complex simulation workflows across multiple solvers and compute environments with native support for LS-DYNA, Radioss, and OpenFOAM.
+A Python module for orchestrating complex simulations 
+with native support for LS-DYNA, Radioss, and OpenFOAM.
 
 Overview
 --------

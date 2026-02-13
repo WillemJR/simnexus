@@ -1,14 +1,17 @@
 
 # Simflow
 
-A Python module for orchestrating complex simulation workflows across multiple solvers and compute environments with native support for LS-DYNA, Radioss, and OpenFOAM.
+A Python module for orchestrating complex simulations 
+with native support for LS-DYNA, Radioss, and OpenFOAM.
 
 ## Overview
 
 Simflow enables the automation and coordination of
-multi-physics simulation workflows — from input preparation and
-remote execution to results extraction and post-processing.
+multi-physics simulation workflows.
 The module is particularly suited for simulations that span multiple domains, such as combined structural and fluid dynamics analyses.
+
+It supports tasks from from input preparation and
+remote execution to results extraction and post-processing.
 
 
 Simflow has a native support for
@@ -17,10 +20,10 @@ solvers like LS-DYNA, Radioss, and OpenFOAM.
 ## Key Features
 
 - **Workflow Management**: Define simulation workflows as directed acyclic graphs (DAGs) where actions are executed based on dependency relationships and completion status of prerequisite tasks
+- **Native Multi-Solver Support**: Currently compatible with LS-DYNA and Radioss for structural analysis, and OpenFOAM for computational fluid dynamics
 - **Remote Execution**: Submit computational subgraphs to remote computing resources while maintaining local workflow coordination
-- **Multi-Solver Support**: Currently compatible with LS-DYNA and Radioss for structural analysis, and OpenFOAM for computational fluid dynamics
 - **Dependency Resolution**: Automatically manages execution order based on inter-action dependencies, ensuring downstream actions wait for required upstream results
-- **Scalability**: Designed to scale through integration with the Gemini CLI for the extension and use of the module.
+- **Scalability using ML**: Designed to scale through integration with the Gemini CLI for the extension and use of the module.
 
 ## Typical Workflow
 
@@ -50,20 +53,21 @@ pip install simflow
 
 ## Todo
 
+* variables() method on action returning Variables
+ - Unknown variable
+
+* Extracting DSA from adjointOptimisaFoam
+
 * Documentation
     Several: variables, graph, examples.
+    variables() method and return values
 
 * How does FloatVariable interact with solve()?
      SimulationIterator( parameter_list= ) : for default values if not provided in solve
 
 * WorkArea 
-    * WorkArea should be argument to WorkFlow / Graph. copy_files?
-            self.work_area = WorkArea(self)?
     * SimIter should be subclass of WorkArea?
     * Part of above copy_files = in work_area and simulationIterator and remote
-
-* Simiter 
-    * DONE: Write variable values -- right now it is the input to solve
 
 * D3Plot clean up
     * argument specifying how results are read. Component names differ
@@ -74,5 +78,6 @@ pip install simflow
 * similaritymeasures and numpy are requirements.
 
 * Set up remote using grpc
+   * Security
    * Advanced? Graph defined on remote.
 

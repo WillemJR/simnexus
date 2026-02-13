@@ -90,3 +90,11 @@ Implementation Details
 - **Isolation**: Each action runs in a unique temporary directory on the server. This prevents file conflicts between concurrent jobs.
 - **Dependencies**: The remote environment must have `simflow` and all necessary dependencies installed.
 - **File Transfer**: Large files (up to ~50MB) are supported by default. For very large datasets, consider using a shared file system or external storage service, passing only the paths in the `val_dict`.
+
+Site security
+--------------
+Adding security is very doable. The main issue is that it will be
+specified by the system adminitrator at every site, so a standard
+solution is not doable.
+
+
