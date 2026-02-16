@@ -401,6 +401,8 @@ class SimulationIterator(WorkAction):
 
         return par_val_dict, outcome
 
+    def variables(self ):
+        return self.graph.variables()
 
 # ------------------- 
 
@@ -546,7 +548,13 @@ class DirectedGraph(WorkAction, Observer):
     def get_action(self, name ):
         return self.child_actions[name]
 
-    def __repr__(self ):
+    def variables(self ):
+        vrs = []
+        for ch in self.child_actions.values():
+            vrs = vrs + ch.variables() 
+        return vrs
+
+    def __str__(self ):
         r = f'DirectedGraph: \'{self.name}\' {type(self)}\n' 
         for a in self.child_actions.values():
             r = r + f'\tChild: {a}\n' 

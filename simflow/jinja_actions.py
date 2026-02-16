@@ -4,6 +4,7 @@ from pathlib import Path
 from jinja2 import meta
 from simflow.actions import WorkAction
 import simflow.args 
+import simflow.variables
 
 """
 The file is for cases where variables / parameters are defined inside the input decks
@@ -57,14 +58,22 @@ class JinjaReplace(WorkAction):
         self.template = jj_environment.get_template(input_file_path_obj.name)
 
 
-    def parameter_names( self ):
-        """
-        Returns the set of parameter names found in the template.
+    def _parameter_names( self ):
+        """ Returns the set of parameter names found in the template.
 
         Returns:
             set: Set of parameter names.
         """
         return self.par_names
+
+    def variables( self ):
+        """ Returns the variables defined in the template.
+        The type and value of the variables are unknown.
+
+        Returns
+            list : List of type UnknownVariable.
+        """
+        return [ simflow.variables.UnknownVariable(pn, "") for pn in self.par_names ]
 
     def _get_parameters( self ):
         """

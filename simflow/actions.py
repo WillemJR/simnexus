@@ -166,6 +166,18 @@ class WorkAction(Subject):
     def solve(self,  val_dict=None ):
         assert 0, 'should not be called'
 
+    def variables( self ):
+        """
+        These are the variables defined for the WorkAction
+        and used in the solver() method. 
+        For a graph this would be the variables used in
+        all the children.
+
+        Returns:
+            list : List of type Variable.
+        """
+        return []
+
     def results(self):
         return self._results
 
@@ -180,7 +192,7 @@ class WorkAction(Subject):
         if self.name in name_list: exit( f" *** Error Duplicate actions name \'{self.name}\'" )
         name_list.append( self.name )
 
-    def __repr__(self ):
+    def __str__(self ):
         r = f'WorkAction: \'{self.name}\' {type(self)}' 
         return r
 

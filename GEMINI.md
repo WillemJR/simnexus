@@ -45,6 +45,9 @@ The `WorkAction` base class (defined in `simflow/actions.py`) is the base buildi
 
 Key features:
 - **`solve(self, val_dict)`**: The abstract method that performs the action's logic. It receives a dictionary `val_dict` containing the current values of variables and results from prior actions. This method returns the data computed by the class.
+- **`variables(self, val_dict)`**: The method returns a list containing the 
+variables defined for the actions. For a `DirectedGraph` or a `WorkFlow`
+the variables defined for all the children is returned.
 
 Subclasses of `WorkAction` implement specific tasks, such as `MathEvaluation` (performing calculations), or `CurveSimilarity` (comparing simulation results to experimental data).
 

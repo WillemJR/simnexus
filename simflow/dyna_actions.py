@@ -6,6 +6,7 @@ import subprocess
 from pathlib import Path
 
 import simflow.args
+import simflow.variables as simvars
 from simflow.actions import WorkAction
 from simflow.graph_actions import WorkFlow
 
@@ -32,8 +33,8 @@ class RunDyna(WorkAction):
         assert input_path is not None, 'No input LS-DYNA file specified.'
 
         super().__init__(name, cmd )
-        self.fea_file_path = input_path
-        self.fea_file_path = Path( self.fea_file_path ).name
+        self.input_file_path = input_path
+        self.fea_file_path = Path( self.input_file_path ).name
 
     def solve( self,  val_dict=None ):
         """ """
@@ -115,6 +116,28 @@ class RunDyna(WorkAction):
 
         return have_normal_termination
 
+
+    def variables( self ):
+        """ Returns the variables defined in the template.
+        The type and value of the variables are as in
+        the LS-DYNA input deck.
+
+        Returns
+            list : List of Variables.
+        """
+        variables = []
+        with dynakw.DynaKeywordReader( self.input_file_path ) as dkr:
+            params = dkr.parameters()
+            for name, value in params.items():
+                if isinstance(value, float):
+                    variables.append(simvars.FloatVariable(name, value) )
+                elif isinstance(value, int):
+                    variables.append(simvars.IntSetVariable(name, value) )
+                elif isinstance(value, str):
+                    variables.append(simvars.StrSetVariable(name, value) )
+                else:
+                    variables.append(simvars.UnknownVariable(name, "") )
+        return variables
 
 
 
