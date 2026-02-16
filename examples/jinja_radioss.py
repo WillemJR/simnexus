@@ -1,4 +1,7 @@
 
+import logging
+logging.basicConfig(level=logging.WARNING)
+
 import os
 import sys
 from pathlib import Path

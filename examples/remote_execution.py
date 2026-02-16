@@ -1,3 +1,7 @@
+
+import logging
+logging.basicConfig(level=logging.WARNING)
+
 import sys
 import os
 import time
