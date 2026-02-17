@@ -163,13 +163,27 @@ class WorkAction(Subject):
         return None
 
     @abstractmethod
-    def solve(self,  val_dict=None ):
+    def solve(self,  val_dict: dict = None ) -> dict:
+        """
+        Solve/compute for action or graph.
+        An action will return any computed results.
+
+        A graph will append any computed results to
+        val_dict and return that. 
+        So A.solve( {'v1':1.2} ) may return {'v1':1.2, 'A':3.4},
+        where the 'A':3.4 was added with 'A' the name of the action.
+
+        Arguments:
+            val_dict (dict) : variable values and input of any type.
+        Returns:
+            dict : dict with all results and inputs
+        """
         assert 0, 'should not be called'
 
     def variables( self ):
         """
-        These are the variables defined for the WorkAction
-        and used in the solver() method. 
+        These are the variabls defined for the WorkAction
+        and used in the solve() method. 
         For a graph this would be the variables used in
         all the children.
 

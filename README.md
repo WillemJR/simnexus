@@ -53,21 +53,24 @@ pip install simflow
 
 ## Todo
 
-* variables() method on action returning Variables
- - Unknown variable
+* How does Variable interact with solve()?
+     * solve( variables=, val_dict=)
+     * solve( *args, **kwargs )?
+     * SimulationIterator( parameter_list= ) : for default values if not provided in solve
+     * solve_dict not val_dict ?
+
+* DONE? WorkArea 
+    * SimIter should be subclass of WorkArea?
+    * Part of above copy_files = in work_area and simulationIterator and remote
+
+* DONE: variables() method on action returning Variables
+ - DONE: Unknown variable
 
 * Extracting DSA from adjointOptimisaFoam
 
 * Documentation
     Several: variables, graph, examples.
     variables() method and return values
-
-* How does FloatVariable interact with solve()?
-     SimulationIterator( parameter_list= ) : for default values if not provided in solve
-
-* WorkArea 
-    * SimIter should be subclass of WorkArea?
-    * Part of above copy_files = in work_area and simulationIterator and remote
 
 * D3Plot clean up
     * argument specifying how results are read. Component names differ
@@ -80,4 +83,5 @@ pip install simflow
 * Set up remote using grpc
    * Security
    * Advanced? Graph defined on remote.
+   * Test in container.
 

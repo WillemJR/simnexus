@@ -81,7 +81,10 @@ class WorkArea(WorkAction):
 
 
     def solve(self,  val_dict=None ):
-        # see base class
+        """
+        Returns:
+            dict: Output from graph (it adds nothing).
+        """
         
         sim_path = self.work_area_path
         if sim_path.exists():
@@ -272,7 +275,10 @@ class SimulationIterator(WorkAction):
 
 
     def solve(self,  val_dict=None ):
-        # see base class
+        """
+        Returns:
+            dict: Output from graph (it adds nothing).
+        """
         
         for def_par in self.parameter_list:
             if def_par.name not in val_dict: val_dict[def_par.name]=def_par.value
@@ -414,6 +420,11 @@ class DirectedGraph(WorkAction, Observer):
 
     Used e.g. for MDO for solvers run in parallel.
 
+    A graph will append any computed results to
+    val_dict and return that. 
+    So A.solve( {'v1':1.2} ) may return {'v1':1.2, 'A':3.4},
+    where the 'A':3.4 was added with 'A' the name of the action.
+
     Arguments:
         name (str) : 
         asynch (list) : 
@@ -466,7 +477,16 @@ class DirectedGraph(WorkAction, Observer):
         return in_dict
 
     def solve(self, val_dict={}):
-        # see base class
+        """
+        A graph will append any computed results to
+        val_dict and return that. 
+        So A.solve( {'v1':1.2} ) may return {'v1':1.2, 'A':3.4},
+        where the 'A':3.4 was added with 'A' the name of the action.
+
+        Returns:
+            dict: Dictionary containing action_name:action_result pairs
+                  appended to val_dict.
+        """
 
         if self.work_area:
             if not hasattr(self, '_in_work_area') or not self._in_work_area:
