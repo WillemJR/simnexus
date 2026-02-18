@@ -60,8 +60,10 @@ def test_call():
     print( 'SimulationIterator vars' )
     print_varlist( itr.variables() )
 
+    itr.rm_rundir() 
+
 if __name__ == "__main__":
-    test_float()
-    test_intset()
-    test_strset()
+    #test_float()
+    #test_intset()
+    #test_strset()
     test_call()
