@@ -10,7 +10,7 @@ from pathlib import Path
 sys.path.append( str(Path(__file__).parent.parent) )
 
 from simflow.jinja_actions import JinjaReplace
-from simflow.radioss_actions import RunRadioss
+from simflow.radioss_actions import RadiossAnalysis
 from simflow.graph_actions import WorkFlow
 
 def main():
@@ -30,9 +30,9 @@ def main():
         val_format="%10.3g"
     )
 
-    # 2. Define RunRadioss to run the simulation
+    # 2. Define RadiossAnalysis to run the simulation
     # It takes the substituted file 'par_tens_ready.k' as input.
-    run_rad = RunRadioss( name='rad', cmd='radioss_using_dyna_inp' )
+    run_rad = RadiossAnalysis( name='rad', cmd='radioss_using_dyna_inp' )
 
     # 3. Create a workflow and add actions
     wf = WorkFlow( 'RadiossWF' )

@@ -16,7 +16,7 @@ from scipy.spatial.distance import directed_hausdorff
 from simflow.variables import FloatVariable
 from simflow.graph_actions import WorkFlow, SimulationIterator
 from simflow.d3plot_actions import d3plot_File
-from simflow.radioss_actions import RunRadioss, RadiossCSVHistory, CSVNodeLocationHistory, CSVNodeLocation
+from simflow.radioss_actions import RadiossAnalysis, RadiossCSVHistory, CSVNodeLocationHistory, CSVNodeLocation
 from simflow.radioss_actions import FieldData, FieldDataHist
 from simflow.radioss_actions import NodalFieldData_VTK, ElementNodalFieldData_VTK, MetaData_VTK
 from simflow.jinja_actions import JinjaReplace
@@ -30,7 +30,7 @@ def test_seq( ):
     chain = WorkFlow( 'RadiossChain' )
 
     chain.add_action( JinjaReplace( name='SetVars', input_file_path='tests/par_tens.k' ) )
-    chain.add_action( RunRadioss( 'RadiosRun' ) )
+    chain.add_action( RadiossAnalysis( 'RadiosRun' ) )
     chain.add_action( RadiossCSVHistory('hist_eval', '{"quantity":"EXTERNAL WORK" }' ) )
 
     chain.add_action( MetaData_VTK( 'meta', state=2, required_part_id=3 ) )
@@ -77,7 +77,7 @@ def test_hist_node( ):
     chain = WorkFlow( 'RadiossChain' )
 
     chain.add_action( JinjaReplace( name='SetVars', input_file_path='tests/par_tens.k' ) )
-    chain.add_action( RunRadioss( 'RadiossRun' ) )
+    chain.add_action( RadiossAnalysis( 'RadiossRun' ) )
     chain.add_action( CSVNodeLocationHistory('node_loc_h', 851 ) )
     chain.add_action( CSVNodeLocation('node_loc', 851 ) )
 
@@ -96,7 +96,7 @@ def test_exp_des( ):
     chain = WorkFlow( 'RadiossChain' )
 
     chain.add_action( JinjaReplace( name='SetVars', input_file_path='tests/par_tens_1p.k' ) )
-    chain.add_action( RunRadioss( 'RadiossRun' ) )
+    chain.add_action( RadiossAnalysis( 'RadiossRun' ) )
     chain.add_action( CSVNodeLocationHistory('node_loc_h', 851 ) )
     chain.add_action( CSVNodeLocation('node_loc', 851 ) )
 
@@ -142,7 +142,7 @@ def test_d3p( ):
     chain = WorkFlow( 'RadiossChain' )
 
     chain.add_action( JinjaReplace( name='SetVars', input_file_path='tests/par_tens.k' ) )
-    chain.add_action( RunRadioss( 'RadiossRun', create_d3plot=True ) )
+    chain.add_action( RadiossAnalysis( 'RadiossRun', create_d3plot=True ) )
 
     # -------------
 

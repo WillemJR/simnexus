@@ -26,8 +26,8 @@ as a numpy array.
 
 .. code-block:: python
 
-        from simflow.dyna_actions import RunDyna
-        dyna = RunDyna(name="RunSpring", input_path="spring.k")
+        from simflow.dyna_actions import DynaAnalysis
+        dyna = DynaAnalysis(name="RunSpring", input_path="spring.k")
         ret = dyna.solve( {'K': 100.} )
 
 You can chain actions to edit a mesh or extract results as described below.
@@ -66,11 +66,11 @@ To use a WorkFlow to evaluate actions sequentially:
 
 .. code-block:: python
 
-    from simflow.dyna_actions import RunDyna
+    from simflow.dyna_actions import DynaAnalysis
     from simflow.graph_actions import WorkFlow
 
     wf = WorkFlow(name="SpringWorkFlow")
-    wf.add_action( RunDyna(name="RunSpring", input_path="spring.k") )
+    wf.add_action( DynaAnalysis(name="RunSpring", input_path="spring.k") )
     d3p = d3plot_File( name='field' )
     d3p.NodalValue(name='n5', state=1, nid=5, component= 'node_displacement'  )
     wf.add_action( d3p )
@@ -84,19 +84,19 @@ To use a DirectedGraph:
 .. code-block:: python
 
     # FINISH TEST : ADD AS EXAMPLE
-    from simflow.dyna_actions import RunDyna
+    from simflow.dyna_actions import DynaAnalysis
     from simflow.graph_actions import DirectedGraph
 
     dg = DirectedGraph( name='MDO' )
 
     # OpenRadioss branch
-    rr = dg.add_action( RunRadioss( name='rad',
+    rr = dg.add_action( RadiossAnalysis( name='rad',
                                     cmd='radioss_using_dyna_inp',
                                     create_d3plot=True ) )
 
 
     # LS-DYNA branch
-    rs = dg.add_action( RunDyna(name="RunSpring", input_path="spring.k") )
+    rs = dg.add_action( DynaAnalysis(name="RunSpring", input_path="spring.k") )
 
     d3p = d3plot_File( name='field' )
     d3p.NodalValue(name='n5', state=1, nid=5, component= 'node_displacement'  )

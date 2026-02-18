@@ -16,10 +16,10 @@ logger = logging.getLogger(__name__)
 import dynakw
 
 
-class RunDyna(WorkAction):
+class DynaAnalysis(WorkAction):
 
     """ This runs an LS-DYNA simulation.
-        It will substitute the \*PARAMETER values with
+        It will substitute the PARAMETER values with
         provided values.
 
         Args:

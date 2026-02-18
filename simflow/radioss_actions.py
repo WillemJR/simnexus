@@ -305,7 +305,7 @@ class FieldDataHist(WorkAction):
         pass
 
 
-class RunRadioss(WorkAction):
+class RadiossAnalysis(WorkAction):
 
     """ Runs an openRadioss simulation
 

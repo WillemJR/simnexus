@@ -15,7 +15,7 @@ import simflow.variables as simvars
 from simflow.util.openfoam_reader import OpenFOAMFieldReader
 
 
-class OpenFOAM_Job( WorkAction ):
+class OpenFOAMAnalysis( WorkAction ):
     """
     Action that runs an OpenFOAM job.
 

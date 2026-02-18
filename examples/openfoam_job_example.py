@@ -1,7 +1,7 @@
 import os
 import shutil
 from pathlib import Path
-from simflow.openfoam_actions import OpenFOAM_Job
+from simflow.openfoam_actions import OpenFOAMAnalysis
 from simflow.args import JobType
 import simflow.variables as simvars
 
@@ -10,7 +10,7 @@ def openfoam_example():
     case_dir = Path(__file__).parent.parent / "tests" / "openfoam_exa"
     if not case_dir.exists(): exit(f"Error: {case_dir} does not exist.")
 
-    job = OpenFOAM_Job(
+    job = OpenFOAMAnalysis(
         name="my_job",
         dir_name=str(case_dir),
         job_flag=JobType.CREATE_MESH | JobType.RUN_SIMULATION,

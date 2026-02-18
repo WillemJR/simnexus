@@ -4,7 +4,7 @@ from pathlib import Path
 import simflow.variables
 from simflow.jinja_actions import JinjaReplace
 from simflow.graph_actions import WorkFlow, SimulationIterator, DirectedGraph
-from simflow.dyna_actions import RunDyna
+from simflow.dyna_actions import DynaAnalysis
 
 input_path = Path(__file__).parent.parent / "tests" / "spring.k"
 
@@ -33,7 +33,7 @@ def test_call():
 
     wf = WorkFlow("SpringWorkFlow")
     
-    run_dyna = RunDyna("RunSpring", input_path=str(input_path))
+    run_dyna = DynaAnalysis("RunSpring", input_path=str(input_path))
     wf.add_action(run_dyna)
 
     print( 'dyna vars', run_dyna.variables() )

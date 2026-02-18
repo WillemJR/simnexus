@@ -6,7 +6,7 @@ import sys, os
 from pathlib import Path
 
 from simflow.graph_actions import WorkFlow, WorkArea
-from simflow.dyna_actions import RunDyna
+from simflow.dyna_actions import DynaAnalysis
 from simflow.d3plot_actions import d3plot_File
 
 def run_example():
@@ -17,7 +17,7 @@ def run_example():
 
     wf = WorkFlow("SpringWorkFlow")
     
-    run_dyna = RunDyna("RunSpring", input_path=str(fe_path))
+    run_dyna = DynaAnalysis("RunSpring", input_path=str(fe_path))
     wf.add_action(run_dyna)
     
     # Results are extracted from the d3plot file.

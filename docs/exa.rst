@@ -13,7 +13,7 @@ The study can be parameterized using the \*PARAMETER keyword.
 .. code-block:: python
 
     from simflow.graph_actions import WorkFlow, WorkArea
-    from simflow.dyna_actions import RunDyna
+    from simflow.dyna_actions import DynaAnalysis
     from simflow.d3plot_actions import d3plot_File
 
     # 1. Define a workflow
@@ -21,7 +21,7 @@ The study can be parameterized using the \*PARAMETER keyword.
 
     # 2. Add an action to run LS-DYNA
     # The 'input_path' file contains *PARAMETER keywords for substitution
-    run_dyna = RunDyna("RunSimulation", input_path="model.k")
+    run_dyna = DynaAnalysis("RunSimulation", input_path="model.k")
     wf.add_action(run_dyna)
 
     # 3. Add an action to extract results from d3plot
@@ -48,7 +48,7 @@ The study can be parameterized using the jinja double brace format.
 .. code-block:: python
 
     from simflow.jinja_actions import JinjaReplace
-    from simflow.radioss_actions import RunRadioss
+    from simflow.radioss_actions import RadiossAnalysis
     from simflow.graph_actions import WorkFlow
 
     wf = WorkFlow('RadiossWorkflow')
@@ -62,7 +62,7 @@ The study can be parameterized using the jinja double brace format.
     wf.add_action(jinja_act)
 
     # 2. Run the OpenRadioss solver
-    run_rad = RunRadioss(
+    run_rad = RadiossAnalysis(
         name='run_solver',
         cmd='starter_linux64_gf' # Path to your Radioss executable
     )
