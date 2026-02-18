@@ -2,11 +2,12 @@
 from enum import Enum, Flag, auto
 from collections import namedtuple
 
-#class JobType(Flag):
-#    """ Can be multiple types. Use 'if EvalType.NUMERICAL in self.type:' """
-#    CREATE_MESH = auto()
-#    RUN_SIMULATION = auto()
-#    POST_PRO = auto()
+class JobType(Flag):
+    """ OpenFOAM job execution stages """
+    CREATE_MESH = auto()
+    RUN_SIMULATION = auto()
+    POST_PRO = auto()
+    EXTRACT_VTK = auto()
 
 class EvalType(Flag):
     """ Can be multiple types. Use 'if EvalType.NUMERICAL in self.type:' """
