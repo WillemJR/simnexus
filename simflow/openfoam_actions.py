@@ -24,7 +24,7 @@ class OpenFOAMAnalysis( WorkAction ):
 
     Args:
         name (str): Name of the action.
-        dir_name (str): Directory of the OpenFOAM case.
+        case_dir (str): Directory of the OpenFOAM case.
         job_flag (JobType, optional): Combination of flags for mesh, solve, post-pro, vtk.
             Defaults to all flags.
         solve_cmd (str, optional): The OpenFOAM solver command. Defaults to 'laplacianFoam'.
@@ -32,9 +32,9 @@ class OpenFOAMAnalysis( WorkAction ):
     """
 
     @WorkAction.allow_variables_as_arguments
-    def __init__( self, name, dir_name, job_flag=None, solve_cmd='laplacianFoam', mesh_cmd=None ):
+    def __init__( self, name, case_dir, job_flag=None, solve_cmd='laplacianFoam', mesh_cmd=None ):
         super().__init__( name )
-        self.dir_name = dir_name
+        self.case_dir = case_dir
         self.solve_cmd = solve_cmd
         self.mesh_cmd = mesh_cmd
         if job_flag is None:
@@ -52,7 +52,7 @@ class OpenFOAMAnalysis( WorkAction ):
         Returns:
             list: List of type Variable.
         """
-        par_file = Path(self.dir_name) / 'system' / 'parameters'
+        par_file = Path(self.case_dir) / 'system' / 'parameters'
         if not par_file.exists():
             logger.warning(f"Parameters file not found: {par_file}")
             return []
@@ -82,7 +82,7 @@ class OpenFOAMAnalysis( WorkAction ):
         return vars_list
 
     def _update_parameters(self, val_dict):
-        par_file = Path(self.dir_name) / 'system' / 'parameters'
+        par_file = Path(self.case_dir) / 'system' / 'parameters'
         if not par_file.exists():
             return
         
@@ -120,7 +120,7 @@ class OpenFOAMAnalysis( WorkAction ):
         if val_dict:
             self._update_parameters(val_dict)
         
-        cwd = Path(self.dir_name).resolve()
+        cwd = Path(self.case_dir).resolve()
         success = True
 
         if self.job_flag & JobType.CREATE_MESH:
@@ -142,9 +142,9 @@ class OpenFOAMAnalysis( WorkAction ):
 class OpenFOAM_Field( WorkAction ):
 
     @WorkAction.allow_variables_as_arguments
-    def __init__( self, name, case_name, field_variable, time, location=Location.UNKNOWN ):
+    def __init__( self, name, case_dir, field_variable, time, location=Location.UNKNOWN ):
         super().__init__( name )
-        self.case_name = case_name
+        self.case_dir = case_dir
         self.time = time
         self.location = location
         self.field_var = field_variable
@@ -152,7 +152,7 @@ class OpenFOAM_Field( WorkAction ):
     @WorkAction.assign_variables_values_to_members
     def solve( self, val_dict ):
         time_dir = str(int(self.time))
-        reader = OpenFOAMFieldReader( case_dir = self.case_name )
+        reader = OpenFOAMFieldReader( case_dir = self.case_dir )
         field_type, field_data = reader.field( self.field_var, time_dir = time_dir, location = self.location)
         return field_data
 
@@ -161,15 +161,15 @@ class OpenFOAM_Field( WorkAction ):
 class OpenFOAM_History( WorkAction ):
 
     @WorkAction.allow_variables_as_arguments
-    def __init__( self, name, case_name, field_variable, point_idx ):
+    def __init__( self, name, case_dir, field_variable, point_idx ):
         super().__init__( name )
-        self.case_name = case_name
+        self.case_dir = case_dir
         self.point_idx = point_idx
         self.field_var = field_variable
 
     @WorkAction.assign_variables_values_to_members
     def solve( self, val_dict ):
-        reader = OpenFOAMFieldReader( case_dir = self.case_name )
+        reader = OpenFOAMFieldReader( case_dir = self.case_dir )
         reslts = reader.point_history( field_name=self.field_var, point_idx=self.point_idx )
         return reslts
 

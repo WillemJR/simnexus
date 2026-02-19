@@ -15,7 +15,7 @@ def dummy_case(tmp_path):
     return case_dir
 
 def test_openfoam_job_variables(dummy_case):
-    job = OpenFOAMAnalysis(name="test_job", dir_name=str(dummy_case))
+    job = OpenFOAMAnalysis(name="test_job", case_dir=str(dummy_case))
     variables = job.variables()
     
     assert len(variables) == 5
@@ -39,7 +39,7 @@ def test_openfoam_job_solve(mock_run, dummy_case):
     
     job = OpenFOAMAnalysis(
         name="test_job", 
-        dir_name=str(dummy_case),
+        case_dir=str(dummy_case),
         job_flag=JobType.CREATE_MESH | JobType.RUN_SIMULATION
     )
     
@@ -67,7 +67,7 @@ def test_openfoam_job_flags(mock_run, dummy_case):
     # Only RUN_SIMULATION and EXTRACT_VTK
     job = OpenFOAMAnalysis(
         name="test_job", 
-        dir_name=str(dummy_case),
+        case_dir=str(dummy_case),
         job_flag=JobType.RUN_SIMULATION | JobType.EXTRACT_VTK,
         solve_cmd="mySolver"
     )
@@ -84,7 +84,7 @@ def test_openfoam_job_flags(mock_run, dummy_case):
     assert "paraFoam" not in commands
 
 def test_openfoam_job_init_defaults(dummy_case):
-    job = OpenFOAMAnalysis(name="test_job", dir_name=str(dummy_case))
+    job = OpenFOAMAnalysis(name="test_job", case_dir=str(dummy_case))
     assert job.solve_cmd == 'laplacianFoam'
     assert job.mesh_cmd is None
     assert job.job_flag == (JobType.CREATE_MESH | 

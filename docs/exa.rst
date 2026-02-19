@@ -88,10 +88,10 @@ NOT COMPLETE. ADD RunOpenFOAM
     wf = WorkFlow('OpenFOAM_Extraction')
 
     # 1. Extract a field at a specific time
-    # 'case_name' is the path to the OpenFOAM case directory
+    # 'case_dir' is the path to the OpenFOAM case directory
     field_ext = OpenFOAM_Field(
         name='temp_field',
-        case_name='heat_transfer_case',
+        case_dir='heat_transfer_case',
         field_variable='T',
         time=50
     )
@@ -100,7 +100,7 @@ NOT COMPLETE. ADD RunOpenFOAM
     # 2. Extract history for a specific point index
     hist_ext = OpenFOAM_History(
         name='temp_history',
-        case_name='heat_transfer_case',
+        case_dir='heat_transfer_case',
         field_variable='T',
         point_idx=10
     )
