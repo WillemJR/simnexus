@@ -53,6 +53,8 @@ pip install simflow
 
 ## Todo
 
+* OpenFOAM should reset parameter file? Create backup?
+
 * How does Variable interact with solve()?
      * solve( variables=, val_dict=)
      * solve( *args, **kwargs )?

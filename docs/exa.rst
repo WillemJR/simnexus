@@ -6,9 +6,9 @@ Examples
 LS-DYNA 
 ----------------------------------
 
-To do an analysis and extract results. 
+The example does an analysis and extracts results. 
 
-The study can be parameterized using the \*PARAMETER keyword.
+The study is parameterized using the \*PARAMETER keyword.
 
 .. code-block:: python
 
@@ -41,9 +41,10 @@ The study can be parameterized using the \*PARAMETER keyword.
 OpenRadioss 
 ----------------------------------
 
-To do an analysis and extract results. 
+The example does an analysis and extracts results. 
 
-The study can be parameterized using the jinja double brace format.
+The study is parameterized using the jinja double brace format in the
+input deck.
 
 .. code-block:: python
 
@@ -76,6 +77,8 @@ The study can be parameterized using the jinja double brace format.
 OpenFOAM 
 ----------------------------------
 
+The study is parameterized using the system/parameters file.
+
 Extraction of field data and histories from OpenFOAM cases.
 
 NOT COMPLETE. ADD RunOpenFOAM
@@ -88,7 +91,6 @@ NOT COMPLETE. ADD RunOpenFOAM
     wf = WorkFlow('OpenFOAM_Extraction')
 
     # 1. Extract a field at a specific time
-    # 'case_dir' is the path to the OpenFOAM case directory
     field_ext = OpenFOAM_Field(
         name='temp_field',
         case_dir='heat_transfer_case',
