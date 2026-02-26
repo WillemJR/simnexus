@@ -45,7 +45,7 @@ def test_seq( ):
                                      el_nodal_data_names=['2DELEM_Specific_Energy'] ) )
 
     # iterator can runs different directories
-    simu_iter = SimulationIterator( chain, copy_files=['tests/par_tens.k'] )
+    simu_iter = SimulationIterator( chain, copy_paths=['tests/par_tens.k'] )
 
     simu_iter.rm_rundir() # clean_start=True) )
 
@@ -82,7 +82,7 @@ def test_hist_node( ):
     chain.add_action( CSVNodeLocation('node_loc', 851 ) )
 
     # iterator can runs different directories
-    simu_iter = SimulationIterator( chain, copy_files=['tests/par_tens.k'] )
+    simu_iter = SimulationIterator( chain, copy_paths=['tests/par_tens.k'] )
 
     simu_iter.rm_rundir() # clean_start=True) )
 
@@ -114,7 +114,7 @@ def test_exp_des( ):
     #                                    required_part_id=3, # NYI, bug if multiple parts?
     #                                    el_data_names=[ 'NODE_ID', '2DELEM_Specific_Energy' ],) )
 
-    simu_iter = SimulationIterator( chain, copy_files=['tests/par_tens_1p.k'] )
+    simu_iter = SimulationIterator( chain, copy_paths=['tests/par_tens_1p.k'] )
 
     simu_iter.rm_rundir() # clean_start=True) )
 
@@ -157,7 +157,7 @@ def test_d3p( ):
 
     # -------------
 
-    simu_iter = SimulationIterator( chain, copy_files=['tests/par_tens.k'] )
+    simu_iter = SimulationIterator( chain, copy_paths=['tests/par_tens.k'] )
     simu_iter.rm_rundir() # clean_start=True) )
 
     evals = simu_iter.solve( { 'SIG_Y':300., 'E':123.4 } )

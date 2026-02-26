@@ -56,7 +56,7 @@ def test_call():
     print_varlist( graph.variables() )
 
     # SimulationIterator
-    itr = SimulationIterator( graph, copy_files=[input_path]  )
+    itr = SimulationIterator( graph, copy_paths=[input_path]  )
     print( 'SimulationIterator vars' )
     print_varlist( itr.variables() )
 

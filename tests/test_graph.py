@@ -59,7 +59,7 @@ def test_area():
     graph.add_action( node_b11, [head_a] )
     graph.add_action( tail_a, [node_b11 ] )
 
-    area = WorkArea( graph, copy_files=[input_path] )
+    area = WorkArea( graph, copy_paths=[input_path] )
 
     result = area.solve( {"V1": 5, "Unused": -1} )
 
@@ -79,7 +79,7 @@ def test_iter():
     graph.add_action( node_b11, [head_a] )
     graph.add_action( tail_a, [node_b11 ] )
 
-    itr = SimulationIterator( graph, copy_files=[input_path]  )
+    itr = SimulationIterator( graph, copy_paths=[input_path]  )
 
     result = itr.solve( {"V1": 5, "Unused": -1} )
     print("Result:", result)
@@ -184,13 +184,13 @@ def test_mdo():
 
     graph1 = DirectedGraph( 'SOLVER_1' )
     graph1.add_action( node_b11 )
-    area1 = WorkArea( graph1, copy_files=[input_path] )
+    area1 = WorkArea( graph1, copy_paths=[input_path] )
 
     graph_main.add_action( area1, [head_a ] )
 
     graph2 = DirectedGraph( 'SOLVER_2' )
     graph2.add_action( node_b22 )
-    area2 = WorkArea( graph2, copy_files=[input_path] )
+    area2 = WorkArea( graph2, copy_paths=[input_path] )
 
     graph_main.add_action( area2, [head_a ] )
 

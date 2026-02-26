@@ -31,7 +31,7 @@ The study is parameterized using the \*PARAMETER keyword.
 
     # 4. Create a WorkArea and execute
     # This will copy 'model.k' to the 'simulation_run' directory
-    wa = WorkArea(wf, "./simulation_run", copy_files=["model.k"])
+    wa = WorkArea(wf, "./simulation_run", copy_paths=["model.k"])
     params = {'VELOCITY': 10.0, 'THICKNESS': 2.5}
     results = wa.solve(params)
 
