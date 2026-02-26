@@ -99,11 +99,19 @@ class OpenFOAMAnalysis( WorkAction ):
         with open(par_file, 'w') as f:
             f.write(content)
 
-    def _run_command(self, cmd, cwd):
-        logger.info(f"Running command: {cmd} in {cwd}")
-        # Append to stdout/stderr files in the case directory
-        with open(cwd / 'openfoam.stdout', 'a') as out, open(cwd / 'openfoam.stderr', 'a') as err:
-            result = subprocess.run(cmd, shell=True, cwd=cwd, stdout=out, stderr=err)
+    def _run_command(self, cmd, run_dir):
+        logger.info(f"Running command: {cmd} in {run_dir}")
+        with open(run_dir / 'openfoam.stdout', 'a') as out, \
+             open(run_dir / 'openfoam.stderr', 'a') as err_file:
+            result = subprocess.run(cmd, shell=True, cwd=run_dir, stdout=out, stderr=subprocess.PIPE)
+            stderr_output = result.stderr.decode('utf-8', errors='replace')
+            if stderr_output:
+                err_file.write(stderr_output)
+
+        if result.returncode != 0:
+            error_msg = stderr_output.strip() if stderr_output else f"exit code {result.returncode}"
+            logger.error(f"Command failed: {cmd!r}\n  {error_msg}")
+
         return result.returncode == 0
 
     @WorkAction.assign_variables_values_to_members
@@ -120,21 +128,21 @@ class OpenFOAMAnalysis( WorkAction ):
         if val_dict:
             self._update_parameters(val_dict)
         
-        cwd = Path(self.case_dir).resolve()
+        run_dir = Path(self.case_dir).resolve()
         success = True
 
         if self.job_flag & JobType.CREATE_MESH:
             cmd = self.mesh_cmd if self.mesh_cmd else 'blockMesh'
-            success = success and self._run_command(cmd, cwd)
+            success = success and self._run_command(cmd, run_dir)
         
         if success and (self.job_flag & JobType.RUN_SIMULATION):
-            success = success and self._run_command(self.solve_cmd, cwd)
+            success = success and self._run_command(self.solve_cmd, run_dir)
             
         if success and (self.job_flag & JobType.POST_PRO):
-            success = success and self._run_command('paraFoam -builtin -touch', cwd)
+            success = success and self._run_command('paraFoam -builtin -touch', run_dir)
             
         if success and (self.job_flag & JobType.EXTRACT_VTK):
-            success = success and self._run_command('foamToVtk', cwd)
+            success = success and self._run_command('foamToVtk', run_dir)
             
         return success
 
@@ -151,7 +159,8 @@ class OpenFOAM_Field( WorkAction ):
 
     @WorkAction.assign_variables_values_to_members
     def solve( self, val_dict ):
-        time_dir = str(int(self.time))
+        #time_dir = str(int(self.time))
+        time_dir = str(self.time)
         reader = OpenFOAMFieldReader( case_dir = self.case_dir )
         field_type, field_data = reader.field( self.field_var, time_dir = time_dir, location = self.location)
         return field_data

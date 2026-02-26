@@ -55,6 +55,9 @@ pip install simflow
 
 * OpenFOAM should reset parameter file? Create backup?
 
+* Document OpenFOAM 
+  - Needs data in VTK and constant/polyMesh/points
+
 * How does Variable interact with solve()?
      * solve( variables=, val_dict=)
      * solve( *args, **kwargs )?

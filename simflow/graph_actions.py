@@ -28,17 +28,17 @@ class WorkArea(WorkAction):
     Arguments:
         graph (DirectedGraph) : DirectedGraph or WorkFlow  
         work_area_path (str) : Default is to ./{graph.name}
-        copy_files (list) : List of names of file to be copied to work area.
+        copy_paths (list) : List of names of file to be copied to work area.
     Returns:
         dict: Output from graph (it adds nothing).
     """
 
-    def __init__( self, graph, work_area_path=None, copy_files=None ):
+    def __init__( self, graph, work_area_path=None, copy_paths=None ):
 
         assert isinstance( graph, DirectedGraph ) 
         super().__init__( graph.name+'_WorkArea', "" )
         self.graph = graph
-        self.copy_paths = copy_files
+        self.copy_paths = copy_paths
         if work_area_path is None:
             work_area_path = Path.cwd().joinpath( self.graph.name )
         
@@ -96,12 +96,15 @@ class WorkArea(WorkAction):
         self.wa_path.mkdir(mode=0o777, parents=True, exist_ok=True)
 
         if self.copy_paths is not None:
-            logger.info( f'Copying files {self.copy_paths}' )
-            #print( f'Copying files {self.copy_paths}' )
+            logger.info( f'Copying paths {self.copy_paths}' )
             for fname in self.copy_paths:
-                if not Path( fname ).exists():
-                    exit( f'File \"{fname}\" not found. Either the file does not exists or you must specify the full path.' )
-                shutil.copy2( fname, self.wa_path )
+                src = Path(fname)
+                if not src.exists():
+                    exit( f'Path \"{fname}\" not found. Either the path does not exist or you must specify the full path.' )
+                if src.is_dir():
+                    shutil.copytree(src, self.wa_path / src.name)
+                else:
+                    shutil.copy2(src, self.wa_path)
 
         os.chdir( self.wa_path )
         logger.info( f'Running in directory {self.wa_path}' )
@@ -134,7 +137,7 @@ class SimulationIterator(WorkAction):
         graph (DirectedGraph) : DirectedGraph or WorkFlow  
         parameter_list (list) : Only needed to provided default values to eval.
         work_area_path (str) : Default is to ./{graph.name}
-        copy_files (list) : 
+        copy_paths (list) : 
         clean_start (bool) : 
 
     Returns:
@@ -142,18 +145,16 @@ class SimulationIterator(WorkAction):
     """
 
     def __init__( self, graph, parameter_list=[],
-                 work_area_path=None, copy_files=None, clean_start=False):
+                 work_area_path=None, copy_paths=None, clean_start=False):
 
         assert isinstance( graph, WorkAction ) 
         #assert isinstance( graph, DirectedGraph ) # ? must be a graph
 
         super().__init__( graph.name+'_Iter', "" )
 
-        # todo copy_files
-
         self.graph = graph
         self.parameter_list = parameter_list
-        self.copy_paths = copy_files
+        self.copy_paths = copy_paths
 
         self.last_job_path = None
 
@@ -171,7 +172,6 @@ class SimulationIterator(WorkAction):
         if clean_start: self.rm_rundir()
 
     def rm_rundir( self ):
-        #sim_path = Path.cwd().joinpath( self.name )
         sim_path = self.work_area_path
         if sim_path.exists():  shutil.rmtree( sim_path )
 
@@ -289,17 +289,20 @@ class SimulationIterator(WorkAction):
             exit( f' *** Error Results directory {sim_path} already exists. Restart is not yet supported.' )
 
         root_dir = Path.cwd()
-        #self.last_job_path = root_dir.joinpath( self.name )
         self.last_job_path = self.work_area_path
         self.last_job_path = self.last_job_path.joinpath( 'job_' + str( self.run_iter ) )
         self.last_job_path.mkdir(mode=0o777, parents=True, exist_ok=True)
 
         if self.copy_paths is not None:
-            logger.info( f'Copying files {self.copy_paths}' )
+            logger.info( f'Copying paths {self.copy_paths}' )
             for fname in self.copy_paths:
-                if not Path( fname ).exists():
-                    exit( f'File \"{fname}\" not found. Either the file does not exists or you must specify the full path.' )
-                shutil.copy2( fname, self.last_job_path )
+                src = Path(fname)
+                if not src.exists():
+                    exit( f'Path \"{fname}\" not found. Either the path does not exist or you must specify the full path.' )
+                if src.is_dir():
+                    shutil.copytree(src, self.last_job_path / src.name)
+                else:
+                    shutil.copy2(src, self.last_job_path)
 
         os.chdir( self.last_job_path )
         logger.info( f'Running in directory {self.last_job_path}' )
