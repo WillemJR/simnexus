@@ -1,23 +1,24 @@
-
 import logging
 logging.basicConfig(level=logging.WARNING)
 
 import sys, os
 from pathlib import Path
 
-from simflow.graph_actions import WorkFlow, WorkArea
 from simflow.dyna_actions import DynaAnalysis
 from simflow.d3plot_actions import d3plot_File
+from simflow.graph_actions import WorkFlow, WorkArea
 
 def run_example():
 
     # ls-dyna input deck 'spring.k' contains *PARAMETER floatpar1 and intpar2
-    fe_path = Path(__file__).parent.parent / "tests" / "spring.k"
+    fe_name =  "spring.k"
+    fe_path = Path(__file__).parent.parent / "tests" / fe_name
     if not fe_path.exists(): exit(f"Error: {fe_path} does not exist.")
 
-    wf = WorkFlow("SpringWorkFlow")
+    breakpoint()
+    wf = WorkFlow( "Dyna_WorkFlow" )
     
-    run_dyna = DynaAnalysis("RunSpring", input_path=str(fe_path))
+    run_dyna = DynaAnalysis("Spring", input_path=fe_name)
     wf.add_action(run_dyna)
     
     # Results are extracted from the d3plot file.
@@ -27,13 +28,14 @@ def run_example():
     wf.add_action( d3p )
 
     # Create WorkArea. Copy the spring.k file to the run directory
-    wrk_area = WorkArea( wf, "./WA", copy_files=[str(fe_path)] )
+    wrk_area = WorkArea( wf, copy_paths=[str(fe_path)] )
     
     params = {'floatpar1': 1.5, 'intpar2': 800}
     print(f"Running simulation with params: {params}")
     
     # Edit parameters values and run
     try:
+        #results = wrk_area.solve(params)
         results = wrk_area.solve(params)
         print("Results:", results.keys() )
         print("Results:", results)

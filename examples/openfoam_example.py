@@ -1,3 +1,6 @@
+import logging
+logging.basicConfig(level=logging.WARNING)
+
 from pathlib import Path
 from simflow.args import JobType
 from simflow.graph_actions import WorkFlow, WorkArea
@@ -15,7 +18,7 @@ def openfoam_example():
         str(case_dir / "0"),
     ]
 
-    wf = WorkFlow('OpenFOAM_Extraction')
+    wf = WorkFlow('OpenFOAM_WorkFlow')
 
     job = wf.add_action( OpenFOAMAnalysis(
         name="my_job",
@@ -31,18 +34,18 @@ def openfoam_example():
         print(f"  {v}")
 
     field_ext = OpenFOAM_Field(
-        name='temp_field',
-        field_variable='T',
-        time=50
+        name='p',
+        field_variable='p',
+        time=0.5
     )
     wf.add_action(field_ext)
 
-    wa = WorkArea(wf, work_area_path='FOAM_WorkArea')
+    wa = WorkArea(wf)
 
     # Run the job with new parameter values
     print("Running job.solve({'lidVelocity': 1.2, 'nCells': 6})...")
-    success = wa.solve({"lidVelocity": 1.2, "nCells": 6})
-    print(f"Job success: {success}")
+    outcomes = wa.solve({"lidVelocity": 1.2, "nCells": 6})
+    print(f"Job outcomes: {outcomes}")
 
 
 if __name__ == "__main__":

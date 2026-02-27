@@ -34,16 +34,13 @@ class DynaAnalysis(WorkAction):
 
         super().__init__(name, cmd )
         self.input_file_path = input_path
-        self.fea_file_path = Path( self.input_file_path ).name
 
     def solve( self,  val_dict=None ):
         """ """
 
-        if not Path( self.fea_file_path ).exists():
-            exit( f' *** Error {self.fea_file_path} not in run directory. Likely not copied by Iterator.' )
+        if not Path( self.input_file_path ).exists():
+            exit( f' *** Error {self.input_file_path} not in run directory. Likely not copied by Iterator.' )
 
-        fea_file_path = Path(self.fea_file_path).resolve()
-        
         if val_dict is None: val_dict = {}
 
         with open( 'dyna_variables.json','w' ) as vf:
@@ -51,7 +48,7 @@ class DynaAnalysis(WorkAction):
 
         base_file_name = simflow.args.DYNA_BASE_FILE_NAME+'.k'
         
-        with dynakw.DynaKeywordReader( fea_file_path ) as dkr:
+        with dynakw.DynaKeywordReader( self.input_file_path ) as dkr:
             # Get existing parameters
             params = dkr.parameters()
             logger.info("\nExisting parameters:")

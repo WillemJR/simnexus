@@ -53,6 +53,22 @@ pip install simflow
 
 ## Todo
 
+* Add CopyPaths() and Rename()
+    - to cwd ?
+    - rename
+
+
+* Sort out file paths. Maybe mutually exclusive (no dyna i={input_deck}).
+    - copy_paths can be in WorkArea or in WorkFlow / DirectedGraph
+    - input_paths can  also be in FoamAna / RadiosAna / DynaAnak
+    - FoamAna / RadiosAna / DynaAnak should have input_paths, input_path
+
+* DONE? WorkArea 
+    * SimIter should be subclass of WorkArea?
+    * Part of above copy_paths = in work_area and simulationIterator and remote
+
+
+
 * OpenFOAM should reset parameter file? Create backup?
 
 * Document OpenFOAM 
@@ -63,13 +79,6 @@ pip install simflow
      * solve( *args, **kwargs )?
      * SimulationIterator( parameter_list= ) : for default values if not provided in solve
      * solve_dict not val_dict ?
-
-* DONE? WorkArea 
-    * SimIter should be subclass of WorkArea?
-    * Part of above copy_files = in work_area and simulationIterator and remote
-
-* DONE: variables() method on action returning Variables
- - DONE: Unknown variable
 
 * Extracting DSA from adjointOptimisaFoam
 
