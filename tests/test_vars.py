@@ -37,7 +37,7 @@ def test_call():
     wf.add_action(run_dyna)
 
     print( 'dyna vars', run_dyna.variables() )
-    print( 'dyna vars', run_dyna.variables()[0] )
+    print( 'dyna vars', next(iter(run_dyna.variables())) )
     print( 'workflow vars' )
     print_varlist( wf.variables() )
 

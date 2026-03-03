@@ -848,7 +848,7 @@ class OpenFOAMFieldReader:
         time_dir : Change this to the time you want to analyze
         """
 
-        logger.info("OpenFOAM Temperature Field Reader")
+        logger.info("OpenFOAM Field Reader")
         logger.info("=" * 40)
 
         if time_dir == -1 or time_dir == "-1":

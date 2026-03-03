@@ -37,7 +37,7 @@ def main():
     wf = WorkFlow( 'Radioss_WorkFlow' )
     wf.add_action( jinja_act )
     wf.add_action( run_rad )
-    wrk_area = WorkArea( wf, copy_paths=[str(input_deck)] )
+    wrk_area = WorkArea( wf )
 
     # 4. Execute the workflow
     # Provide values for the variables defined in the Jinja template

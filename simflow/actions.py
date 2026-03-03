@@ -23,19 +23,20 @@ class WorkAction(Subject):
     args:
         name (str) :
         cmd (str) :
+        copy_paths (list) : List of file and directories to be copied to work area.
         lower_bound (float) : Lower bound on output value during design
         upper_bound (float) : Lower bound on output value during design
     Returns:
         Any: outcome of operation
     """
 
-    def __init__( self, name, cmd=None, lower_bound=None, upper_bound=None ):
+    def __init__( self, name, cmd=None, copy_paths=[], lower_bound=None, upper_bound=None ):
         """
         """
         super().__init__()
         self.name = name
         self.cmd = cmd          # backward compatible with simulation
-        #self.BASE_F_NAME = None # backward compatible with simulation
+        self.copy_paths = copy_paths
         self.upper_bound = upper_bound # backward compatible with simulation
         self.lower_bound = lower_bound # backward compatible with simulation
         self.parent = None # typically workflow
@@ -183,14 +184,14 @@ class WorkAction(Subject):
     def variables( self ):
         """
         These are the variabls defined for the WorkAction
-        and used in the solve() method. 
+        and used in the solve() method.
         For a graph this would be the variables used in
         all the children.
 
         Returns:
-            list : List of type Variable.
+            set : Set of type Variable.
         """
-        return []
+        return set()
 
     def results(self):
         return self._results

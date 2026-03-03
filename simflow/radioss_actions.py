@@ -317,13 +317,13 @@ class RadiossAnalysis(WorkAction):
                             vortex_radioss.animtod3plot.Anim_to_D3plot
     """
 
-    def __init__( self, name, cmd='rad_dyna_inp', input_path=simflow.args.RADIOSS_DFLT_FNAME, create_d3plot=True ):
+    def __init__( self, name, cmd='rad_dyna_inp', input_path=simflow.args.RADIOSS_DFLT_FNAME, create_d3plot=True, copy_paths=[] ):
 
         assert input_path is not None, 'No input OpenRadioss file specified. Specify the path to radioss input file.'
 
-        super().__init__(name, cmd )
-        self.fea_file_path = input_path
-        self.fea_file_path = Path( self.fea_file_path ).name
+        super().__init__(name, cmd, copy_paths=copy_paths )
+        self.input_file_path = input_path
+        self.input_file_path = Path( self.input_file_path ).name
 
         self.create_d3plot = create_d3plot
 
@@ -354,10 +354,10 @@ class RadiossAnalysis(WorkAction):
 
     def solve( self,  val_dict=None ):
 
-        if not Path( self.fea_file_path ).exists():
-            exit( f' *** Error {self.fea_file_path} not in run directory. Likely not copied by Iterator.' )
+        if not Path( self.input_file_path ).exists():
+            exit( f' *** Error {self.input_file_path} not in run directory. Likely not copied by Iterator.' )
 
-        fea_file_path = Path(self.fea_file_path).resolve()
+        input_file_path = Path(self.input_file_path).resolve()
         
         if val_dict is None: val_dict = {}
 
@@ -366,7 +366,7 @@ class RadiossAnalysis(WorkAction):
 
         base_file_name = RADIOSS_BASE_F_NAME+'.k'
         
-        with open( fea_file_path, 'r' ) as f_in:
+        with open( input_file_path, 'r' ) as f_in:
             content = f_in.read()
         
         with open( base_file_name,  'w' ) as outfile:
@@ -387,7 +387,7 @@ class RadiossAnalysis(WorkAction):
         e.g write_deck( {'E':210.0, 'SIG_Y':sigy} )
         """
         
-        with open( self.fea_file_path, 'r' ) as f_in:
+        with open( self.input_file_path, 'r' ) as f_in:
              content = f_in.read()
 
         with open( dpath,  'w' ) as outfile:

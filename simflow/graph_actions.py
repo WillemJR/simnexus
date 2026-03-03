@@ -33,12 +33,11 @@ class WorkArea(WorkAction):
         dict: Output from graph (it adds nothing).
     """
 
-    def __init__( self, graph, work_area_path=None, copy_paths=None ):
+    def __init__( self, graph, work_area_path=None, copy_paths=[] ):
 
         assert isinstance( graph, DirectedGraph ) 
-        super().__init__( graph.name+'_WorkArea', "" )
+        super().__init__( graph.name+'_WorkArea', "", copy_paths=copy_paths+graph.copy_paths )
         self.graph = graph
-        self.copy_paths = copy_paths
         if work_area_path is None:
             work_area_path = Path.cwd().joinpath( self.graph.name )
         
@@ -91,13 +90,13 @@ class WorkArea(WorkAction):
             self._clean_inrundir()
 
         root_dir = Path.cwd()
-        #self.wa_path = root_dir.joinpath( self.name )
         self.wa_path = self.work_area_path
         self.wa_path.mkdir(mode=0o777, parents=True, exist_ok=True)
 
+        #if self.graph.copy_paths is not None:
         if self.copy_paths is not None:
-            logger.info( f'Copying paths {self.copy_paths}' )
-            for fname in self.copy_paths:
+            logger.info( f'Copying paths {self.graph.copy_paths}' )
+            for fname in self.graph.copy_paths:
                 src = Path(fname)
                 if not src.exists():
                     exit( f'Path \"{fname}\" not found. Either the path does not exist or you must specify the full path.' )
@@ -145,16 +144,15 @@ class SimulationIterator(WorkAction):
     """
 
     def __init__( self, graph, parameter_list=[],
-                 work_area_path=None, copy_paths=None, clean_start=False):
+                 work_area_path=None, copy_paths=[], clean_start=False):
 
         assert isinstance( graph, WorkAction ) 
         #assert isinstance( graph, DirectedGraph ) # ? must be a graph
 
-        super().__init__( graph.name+'_Iter', "" )
+        super().__init__( graph.name+'_Iter', "", copy_paths=copy_paths+graph.copy_paths )
 
         self.graph = graph
         self.parameter_list = parameter_list
-        self.copy_paths = copy_paths
 
         self.last_job_path = None
 
@@ -438,7 +436,7 @@ class DirectedGraph(WorkAction, Observer):
 
     def __init__(self, name, asynch=False, work_area_path=None):
         #self.adjacency_list = defaultdict(list)
-        super().__init__( name, "" )
+        super().__init__( name, copy_paths=[] )
         self.parent_list = defaultdict(list)
         self.child_actions = {}
         self.asynch = asynch
@@ -464,6 +462,7 @@ class DirectedGraph(WorkAction, Observer):
         if parents is not None: 
             for p in parents: self.add_edge( p, action )
         action.attach( self )
+        self.copy_paths.extend( action.copy_paths )
         return action
 
     def add_edge(self, from_node, to_node):
@@ -572,9 +571,9 @@ class DirectedGraph(WorkAction, Observer):
         return self.child_actions[name]
 
     def variables(self ):
-        vrs = []
+        vrs = set()
         for ch in self.child_actions.values():
-            vrs = vrs + ch.variables() 
+            vrs = vrs | ch.variables()
         return vrs
 
     def __str__(self ):
@@ -600,6 +599,7 @@ class WorkFlow(DirectedGraph):
 
     def __init__( self, name, actions=None, work_area_path=None ):
         super().__init__( name, work_area_path=work_area_path )
+        #print( '\tWorkFlow __init__', self.copy_paths )
         self.sequence = []
         if actions is not None:
             for e in actions: self.add_action(e)

@@ -3,8 +3,11 @@ import jinja2
 from pathlib import Path
 from jinja2 import meta
 from simflow.actions import WorkAction
-import simflow.args 
+import simflow.args
 import simflow.variables
+
+import logging
+logger = logging.getLogger(__name__)
 
 """
 The file is for cases where variables / parameters are defined inside the input decks
@@ -37,10 +40,10 @@ class JinjaReplace(WorkAction):
 
     @WorkAction.allow_variables_as_arguments
     def __init__( self, name, input_file_path,
-                  output_file_path=simflow.args.RADIOSS_DFLT_FNAME, val_format="%10.3g" ):
-        WorkAction.__init__(self, name)
-        
-        self.input_file_path = input_file_path 
+                  output_file_path=simflow.args.RADIOSS_DFLT_FNAME, val_format="%10.3g", copy_paths=[] ):
+        WorkAction.__init__(self, name, copy_paths=copy_paths)
+
+        self.input_file_path = input_file_path
         self.output_file_path = output_file_path
         if self.output_file_path is None:
              self.output_file_path = input_file_path
@@ -48,14 +51,18 @@ class JinjaReplace(WorkAction):
 
         self.par_names = None
         self.par_vals = None
-        
+
         self._get_parameters()
 
-        input_file_path_obj = Path(self.input_file_path).resolve()
-        jj_environment = jinja2.Environment(
-            loader=jinja2.FileSystemLoader(input_file_path_obj.parent)
-        )
-        self.template = jj_environment.get_template(input_file_path_obj.name)
+        file_to_use = self._find_input_file()
+        if file_to_use is not None:
+            file_to_use = Path(file_to_use).resolve()
+            jj_environment = jinja2.Environment(
+                loader=jinja2.FileSystemLoader(file_to_use.parent)
+            )
+            self.template = jj_environment.get_template(file_to_use.name)
+        else:
+            self.template = None
 
 
     def _parameter_names( self ):
@@ -71,24 +78,50 @@ class JinjaReplace(WorkAction):
         The type and value of the variables are unknown.
 
         Returns
-            list : List of type UnknownVariable.
+            set : Set of type UnknownVariable.
         """
-        return [ simflow.variables.UnknownVariable(pn, "") for pn in self.par_names ]
+        return { simflow.variables.UnknownVariable(pn, "") for pn in self.par_names }
+
+    def _find_input_file( self ):
+        """Locate the input file, checking self.input_file_path first,
+        then self.copy_paths for an entry with the same filename.
+
+        Returns:
+            Path or None: path to the file, or None if not found.
+        """
+        input_path = Path( self.input_file_path )
+        if input_path.exists():
+            return input_path
+
+        target_name = input_path.name
+        for cp in self.copy_paths:
+            cp_path = Path(cp)
+            if cp_path.is_file() and cp_path.name == target_name:
+                return cp_path
+            elif cp_path.is_dir():
+                candidate = cp_path / target_name
+                if candidate.exists():
+                    return candidate
+
+        return None
 
     def _get_parameters( self ):
         """
         Extract all undefined variables from a jinja template file.
-        
-        Parses the template file to identify variables that need to be provided.
+
+        Tries self.input_file_path first; if that cannot be opened,
+        searches self.copy_paths for an entry with the same filename.
         Updates self.par_names and self.undeclared_par_names.
-
-        Raises:
-            FileNotFoundError: If the template file does not exist.
         """
-        if not Path( self.input_file_path ).exists():
-            raise FileNotFoundError(f"template file not found: {self.input_file_path}")
+        file_to_use = self._find_input_file()
 
-        with open(self.input_file_path, 'r', encoding='utf-8') as file:
+        if file_to_use is None:
+            logger.warning( f"template file not found: {self.input_file_path}" )
+            self.par_names = set()
+            self.undeclared_par_names = []
+            return
+
+        with open(file_to_use, 'r', encoding='utf-8') as file:
             template_source = file.read()
 
         self.env = jinja2.Environment()

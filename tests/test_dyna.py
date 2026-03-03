@@ -23,7 +23,7 @@ def test_dyna_run_extract():
     wf.add_action( d3p )
 
     # Create WorkArea. We copy the spring.k file to the run directory
-    wrk_area = WorkArea( wf, copy_paths=[str(fe_path)] )
+    wrk_area = WorkArea( wf )
     
     # parameters values will be edited`
     params = {'floatpar1': 1.5, 'intpar2': 800}

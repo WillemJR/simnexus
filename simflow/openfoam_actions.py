@@ -37,9 +37,8 @@ class OpenFOAMAnalysis( WorkAction ):
     """
 
     @WorkAction.allow_variables_as_arguments
-    def __init__( self, name, copy_paths=None, job_flag=None, solve_cmd='laplacianFoam', mesh_cmd=None ):
-        super().__init__( name )
-        self.copy_paths = copy_paths
+    def __init__( self, name, copy_paths=[], job_flag=None, solve_cmd='laplacianFoam', mesh_cmd=None ):
+        super().__init__(name, copy_paths=copy_paths )
         self.solve_cmd = solve_cmd
         self.mesh_cmd = mesh_cmd
         if job_flag is None:
@@ -78,14 +77,14 @@ class OpenFOAMAnalysis( WorkAction ):
         Returns the variables defined in system/parameters file.
 
         Returns:
-            list: List of type Variable.
+            set: Set of type Variable.
         """
         par_file = self._find_parameters_file()
         if par_file is None:
-            logger.warning("Parameters file not found")
-            return []
+            logger.warning("Parameters file not found. Have the file been copied yet?")
+            return set()
 
-        vars_list = []
+        vars_list = set()
         with open(par_file, 'r') as f:
             content = f.read()
 
@@ -103,9 +102,9 @@ class OpenFOAMAnalysis( WorkAction ):
             val_str = val_str.strip()
             try:
                 val = float(val_str)
-                vars_list.append(simvars.FloatVariable(name, val))
+                vars_list.add(simvars.FloatVariable(name, val))
             except ValueError:
-                vars_list.append(simvars.UnknownVariable(name, val_str))
+                vars_list.add(simvars.UnknownVariable(name, val_str))
 
         return vars_list
 
@@ -153,16 +152,6 @@ class OpenFOAMAnalysis( WorkAction ):
         Returns:
             bool: True if all commands succeeded.
         """
-        if self.copy_paths:
-            for fname in self.copy_paths:
-                src = Path(fname)
-                if not src.exists():
-                    logger.error(f"Path '{fname}' not found.")
-                    return False
-                if src.is_dir():
-                    shutil.copytree(src, Path.cwd() / src.name)
-                else:
-                    shutil.copy2(src, Path.cwd())
 
         if val_dict:
             self._update_parameters(val_dict)

@@ -15,12 +15,17 @@ def run_example():
     fe_path = Path(__file__).parent.parent / "tests" / fe_name
     if not fe_path.exists(): exit(f"Error: {fe_path} does not exist.")
 
-    breakpoint()
     wf = WorkFlow( "Dyna_WorkFlow" )
     
-    run_dyna = DynaAnalysis("Spring", input_path=fe_name)
+    run_dyna = DynaAnalysis("Spring", input_path=fe_name, copy_paths=[str(fe_path)] )
     wf.add_action(run_dyna)
     
+    # Discover variables
+    discovered_vars = run_dyna.variables()
+    print("Discovered variables:")
+    for v in discovered_vars:
+        print(f"  {v}")
+
     # Results are extracted from the d3plot file.
     d3p = d3plot_File( 'field' )
     d3p.NodalValue('n5', state=1, nid=5, component= 'node_displacement'  )
@@ -28,7 +33,7 @@ def run_example():
     wf.add_action( d3p )
 
     # Create WorkArea. Copy the spring.k file to the run directory
-    wrk_area = WorkArea( wf, copy_paths=[str(fe_path)] )
+    wrk_area = WorkArea( wf )
     
     params = {'floatpar1': 1.5, 'intpar2': 800}
     print(f"Running simulation with params: {params}")
