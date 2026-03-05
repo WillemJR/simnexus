@@ -62,6 +62,7 @@ pip install simflow
     - copy_paths can be in WorkArea or in WorkFlow / DirectedGraph
     - input_paths can  also be in FoamAna / RadiosAna / DynaAnak
     - FoamAna / RadiosAna / DynaAnak should have input_paths, input_path
+    - how is variables() discovered for all.
 
 * DONE? WorkArea 
     * SimIter should be subclass of WorkArea?

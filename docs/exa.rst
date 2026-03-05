@@ -93,7 +93,6 @@ NOT COMPLETE. ADD RunOpenFOAM
     # 1. Extract a field at a specific time
     field_ext = OpenFOAM_Field(
         name='temp_field',
-        case_dir='heat_transfer_case',
         field_variable='T',
         time=50
     )
@@ -102,7 +101,6 @@ NOT COMPLETE. ADD RunOpenFOAM
     # 2. Extract history for a specific point index
     hist_ext = OpenFOAM_History(
         name='temp_history',
-        case_dir='heat_transfer_case',
         field_variable='T',
         point_idx=10
     )
