@@ -393,9 +393,9 @@ class SimulationIterator(WorkAction):
             evals = self.solve( pars_vals )
             for k,v in evals.items():
                 if isinstance(v,numbers.Number):
-                    logger.info( f'\t\t Action: {k},{v}' )
+                    logger.info( f'\t\t Result: {k},{v}' )
                 else:
-                    logger.info( f'\t\t Action: {k},{type(v)}' )
+                    logger.info( f'\t\t Result: {k},{type(v)}' )
 
             list_of_evals.append( evals )
 

@@ -166,7 +166,7 @@ class OpenFOAMPointsReader:
                 x, y, z = float(match.group(1)), float(match.group(2)), float(match.group(3))
                 points.append((x, y, z))
             except ValueError as e:
-                print(f"Warning: Could not parse coordinate triplet: {match.group(0)}")
+                logger.warning(f"Could not parse coordinate triplet: {match.group(0)}")
                 continue
 
         # If the regex approach fails, try a more basic line-by-line approach
@@ -174,7 +174,7 @@ class OpenFOAMPointsReader:
             points = self._extract_coordinates_line_by_line(coords_section)
 
         if len(points) != n_points:
-            print(f"Warning: Expected {n_points} points, but found {len(points)}")
+            logger.warning(f"Expected {n_points} points, but found {len(points)}")
 
         return points
 
@@ -271,27 +271,27 @@ class OpenFOAMPointsReader:
         Print a summary of the loaded points data.
         """
         if self.points is None:
-            print("No points loaded. Call read_points() first.")
+            logger.warning("No points loaded. Call read_points() first.")
             return
 
-        print("=== OpenFOAM Points Summary ===")
-        print(f"File: {self.file_path}")
-        print(f"Number of points: {len(self.points)}")
+        logger.info("=== OpenFOAM Points Summary ===")
+        logger.info(f"File: {self.file_path}")
+        logger.info(f"Number of points: {len(self.points)}")
 
         if self.header:
-            print("\nHeader information:")
+            logger.info("\nHeader information:")
             for key, value in self.header.items():
-                print(f"  {key}: {value}")
+                logger.info(f"  {key}: {value}")
 
         x_bounds, y_bounds, z_bounds = self.get_bounds()
-        print(f"\nBounding box:")
-        print(f"  X: [{x_bounds[0]:.6f}, {x_bounds[1]:.6f}]")
-        print(f"  Y: [{y_bounds[0]:.6f}, {y_bounds[1]:.6f}]")
-        print(f"  Z: [{z_bounds[0]:.6f}, {z_bounds[1]:.6f}]")
+        logger.info(f"\nBounding box:")
+        logger.info(f"  X: [{x_bounds[0]:.6f}, {x_bounds[1]:.6f}]")
+        logger.info(f"  Y: [{y_bounds[0]:.6f}, {y_bounds[1]:.6f}]")
+        logger.info(f"  Z: [{z_bounds[0]:.6f}, {z_bounds[1]:.6f}]")
 
-        print(f"\nFirst 5 points:")
+        logger.info(f"\nFirst 5 points:")
         for i, point in enumerate(self.points[:5]):
-            print(f"  Point {i}: ({point[0]:.6f}, {point[1]:.6f}, {point[2]:.6f})")
+            logger.info(f"  Point {i}: ({point[0]:.6f}, {point[1]:.6f}, {point[2]:.6f})")
 
 
 
@@ -1288,24 +1288,24 @@ class OpenFOAMBoundaryReader:
         """
         Print a summary of the boundary file contents.
         """
-        print("=== OpenFOAM Boundary Summary ===")
-        print(f"File: {self.file_path}")
-        print(f"Number of patches: {len(self.boundaries)}")
+        logger.info("=== OpenFOAM Boundary Summary ===")
+        logger.info(f"File: {self.file_path}")
+        logger.info(f"Number of patches: {len(self.boundaries)}")
 
         if self.header:
-            print("\nHeader information:")
+            logger.info("\nHeader information:")
             for key, value in self.header.items():
-                print(f"  {key}: {value}")
+                logger.info(f"  {key}: {value}")
 
-        print(f"\nBoundary patches:")
+        logger.info(f"\nBoundary patches:")
         for name, properties in self.boundaries.items():
             patch_type = properties.get('type', 'unknown')
             nFaces = properties.get('nFaces', 'N/A')
             startFace = properties.get('startFace', 'N/A')
-            print(f"  {name}:")
-            print(f"    type: {patch_type}")
-            print(f"    nFaces: {nFaces}")
-            print(f"    startFace: {startFace}")
+            logger.info(f"  {name}:")
+            logger.info(f"    type: {patch_type}")
+            logger.info(f"    nFaces: {nFaces}")
+            logger.info(f"    startFace: {startFace}")
 
         # Summary by type
         types = {}
@@ -1313,9 +1313,9 @@ class OpenFOAMBoundaryReader:
             patch_type = properties.get('type', 'unknown')
             types[patch_type] = types.get(patch_type, 0) + 1
 
-        print(f"\nPatch types summary:")
+        logger.info(f"\nPatch types summary:")
         for patch_type, count in types.items():
-            print(f"  {patch_type}: {count}")
+            logger.info(f"  {patch_type}: {count}")
 
 
 def test_OpenFOAMBoundaryReader():
@@ -1337,30 +1337,30 @@ def test_OpenFOAMBoundaryReader():
 
         # Access specific patch information
         patch_names = reader.get_patch_names()
-        print(f"\nAll patch names: {patch_names}")
+        logger.info(f"\nAll patch names: {patch_names}")
 
         # Get patch types
         patch_types = reader.get_patch_types()
-        print(f"\nPatch types: {patch_types}")
+        logger.info(f"\nPatch types: {patch_types}")
 
         # Get specific patch info
         if patch_names:
             first_patch = patch_names[0]
             patch_info = reader.get_patch_info(first_patch)
-            print(f"\nInfo for patch '{first_patch}':")
+            logger.info(f"\nInfo for patch '{first_patch}':")
             for key, value in patch_info.items():
-                print(f"  {key}: {value}")
+                logger.info(f"  {key}: {value}")
 
         # Get patches by type
         wall_patches = reader.get_patches_by_type('wall')
         if wall_patches:
-            print(f"\nWall patches: {list(wall_patches.keys())}")
+            logger.info(f"\nWall patches: {list(wall_patches.keys())}")
 
     except FileNotFoundError:
-        print(f"Boundary file not found: {boundary_file}")
-        print("Make sure you're in the correct OpenFOAM case directory.")
+        logger.error(f"Boundary file not found: {boundary_file}")
+        logger.error("Make sure you're in the correct OpenFOAM case directory.")
     except Exception as e:
-        print(f"Error reading boundary file: {e}")
+        logger.error(f"Error reading boundary file: {e}")
 
 class OpenFOAMFacesReader:
     """
@@ -1396,7 +1396,7 @@ class OpenFOAMFacesReader:
         if not os.path.exists(self.faces_file_path):
             raise FileNotFoundError(f"Faces file not found: {self.faces_file_path}")
 
-        print(f"Reading faces from: {self.faces_file_path}")
+        logger.info(f"Reading faces from: {self.faces_file_path}")
 
         with open(self.faces_file_path, 'r') as f:
             content = f.read()
@@ -1415,7 +1415,7 @@ class OpenFOAMFacesReader:
         num_faces = int(match.group(1))
         start_pos = match.end() - 1  # Position of opening parenthesis
 
-        print(f"Number of faces: {num_faces}")
+        logger.info(f"Number of faces: {num_faces}")
 
         # Extract the face data
         faces = self._parse_face_list(content, start_pos, num_faces)
@@ -1478,14 +1478,14 @@ class OpenFOAMFacesReader:
             point_indices = [int(x) for x in point_indices_str.split()]
 
             if len(point_indices) != face_size:
-                print(f"Warning: Face size mismatch. Expected {face_size}, got {len(point_indices)}")
+                logger.warning(f"Face size mismatch. Expected {face_size}, got {len(point_indices)}")
 
             faces.append(point_indices)
 
-        print(f"Successfully parsed {len(faces)} faces")
+        logger.info(f"Successfully parsed {len(faces)} faces")
 
         if len(faces) != num_faces:
-            print(f"Warning: Face count mismatch. Expected {num_faces}, got {len(faces)}")
+            logger.warning(f"Face count mismatch. Expected {num_faces}, got {len(faces)}")
 
         return faces
 
@@ -1596,7 +1596,7 @@ class OpenFOAMFacesReader:
             for i in range(min(10, len(self.faces))):
                 f.write(f"Face {i}: {self.faces[i]}\n")
 
-        print(f"Face information exported to {output_file}")
+        logger.info(f"Face information exported to {output_file}")
 
 def test_OpenFOAMFacesReader():
     """
@@ -1607,8 +1607,8 @@ def test_OpenFOAMFacesReader():
     case_path = "/path/to/your/openfoam/case"  # Update this path
 
     if not os.path.exists(case_path):
-        print(f"Case path '{case_path}' does not exist.")
-        print("Please update the case_path variable with your OpenFOAM case directory.")
+        logger.error(f"Case path '{case_path}' does not exist.")
+        logger.error("Please update the case_path variable with your OpenFOAM case directory.")
         return
 
     try:
@@ -1620,32 +1620,32 @@ def test_OpenFOAMFacesReader():
 
         # Get and display statistics
         stats = reader.get_face_statistics()
-        print("\n=== Face Statistics ===")
-        print(f"Total faces: {stats['total_faces']}")
-        print(f"Face size range: {stats['min_face_size']} - {stats['max_face_size']}")
-        print(f"Average face size: {stats['mean_face_size']:.2f}")
+        logger.info("\n=== Face Statistics ===")
+        logger.info(f"Total faces: {stats['total_faces']}")
+        logger.info(f"Face size range: {stats['min_face_size']} - {stats['max_face_size']}")
+        logger.info(f"Average face size: {stats['mean_face_size']:.2f}")
 
-        print("\nFace size distribution:")
+        logger.info("\nFace size distribution:")
         for size, count in sorted(stats['face_size_distribution'].items()):
             percentage = (count / stats['total_faces']) * 100
-            print(f"  {size} points: {count} faces ({percentage:.1f}%)")
+            logger.info(f"  {size} points: {count} faces ({percentage:.1f}%)")
 
         # Example: Show first few faces
-        print(f"\nFirst 5 faces:")
+        logger.info(f"\nFirst 5 faces:")
         for i in range(min(5, len(faces))):
             face = reader.get_face_by_index(i)
-            print(f"Face {i}: {face} (size: {len(face)})")
+            logger.info(f"Face {i}: {face} (size: {len(face)})")
 
         # Example: Find faces using point 0
         faces_using_point_0 = reader.find_faces_using_point(0)
-        print(f"\nFaces using point 0: {len(faces_using_point_0)} faces")
-        print(f"First few: {faces_using_point_0[:5]}")
+        logger.info(f"\nFaces using point 0: {len(faces_using_point_0)} faces")
+        logger.info(f"First few: {faces_using_point_0[:5]}")
 
         # Export information
         reader.export_faces_info()
 
     except Exception as e:
-        print(f"Error: {e}")
+        logger.error(f"Error: {e}")
 
 
 def test_OpenFOAMFieldReader( case_dir = "heatTransferBlock", time_dir = "50" ):
@@ -1656,26 +1656,26 @@ def test_OpenFOAMFieldReader( case_dir = "heatTransferBlock", time_dir = "50" ):
     time_dir : Change this to the time you want to analyze
     """
 
-    print("OpenFOAM Temperature Field Reader")
-    print("=" * 40)
+    logger.info("OpenFOAM Temperature Field Reader")
+    logger.info("=" * 40)
     
     # Example usage
     reader = OpenFOAMFieldReader( case_dir )
     
     # Check if case exists
     if os.path.exists(case_dir):
-        print(f"\\nAnalyzing case: {case_dir}")
+        logger.info(f"\\nAnalyzing case: {case_dir}")
         
         # Read mesh information
         mesh_info = reader.read_mesh_info(case_dir)
-        print()
+        logger.info()
         
         # Read temperature field at specific time
         T_file = os.path.join(case_dir, time_dir, "T")
         
         if os.path.exists(T_file):
-            print(f"Reading temperature field at t = {time_dir} s")
-            print("-" * 50)
+            logger.info(f"Reading temperature field at t = {time_dir} s")
+            logger.info("-" * 50)
             
             # Read the field
             field_type, field_data = reader._read_openfoam_field(T_file)
@@ -1686,7 +1686,7 @@ def test_OpenFOAMFieldReader( case_dir = "heatTransferBlock", time_dir = "50" ):
                     field_type, field_data, float(time_dir), mesh_info, debug=True
                 )
                 
-                print()
+                logger.info()
                 
                 # Create plots for nonuniform fields
                 if field_type == 'nonuniform':
@@ -1700,27 +1700,27 @@ def test_OpenFOAMFieldReader( case_dir = "heatTransferBlock", time_dir = "50" ):
                 reader.save_field_data(field_type, field_data, analysis, data_file)
                 
         else:
-            print(f"Temperature file not found: {T_file}")
-            print("\\nAvailable time directories:")
+            logger.info(f"Temperature file not found: {T_file}")
+            logger.info("\\nAvailable time directories:")
             case_path = Path(case_dir)
             if case_path.exists():
                 time_dirs = [d.name for d in case_path.iterdir() 
                            if d.is_dir() and d.name.replace('.','').replace('-','').isdigit()]
                 time_dirs.sort(key=float)
                 for t in time_dirs[:10]:  # Show first 10
-                    print(f"  {t}")
+                    logger.info(f"  {t}")
                 if len(time_dirs) > 10:
-                    print(f"  ... and {len(time_dirs)-10} more")
-    
+                    logger.info(f"  ... and {len(time_dirs)-10} more")
+
     else:
-        print(f"Case directory '{case_dir}' not found.")
-        print("\\nExample usage:")
-        print("1. Set case_dir to your OpenFOAM case directory")
-        print("2. Set time_dir to the time step you want to analyze")
-        print("3. Run the script")
-    
-    print("\\n" + "=" * 40)
-    print("Analysis complete!")
+        logger.error(f"Case directory '{case_dir}' not found.")
+        logger.error("\\nExample usage:")
+        logger.error("1. Set case_dir to your OpenFOAM case directory")
+        logger.error("2. Set time_dir to the time step you want to analyze")
+        logger.error("3. Run the script")
+
+    logger.info("\\n" + "=" * 40)
+    logger.info("Analysis complete!")
 
 
 
@@ -1742,18 +1742,18 @@ def test_OpenFOAMPointsReader():
         reader.print_summary()
 
         # Access points data
-        print(f"\nPoints shape: {points.shape}")
-        print(f"Data type: {points.dtype}")
+        logger.info(f"\nPoints shape: {points.shape}")
+        logger.info(f"Data type: {points.dtype}")
 
         # Save to CSV (optional)
         # reader.save_to_csv("points.csv")
         # print("Points saved to points.csv")
 
     except FileNotFoundError:
-        print(f"Points file not found: {points_file}")
-        print("Make sure you're in the correct OpenFOAM case directory.")
+        logger.error(f"Points file not found: {points_file}")
+        logger.error("Make sure you're in the correct OpenFOAM case directory.")
     except Exception as e:
-        print(f"Error reading points file: {e}")
+        logger.error(f"Error reading points file: {e}")
 
 
 
@@ -1763,4 +1763,4 @@ if __name__ == "__main__":
     test_OpenFOAMFieldReader()
     test_OpenFOAMFacesReader()
     v = FOAM_T_Max( "heatTransferBlock", "50" )
-    print( 'max', v )
+    print(f"max {v}")
