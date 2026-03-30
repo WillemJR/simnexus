@@ -10,6 +10,7 @@ from pathlib import Path
 
 from simflow.actions import WorkAction
 from simflow.rare import HistoryEvaluation
+from simflow.util.openradios_reader import OpenRadiosKeywordReader
 
 import simflow.VTK.read_vtk as read_vtk
 import simflow.args
@@ -357,21 +358,27 @@ class RadiossAnalysis(WorkAction):
         if not Path( self.input_file_path ).exists():
             exit( f' *** Error {self.input_file_path} not in run directory. Likely not copied by Iterator.' )
 
-        input_file_path = Path(self.input_file_path).resolve()
-        
         if val_dict is None: val_dict = {}
 
         with open( 'radioss_variables.json','w' ) as vf:
             json.dump( val_dict, vf )
 
         base_file_name = RADIOSS_BASE_F_NAME+'.k'
-        
-        with open( input_file_path, 'r' ) as f_in:
-            content = f_in.read()
-        
-        with open( base_file_name,  'w' ) as outfile:
-            outfile.write( content )
-            outfile.write( '\n' )
+
+        with OpenRadiosKeywordReader( self.input_file_path ) as okr:
+            params = okr.parameters()
+            logger.info("Existing parameters:")
+            for name, (ptype, value) in params.items():
+                logger.info(f"  {name} ({ptype}): {value}")
+
+            okr.set_parameters( val_dict )
+
+            params_updated = okr.parameters()
+            logger.info("Updated parameters:")
+            for name, (ptype, value) in params_updated.items():
+                logger.info(f"  {name} ({ptype}): {value}")
+
+            okr.write( base_file_name )
 
         self._run_solver_in_dir( base_file_name )
 
