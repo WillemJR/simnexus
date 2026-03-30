@@ -275,3 +275,143 @@ def test_example_read_set_write(example_keyword_file, tmp_path):
     # Non-parameter lines must be preserved
     assert "#RADIOSS STARTER" in content
     assert "/END"             in content
+
+
+# ---------------------------------------------------------------------------
+# Fix 1 — INT_EXPR type support
+# ---------------------------------------------------------------------------
+
+INT_EXPR_FILE = """\
+#RADIOSS STARTER
+/PARAMETER/GLOBAL/INTEGER/1
+base count
+BASE               10
+/PARAMETER/GLOBAL/INT_EXPR/2
+doubled count
+DOUBLE    BASE*2
+/END
+"""
+
+
+@pytest.fixture()
+def int_expr_file(tmp_path):
+    p = tmp_path / "int_expr.k"
+    p.write_text(INT_EXPR_FILE)
+    return p
+
+
+def test_int_expr_parsed(int_expr_file):
+    with OpenRadiosKeywordReader(int_expr_file) as okr:
+        params = okr.parameters()
+    assert "DOUBLE" in params
+    assert params["DOUBLE"][0] == "INT_EXPR"
+    assert params["DOUBLE"][1] == "BASE*2"
+
+
+def test_int_expr_set_and_write(int_expr_file, tmp_path):
+    out = tmp_path / "out.k"
+    with OpenRadiosKeywordReader(int_expr_file) as okr:
+        okr.set_parameters({"DOUBLE": "BASE*3"})
+        okr.write(str(out))
+    content = out.read_text()
+    assert "BASE*3" in content
+    assert "BASE*2" not in content
+
+
+# ---------------------------------------------------------------------------
+# Fix 2 — TEXT: significant leading whitespace preserved
+# ---------------------------------------------------------------------------
+
+TEXT_WHITESPACE_FILE = """\
+/PARAMETER/GLOBAL/TEXT/3
+Rotation axe X
+RotX               5
+   XX
+/END
+"""
+
+
+@pytest.fixture()
+def text_whitespace_file(tmp_path):
+    p = tmp_path / "text_ws.k"
+    p.write_text(TEXT_WHITESPACE_FILE)
+    return p
+
+
+def test_text_leading_whitespace_preserved(text_whitespace_file):
+    with OpenRadiosKeywordReader(text_whitespace_file) as okr:
+        params = okr.parameters()
+    assert params["RotX"][1] == "   XX"
+
+
+def test_text_roundtrip_preserves_whitespace(text_whitespace_file, tmp_path):
+    out = tmp_path / "out.k"
+    with OpenRadiosKeywordReader(text_whitespace_file) as okr:
+        okr.write(str(out))
+    assert "   XX" in out.read_text()
+
+
+# ---------------------------------------------------------------------------
+# Fix 3 — TEXT: Length field stored
+# ---------------------------------------------------------------------------
+
+def test_text_length_stored(text_whitespace_file):
+    with OpenRadiosKeywordReader(text_whitespace_file) as okr:
+        block = next(b for b in okr._blocks if b.name == "RotX")
+    assert block.text_length == 5
+
+
+def test_text_length_zero_when_absent(tmp_path):
+    # TEXT parameter with no Length field (Length defaults to 0 = full line)
+    content = "/PARAMETER/GLOBAL/TEXT/1\ntitle\nMyVar\nsome text\n/END\n"
+    p = tmp_path / "nolen.k"
+    p.write_text(content)
+    with OpenRadiosKeywordReader(p) as okr:
+        block = next(b for b in okr._blocks if b.name == "MyVar")
+    assert block.text_length == 0
+
+
+# ---------------------------------------------------------------------------
+# Fix 4 — Multi-line REAL_EXPR / INT_EXPR expressions
+# ---------------------------------------------------------------------------
+
+MULTILINE_EXPR_FILE = """\
+#RADIOSS STARTER
+/PARAMETER/GLOBAL/REAL/1
+base value A
+A                  2.0
+/PARAMETER/GLOBAL/REAL/2
+base value B
+B                  3.0
+/PARAMETER/GLOBAL/REAL_EXPR/3
+complex expression
+RESULT    A*B
++A/B
+/END
+"""
+
+
+@pytest.fixture()
+def multiline_expr_file(tmp_path):
+    p = tmp_path / "multiline.k"
+    p.write_text(MULTILINE_EXPR_FILE)
+    return p
+
+
+def test_multiline_expr_parsed(multiline_expr_file):
+    with OpenRadiosKeywordReader(multiline_expr_file) as okr:
+        params = okr.parameters()
+    assert params["RESULT"][0] == "REAL_EXPR"
+    assert "A*B" in params["RESULT"][1]
+    assert "+A/B" in params["RESULT"][1]
+
+
+def test_multiline_expr_set_clears_continuations(multiline_expr_file, tmp_path):
+    out = tmp_path / "out.k"
+    with OpenRadiosKeywordReader(multiline_expr_file) as okr:
+        okr.set_parameters({"RESULT": "A+B"})
+        okr.write(str(out))
+    content = out.read_text()
+    assert "A+B" in content
+    # Continuation line must be gone (replaced by blank line)
+    assert "+A/B" not in content

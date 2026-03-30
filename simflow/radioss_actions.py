@@ -365,20 +365,20 @@ class RadiossAnalysis(WorkAction):
 
         base_file_name = RADIOSS_BASE_F_NAME+'.k'
 
-        with OpenRadiosKeywordReader( self.input_file_path ) as okr:
-            params = okr.parameters()
+        with OpenRadiosKeywordReader( self.input_file_path ) as orkr:
+            params = orkr.parameters()
             logger.info("Existing parameters:")
             for name, (ptype, value) in params.items():
                 logger.info(f"  {name} ({ptype}): {value}")
 
-            okr.set_parameters( val_dict )
+            orkr.set_parameters( val_dict )
 
-            params_updated = okr.parameters()
+            params_updated = orkr.parameters()
             logger.info("Updated parameters:")
             for name, (ptype, value) in params_updated.items():
                 logger.info(f"  {name} ({ptype}): {value}")
 
-            okr.write( base_file_name )
+            orkr.write( base_file_name )
 
         self._run_solver_in_dir( base_file_name )
 
@@ -393,12 +393,10 @@ class RadiossAnalysis(WorkAction):
 
         e.g write_deck( {'E':210.0, 'SIG_Y':sigy} )
         """
-        
-        with open( self.input_file_path, 'r' ) as f_in:
-             content = f_in.read()
-
-        with open( dpath,  'w' ) as outfile:
-            outfile.write( content )
+        with OpenRadiosKeywordReader( self.input_file_path ) as orkr:
+            if variable_dict:
+                orkr.set_parameters( variable_dict )
+            orkr.write( dpath )
 
 
 
