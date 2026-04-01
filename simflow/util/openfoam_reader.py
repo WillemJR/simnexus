@@ -818,6 +818,7 @@ class OpenFOAMFieldReader:
 
         # Read temperature field at specific time
         idx, val_vec = 0, np.zeros( len(subdirs), dtype=float )
+        logger.debug(f"Reading temperature subdirs: {subdirs}")
         for time_dir in subdirs:
             of_file = os.path.join(self.case_dir, time_dir, field_name)
             
@@ -848,7 +849,7 @@ class OpenFOAMFieldReader:
         time_dir : Change this to the time you want to analyze
         """
 
-        logger.info("OpenFOAM Field Reader")
+        logger.info("\nOpenFOAM Field Reader")
         logger.info("=" * 40)
 
         if time_dir == -1 or time_dir == "-1":
@@ -910,6 +911,7 @@ class OpenFOAMFieldReader:
                         logger.error(f"  {t}")
                     if len(time_dirs) > 10:
                         logger.error(f"  ... and {len(time_dirs)-10} more")
+                    return None, None
         
         else:
             logger.error(f"Case directory '{self.case_dir}' not found.")

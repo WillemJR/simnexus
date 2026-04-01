@@ -189,6 +189,9 @@ class OpenFOAM_Field( WorkAction ):
         time_dir = str(self.time)
         reader = OpenFOAMFieldReader( case_dir='.' )
         field_type, field_data = reader.field( self.field_var, time_dir=time_dir, location=self.location )
+        if field_type is None and field_data is None:
+           logger.error(f"Could not extract OpenFOAM_Field \'{self.name}\'")
+
         return field_data
 
 

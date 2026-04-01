@@ -44,19 +44,19 @@ class WorkAction(Subject):
         self._results = None
 
         self.eval_type = EvalType.NUMERICAL  
+        self._par_dict = {}
 
     def _collect_arg_pars(self ):
-        self.par_dict = {}
+        self._par_dict = {}
         for k,v in self.__dict__.items():
             if isinstance(v, Variable ):
-                #breakpoint()
-                self.par_dict[k] = v
+                self._par_dict[k] = v
                 self.__dict__[k] = v.value
 
 
     def _set_arg_pars(self, val_dict ):
 
-        for k,v in self.par_dict.items():
+        for k,v in self._par_dict.items():
             #breakpoint()
             if v.name in val_dict:
                 self.__dict__[k] = val_dict[v.name]
@@ -191,7 +191,8 @@ class WorkAction(Subject):
         Returns:
             set : Set of type Variable.
         """
-        return set()
+        var_set = { v for k,v in self._par_dict.items() }
+        return var_set
 
     def results(self):
         return self._results
