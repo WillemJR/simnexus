@@ -30,7 +30,8 @@ class WorkAction(Subject):
         Any: outcome of operation
     """
 
-    def __init__( self, name, cmd=None, copy_paths=[], lower_bound=None, upper_bound=None ):
+    def __init__( self, name, cmd=None, copy_paths=[], lower_bound=None, upper_bound=None,
+                  description=None ):
         """
         """
         super().__init__()
@@ -40,6 +41,9 @@ class WorkAction(Subject):
         self.upper_bound = upper_bound # backward compatible with simulation
         self.lower_bound = lower_bound # backward compatible with simulation
         self.parent = None # typically workflow
+        self.description = description if description is not None else (
+            self.__class__.__doc__.strip() if self.__class__.__doc__ else ""
+        )
 
         self._results = None
 
@@ -200,8 +204,14 @@ class WorkAction(Subject):
     def _dump(self,  val_dict=None ):
         pass
 
-    def eval_types(self):
-        return self.eval_type
+    def outputs(self):
+        """
+        Returns the output type and description of this action.
+
+        Returns:
+            tuple: (eval_type, description)
+        """
+        return (self.eval_type, self.description)
 
     def _check_names( self, name_list=[] ):
         """ Cannot have duplicates -- create a problem with callbacks """

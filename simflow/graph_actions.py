@@ -61,8 +61,8 @@ class WorkArea(WorkAction):
 
 
 
-    def eval_types(self):
-        return self.graph.eval_types()
+    def outputs(self):
+        return self.graph.outputs()
 
 
     def rm_rundir( self ):
@@ -317,8 +317,8 @@ class SimulationIterator(WorkAction):
 
         return ret
 
-    def eval_types(self):
-        return self.graph.eval_types()
+    def outputs(self):
+        return self.graph.outputs()
 
     @staticmethod
     def _subdicts_as_lists( outcome ):
@@ -554,11 +554,21 @@ class DirectedGraph(WorkAction, Observer):
         self.finished.add(nname)
 
 
-    def eval_types(self):
-        types = {}
-        for n,e in self.child_actions.items():
-            types[e.name] = e.eval_types()
-        return types
+    def outputs(self):
+        """
+        Collects outputs of all child actions.
+
+        Returns:
+            dict: {action_name: (eval_type, description)}
+        """
+        result = {}
+        for n, e in self.child_actions.items():
+            out = e.outputs()
+            if isinstance(out, dict):
+                result.update(out)
+            else:
+                result[e.name] = out
+        return result
 
     def _check_names( self, name_list=[] ):
         """ Cannot have duplicates -- create a problem with callbacks """

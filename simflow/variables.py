@@ -5,10 +5,13 @@ class Variable:
     """
     Abstract class for variables.
     """
-    def __init__( self, name, value, data_type):
+    def __init__( self, name, value, data_type, description=None):
         self.name = name
         self._value = value
         self.type = data_type
+        self.description = description if description is not None else (
+            self.__class__.__doc__.strip() if self.__class__.__doc__ else ""
+        )
 
     def __str__(self):
         type_name = self.type.__name__ if hasattr(self.type, '__name__') else str(self.type)
@@ -26,8 +29,8 @@ class FloatVariable(Variable):
         lower_bound (float) : Minimum value of the variable.
     """
 
-    def __init__( self, name, value, upper_bound=None, lower_bound=None ):
-        super().__init__(name, value, float )
+    def __init__( self, name, value, upper_bound=None, lower_bound=None, description=None ):
+        super().__init__(name, value, float, description=description )
         self.upper_bound = upper_bound
         self.lower_bound = lower_bound
         
@@ -61,8 +64,8 @@ class IntSetVariable(Variable):
         allowable (set) : A set of allowable integer values.
     """
 
-    def __init__( self, name, value, allowable={} ):
-        super().__init__(name, value, int )
+    def __init__( self, name, value, allowable={}, description=None ):
+        super().__init__(name, value, int, description=description )
         if not allowable:
             allowable={value}
         if isinstance( allowable, list ) or isinstance( allowable, tuple ):
@@ -92,8 +95,8 @@ class StrSetVariable(Variable):
         allowable (set) : A set of allowable string values.
     """
 
-    def __init__( self, name, value, allowable={} ):
-        super().__init__(name, value, str )
+    def __init__( self, name, value, allowable={}, description=None ):
+        super().__init__(name, value, str, description=description )
         if not allowable:
             allowable={value}
         if isinstance( allowable, list ) or isinstance( allowable, tuple ):
@@ -120,6 +123,6 @@ class UnknownVariable(Variable):
         value (str) : (Initial) Value of the variable.
     """
 
-    def __init__( self, name, value):
-        super().__init__(name, value, None )
+    def __init__( self, name, value, description=None):
+        super().__init__(name, value, None, description=description )
 

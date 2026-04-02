@@ -11,6 +11,7 @@ class JobType(Flag):
 
 class EvalType(Flag):
     """ Can be multiple types. Use 'if EvalType.NUMERICAL in self.type:' """
+    FLOAT = auto()  
     NUMERICAL = auto()  # float or numpy array
     FILE = auto()
     IMAGE = auto()
