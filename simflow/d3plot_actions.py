@@ -29,6 +29,7 @@ class d3plot_File(WorkFlow):
     def __init__( self, name, d3plot_rootname='d3plot' ):
         super().__init__(name, None )
         self.d3plot_rootname = d3plot_rootname
+        self.description = f'D3plot file reader for {d3plot_rootname}'
 
     def solve( self,  val_dict=None ):
         fname = self.d3plot_rootname 
@@ -159,6 +160,7 @@ class _d3plot_NodalFieldData(WorkAction):
         super().__init__(name, None )
         self.args= args
         self.kwargs= kwargs
+        self.description = f'D3plot nodal field {kwargs.get("component", "")} at state {kwargs.get("state", "")}'
 
     def solve( self,  val_dict=None ):
         d3plot_File.check_if_d3plot_child(self)
@@ -191,6 +193,7 @@ class _d3plot_MultNodalFieldData(WorkAction):
         super().__init__(name, None )
         self.args= args
         self.kwargs= kwargs
+        self.description = f'D3plot multiple nodal fields {kwargs.get("node_data_names", [])} at state {kwargs.get("state", "")}'
 
     def solve( self,  val_dict=None ):
         d3plot_File.check_if_d3plot_child(self)
@@ -223,6 +226,7 @@ class _d3plot_MultElementNodalFieldData(WorkAction):
         super().__init__(name, None )
         self.args= args
         self.kwargs= kwargs
+        self.description = f'D3plot multiple element-nodal fields {kwargs.get("element_nodal_data_names", [])} at state {kwargs.get("state", "")}'
 
     def solve( self,  val_dict=None ):
         d3plot_File.check_if_d3plot_child(self)
@@ -258,6 +262,7 @@ class _d3plot_MultElementFieldData(WorkAction):
         super().__init__(name, None )
         self.args= args
         self.kwargs= kwargs
+        self.description = f'D3plot multiple element fields {kwargs.get("element_data_names", [])} at state {kwargs.get("state", "")}'
 
     def solve( self,  val_dict=None ):
         d3plot_File.check_if_d3plot_child(self)

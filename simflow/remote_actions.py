@@ -39,6 +39,7 @@ class RemoteAction(WorkAction):
         self.server_address = server_address
         self.input_files = input_files or []
         self.output_patterns = output_patterns or []
+        self.description = f'Remote action executing {target_action_name} on {server_address}'
 
     def available_actions(self):
         """

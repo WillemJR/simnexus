@@ -46,6 +46,7 @@ class WorkArea(WorkAction):
         self.work_area_path = Path(expanded_path)
 
         self._reset_file_paths()
+        self.description = f'Work area for graph {graph.name} at {self.work_area_path}'
 
 
     def _reset_file_paths( self ):
@@ -168,6 +169,7 @@ class SimulationIterator(WorkAction):
         self.work_area_path = Path(expanded_path)
 
         if clean_start: self.rm_rundir()
+        self.description = f'Simulation iterator for graph {graph.name}'
 
     def rm_rundir( self ):
         sim_path = self.work_area_path
@@ -445,6 +447,7 @@ class DirectedGraph(WorkAction, Observer):
             self.work_area = WorkArea( self, work_area_path=self.work_area_path )
         else:
             self.work_area = None
+        self.description = f'Directed graph {name}'
 
     def add_action(self, action, parents=None):
         """
@@ -613,6 +616,7 @@ class WorkFlow(DirectedGraph):
         self.sequence = []
         if actions is not None:
             for e in actions: self.add_action(e)
+        self.description = f'Workflow {name}'
 
     def add_action( self, action ):
         """

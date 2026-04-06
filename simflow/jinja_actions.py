@@ -49,6 +49,7 @@ class JinjaReplace(WorkAction):
              self.output_file_path = input_file_path
         self.val_format = val_format
 
+        self.description = f'Jinja template substitution of {input_file_path} into {output_file_path}'
         self.par_names = None
         self.par_vals = None
 

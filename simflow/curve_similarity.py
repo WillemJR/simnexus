@@ -24,6 +24,7 @@ class CurveSimilarity(WorkAction):
         self.experimental_data = experimental_data
         self.similarity_measure = similarity_measure
         self.normalize = normalize
+        self.description = f'Curve similarity of {history_name} using {similarity_measure}'
 
     def solve( self,  val_dict=None ) -> float:
         """ Evaluate possibly using prev computed evaluation results in val_dict

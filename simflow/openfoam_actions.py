@@ -48,6 +48,7 @@ class OpenFOAMAnalysis( WorkAction ):
                              JobType.EXTRACT_VTK)
         else:
             self.job_flag = job_flag
+        self.description = f'OpenFOAM analysis using solver {solve_cmd}'
 
     def _find_parameters_file(self):
         """Locate system/parameters, checking cwd first then copy_paths sources."""
@@ -176,6 +177,16 @@ class OpenFOAMAnalysis( WorkAction ):
 
 
 class OpenFOAM_Field( WorkAction ):
+    """
+    Action that extracts a field from an OpenFOAM case at a given time step.
+
+    Args:
+        name (str): Name of the action.
+        field_variable (str): Name of the OpenFOAM field to extract (e.g. 'U', 'p').
+        time (float or Variable): Time step directory to read the field from.
+        location (Location, optional): Cell location (e.g. CELL_CENTRE, FACE).
+            Defaults to Location.UNKNOWN.
+    """
 
     @WorkAction.allow_variables_as_arguments
     def __init__( self, name, field_variable, time, location=Location.UNKNOWN ):
@@ -183,6 +194,7 @@ class OpenFOAM_Field( WorkAction ):
         self.time = time
         self.location = location
         self.field_var = field_variable
+        self.description = f'OpenFOAM field of variable {field_variable} at time {time} at location {location}'
 
     @WorkAction.assign_variables_values_to_members
     def solve( self, val_dict ):
@@ -197,12 +209,21 @@ class OpenFOAM_Field( WorkAction ):
 
 
 class OpenFOAM_History( WorkAction ):
+    """
+    Action that extracts the time history of a field at a single point from an OpenFOAM case.
+
+    Args:
+        name (str): Name of the action.
+        field_variable (str): Name of the OpenFOAM field to extract (e.g. 'U', 'p').
+        point_idx (int or Variable): Index of the point in the mesh to sample.
+    """
 
     @WorkAction.allow_variables_as_arguments
     def __init__( self, name, field_variable, point_idx ):
         super().__init__( name )
         self.point_idx = point_idx
         self.field_var = field_variable
+        self.description = f'OpenFOAM time history of variable {field_variable} at point index {point_idx}'
 
     @WorkAction.assign_variables_values_to_members
     def solve( self, val_dict ):

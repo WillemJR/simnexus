@@ -15,7 +15,7 @@ class Variable:
 
     def __str__(self):
         type_name = self.type.__name__ if hasattr(self.type, '__name__') else str(self.type)
-        return f"Variable Name: {self.name}, Data Type: {type_name}, Value: {self._value}"
+        return f"Variable Name: {self.name}, Data Type: {type_name}, Value: {self._value}, Description: \'{self.description}\'"
 
 
 class FloatVariable(Variable):

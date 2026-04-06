@@ -35,6 +35,7 @@ class DynaAnalysis(WorkAction):
 
         super().__init__(name, cmd, copy_paths=copy_paths )
         self.input_file_path = input_path
+        self.description = f'LS-DYNA analysis using input file {input_path}'
 
     def solve( self,  val_dict=None ):
         """ """

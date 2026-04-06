@@ -54,6 +54,7 @@ class RadiossCSVHistory(HistoryEvaluation):
         super().__init__(name, cmd )
         self.args = json.loads( cmd )
         self.parent_simu = None
+        self.description = f'Radioss CSV history extraction of {self.args.get("quantity", "")}'
 
 
     def solve( self, val_dict=None ):
@@ -91,6 +92,7 @@ class CSVNodeLocationHistory(HistoryEvaluation):
         super().__init__(name, "" )
         self.node_id = node_id
         self.parent_simu = None
+        self.description = f'Radioss nodal location history for node {node_id}'
 
 
     def solve( self, val_dict=None ):
@@ -135,6 +137,7 @@ class CSVNodeLocation(CSVNodeLocationHistory):
     def __init__( self, name, node_id, step=-1 ):
         super().__init__(name, node_id )
         self.step = step
+        self.description = f'Radioss nodal location for node {node_id} at step {step}'
 
     def solve( self,  val_dict=None ):
         h = super().solve( val_dict )
@@ -154,6 +157,7 @@ class ScalarEvaluation(RadiossCSVHistory):
         super().__init__(name, cmd )
         self.args = json.loads( cmd )
         self.parent_simu = None
+        self.description = f'Radioss scalar evaluation of {self.args.get("quantity", "")} at step {self.args.get("step", "")}'
 
     def solve( self,  val_dict=None ):
         #h = self.get_radios_hist( val_dict )
@@ -181,6 +185,7 @@ class FieldData(WorkAction):
         self.state= state
         self.args= args
         self.kwargs= kwargs
+        self.description = f'Radioss field data at state {state}'
 
 
     def solve( self,  val_dict=None ):
@@ -277,6 +282,7 @@ class FieldDataHist(WorkAction):
         super().__init__(name, None )
         self.args= args
         self.kwargs= kwargs
+        self.description = f'Radioss field data history'
 
 
     def solve( self,  val_dict=None ):
@@ -329,6 +335,7 @@ class RadiossAnalysis(WorkAction):
         self.create_d3plot = create_d3plot
 
         self.evaluations = []
+        self.description = f'OpenRadioss analysis using input file {input_path}'
 
 
     def _create_d3plot_file( self ):
