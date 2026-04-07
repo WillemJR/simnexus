@@ -45,22 +45,34 @@ class WorkArea(WorkAction):
         expanded_path = os.path.expandvars(os.path.expanduser(str(work_area_path)))
         self.work_area_path = Path(expanded_path)
 
-        self._reset_file_paths()
         self.description = f'Work area for graph {graph.name} at {self.work_area_path}'
 
 
-    def _reset_file_paths( self ):
-        """
-        If solver has '../par_tens.k', then that is no longer correct from
-        the iterator directory.
-        So if the file is copied then reset the name to be local .
-        """
-        pass
-        #for e in self.graph.child_actions:
-        #        if e.fea_file_path in self.copy_paths:
-        #            e.fea_file_path = Path( e.fea_file_path ).name
+    def _prepare_work_area(self):
+        """Create the work area directory and copy all required files into it."""
+        self.wa_path = self.work_area_path
+        self.wa_path.mkdir(mode=0o777, parents=True, exist_ok=True)
 
+        if self.copy_paths:
+            logger.info(f'Copying paths {self.copy_paths}')
+            for fname in self.copy_paths:
+                src = Path(fname)
+                if not src.exists():
+                    exit(f'Path "{fname}" not found. Either the path does not exist or you must specify the full path.')
+                if src.is_dir():
+                    shutil.copytree(src, self.wa_path / src.name, dirs_exist_ok=True)
+                else:
+                    shutil.copy2(src, self.wa_path)
 
+    def variables(self):
+        self._prepare_work_area()
+        root_dir = Path.cwd()
+        os.chdir(self.wa_path)
+        try:
+            vrs = self.graph.variables()
+        finally:
+            os.chdir(root_dir)
+        return vrs
 
     def outputs(self):
         return self.graph.outputs()
@@ -85,27 +97,13 @@ class WorkArea(WorkAction):
         Returns:
             dict: Output from graph (it adds nothing).
         """
-        
-        sim_path = self.work_area_path
-        if sim_path.exists():
+
+        if self.work_area_path.exists():
             self._clean_inrundir()
 
+        self._prepare_work_area()
+
         root_dir = Path.cwd()
-        self.wa_path = self.work_area_path
-        self.wa_path.mkdir(mode=0o777, parents=True, exist_ok=True)
-
-        #if self.graph.copy_paths is not None:
-        if self.copy_paths is not None:
-            logger.info( f'Copying paths {self.graph.copy_paths}' )
-            for fname in self.graph.copy_paths:
-                src = Path(fname)
-                if not src.exists():
-                    exit( f'Path \"{fname}\" not found. Either the path does not exist or you must specify the full path.' )
-                if src.is_dir():
-                    shutil.copytree(src, self.wa_path / src.name)
-                else:
-                    shutil.copy2(src, self.wa_path)
-
         os.chdir( self.wa_path )
         logger.info( f'Running in directory {self.wa_path}' )
 
@@ -410,10 +408,30 @@ class SimulationIterator(WorkAction):
 
         return par_val_dict, outcome
 
-    def variables(self ):
-        return self.graph.variables()
+    def variables(self):
+        tmp_path = self.work_area_path / 'variables_discovery'
+        tmp_path.mkdir(mode=0o777, parents=True, exist_ok=True)
 
-# ------------------- 
+        if self.copy_paths:
+            logger.info(f'Copying paths {self.copy_paths}')
+            for fname in self.copy_paths:
+                src = Path(fname)
+                if not src.exists():
+                    exit(f'Path "{fname}" not found. Either the path does not exist or you must specify the full path.')
+                if src.is_dir():
+                    shutil.copytree(src, tmp_path / src.name, dirs_exist_ok=True)
+                else:
+                    shutil.copy2(src, tmp_path)
+
+        root_dir = Path.cwd()
+        os.chdir(tmp_path)
+        try:
+            vrs = self.graph.variables()
+        finally:
+            os.chdir(root_dir)
+        return vrs
+
+# -------------------
 
 class DirectedGraph(WorkAction, Observer):
     
@@ -562,7 +580,7 @@ class DirectedGraph(WorkAction, Observer):
         Collects outputs of all child actions.
 
         Returns:
-            dict: {action_name: (eval_type, description)}
+            dict: {action_name: (data_type, description)}
         """
         result = {}
         for n, e in self.child_actions.items():
@@ -612,7 +630,6 @@ class WorkFlow(DirectedGraph):
 
     def __init__( self, name, actions=None, work_area_path=None ):
         super().__init__( name, work_area_path=work_area_path )
-        #print( '\tWorkFlow __init__', self.copy_paths )
         self.sequence = []
         if actions is not None:
             for e in actions: self.add_action(e)

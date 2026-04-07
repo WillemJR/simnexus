@@ -57,26 +57,6 @@ If omitted, the class docstring is used.
 
 
 
-Discovering action outputs
---------------------------
-The ``outputs()`` method returns information about what an action produces.
-For a single action it returns a ``(eval_type, description)`` tuple.
-For a ``WorkFlow`` or ``DirectedGraph`` it returns a dictionary
-``{action_name: (eval_type, description)}`` covering all child actions.
-
-.. code-block:: python
-
-    from simflow.graph_actions import WorkFlow
-    from simflow.dyna_actions import DynaAnalysis
-    from simflow.d3plot_actions import d3plot_File
-
-    wf = WorkFlow(name='SpringWorkFlow')
-    wf.add_action(DynaAnalysis(name='RunSpring', input_path='spring.k'))
-    wf.add_action(d3plot_File(name='field'))
-
-    for name, (eval_type, description) in wf.outputs().items():
-        print(f'{name}: {eval_type} — {description}')
-
 
 Setting up a graph
 ------------------

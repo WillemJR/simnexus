@@ -29,9 +29,14 @@ The study is parameterized using the \*PARAMETER keyword.
     d3p.NodalValue('disp_n5', state=-1, nid=5, component='node_displacement')
     wf.add_action(d3p)
 
-    # 4. Create a WorkArea and execute
-    # This will copy 'model.k' to the 'simulation_run' directory
-    wa = WorkArea(wf, "./simulation_run", copy_paths=["model.k"])
+    # 4. Create a WorkArea; supply the source file via copy_paths.
+    wa = WorkArea(wf, "./simulation_run", copy_paths=["path/to/model.k"])
+
+    # 5. Discover variables (WorkArea copies files first so DynaAnalysis can read them)
+    for v in wa.variables():
+        print(v)
+
+    # 6. Execute
     params = {'VELOCITY': 10.0, 'THICKNESS': 2.5}
     results = wa.solve(params)
 
@@ -74,14 +79,33 @@ input deck.
     wf.solve(val_dict)
 
 
-OpenFOAM 
+OpenFOAM
 ----------------------------------
 
-The study is parameterized using the system/parameters file.
+The study is parameterized using the ``system/parameters`` file.
+Case files (``system/``, ``constant/``, ``0/``) are supplied to ``WorkArea``
+via ``copy_paths`` and are copied to the work directory before the solver runs.
+
+.. code-block:: python
+
+    from simflow.openfoam_actions import OpenFOAMAnalysis, OpenFOAM_Field
+    from simflow.graph_actions import WorkFlow, WorkArea
+
+    case_paths = ['path/to/case/system', 'path/to/case/constant', 'path/to/case/0']
+
+    wf = WorkFlow('OpenFOAM_WorkFlow')
+    wf.add_action(OpenFOAMAnalysis(name='run', solve_cmd='icoFoam'))
+    wf.add_action(OpenFOAM_Field(name='p', field_variable='p', time=0.5))
+
+    wa = WorkArea(wf, copy_paths=case_paths)
+
+    # Discover variables from system/parameters (files are copied first)
+    for v in wa.variables():
+        print(v)
+
+    results = wa.solve({'lidVelocity': 1.2})
 
 Extraction of field data and histories from OpenFOAM cases.
-
-NOT COMPLETE. ADD RunOpenFOAM
 
 .. code-block:: python
 

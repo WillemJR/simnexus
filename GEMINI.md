@@ -45,9 +45,8 @@ The `WorkAction` base class (defined in `simflow/actions.py`) is the base buildi
 
 Key features:
 - **`solve(self, val_dict)`**: The abstract method that performs the action's logic. It receives a dictionary `val_dict` containing the current values of variables and results from prior actions. This method returns the data computed by the class.
-- **`variables(self)`**: The method returns a set of the variables defined for
-the action. For a `DirectedGraph` or a `WorkFlow` the variables defined for
-all the children is returned (duplicates are eliminated automatically).
+- **`variables(self)`**: Returns a set of `Variable` objects that the action requires as inputs. For a `DirectedGraph` or `WorkFlow` the variables of all children are returned (duplicates are eliminated automatically). Solver actions (`DynaAnalysis`, `RadiossAnalysis`, `OpenFOAMAnalysis`, `JinjaReplace`) read their parameterised input file to discover variables; the file must be present in the current working directory. Call `variables()` on a `WorkArea` or `SimulationIterator` to ensure files are copied first — both copy `copy_paths` into a temporary subdirectory before delegating to the graph.
+- **`outputs(self)`**: Returns a `(data_type, description)` tuple describing what the action produces. For a `DirectedGraph` or `WorkFlow` it returns a dictionary `{action_name: (data_type, description)}` covering all child actions. Used to inspect graph outputs without running the graph.
 
 Subclasses of `WorkAction` implement specific tasks, such as `MathEvaluation` (performing calculations), or `CurveSimilarity` (comparing simulation results to experimental data).
 

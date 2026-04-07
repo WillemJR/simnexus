@@ -81,7 +81,8 @@ class JinjaReplace(WorkAction):
         Returns
             set : Set of type UnknownVariable.
         """
-        return { simflow.variables.UnknownVariable(pn, "") for pn in self.par_names }
+        descr = f"From \'{self.input_file_path}\'"
+        return { simflow.variables.UnknownVariable(pn, "", description=descr) for pn in self.par_names }
 
     def _find_input_file( self ):
         """Locate the input file, checking self.input_file_path first,

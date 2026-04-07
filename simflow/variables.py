@@ -9,6 +9,7 @@ class Variable:
         self.name = name
         self._value = value
         self.type = data_type
+        #self.description = description 
         self.description = description if description is not None else (
             self.__class__.__doc__.strip() if self.__class__.__doc__ else ""
         )

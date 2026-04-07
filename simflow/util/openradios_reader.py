@@ -85,9 +85,10 @@ class OpenRadiosKeywordReader:
         for name, new_value in params_dict.items():
             block = name_map.get(name.upper())
             if block is None:
-                logger.warning("Parameter '%s' not found in '%s'.", name, self.file_path)
+                #logger.warning("Parameter '%s' not found in '%s'.", name, self.file_path)
                 continue
 
+            logger.info("Setting parameter '%s' to %s.", name, str(new_value) )
             block.value = new_value
 
             if block.param_type == "TEXT":

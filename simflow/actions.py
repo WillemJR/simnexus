@@ -31,7 +31,7 @@ class WorkAction(Subject):
     """
 
     def __init__( self, name, cmd=None, copy_paths=[], lower_bound=None, upper_bound=None,
-                  description=None ):
+                  description=None, data_type = EvalType.NOT_SPECIFIED ):
         """
         """
         super().__init__()
@@ -47,7 +47,7 @@ class WorkAction(Subject):
 
         self._results = None
 
-        self.eval_type = EvalType.NUMERICAL  
+        self.data_type = data_type
         self._par_dict = {}
 
     def _collect_arg_pars(self ):
@@ -209,9 +209,9 @@ class WorkAction(Subject):
         Returns the output type and description of this action.
 
         Returns:
-            tuple: (eval_type, description)
+            tuple: (data_type, description)
         """
-        return (self.eval_type, self.description)
+        return (self.data_type, self.description)
 
     def _check_names( self, name_list=[] ):
         """ Cannot have duplicates -- create a problem with callbacks """

@@ -4,26 +4,6 @@ Variables
 Variables are used to parameterize the simulation for design changes,
 creating ML training data, and design optimization.
 
-Discovering variables
----------------------
-Actions that read parameterized input files expose a ``variables()`` method
-that returns the set of variables defined in the template.
-For ``JinjaReplace`` and ``DynaAnalysis`` the action first looks for the
-template at ``input_file_path``. If that path cannot be opened it falls back
-to searching ``copy_paths`` for an entry whose filename matches
-``input_file_path``. This allows variable discovery before the file has been
-copied to the run directory.
-
-.. code-block:: python
-
-    from simflow.jinja_actions import JinjaReplace
-
-    jj = JinjaReplace(name='SetVars', input_file_path='template.k',
-                      copy_paths=['path/to/source/template.k'])
-    for v in jj.variables():
-        print(v)
-
-
 
 Variable description
 --------------------

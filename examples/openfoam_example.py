@@ -20,18 +20,11 @@ def openfoam_example():
 
     wf = WorkFlow('OpenFOAM_WorkFlow')
 
-    job = wf.add_action( OpenFOAMAnalysis(
+    wf.add_action( OpenFOAMAnalysis(
         name="my_job",
-        copy_paths=case_paths,
         job_flag=JobType.CREATE_MESH | JobType.RUN_SIMULATION,
         solve_cmd="icoFoam",
         mesh_cmd="blockMesh" ) )
-
-    # Discover variables
-    discovered_vars = job.variables()
-    print("Discovered variables:")
-    for v in discovered_vars:
-        print(f"  {v}")
 
     field_ext = OpenFOAM_Field(
         name='p',
@@ -40,7 +33,13 @@ def openfoam_example():
     )
     wf.add_action(field_ext)
 
-    wa = WorkArea(wf)
+    wa = WorkArea(wf, copy_paths=case_paths)
+
+    # Discover variables — WorkArea copies files first so OpenFOAMAnalysis can read system/parameters.
+    discovered_vars = wa.variables()
+    print("Discovered variables:")
+    for v in discovered_vars:
+        print(f"  {v}")
 
     # Run the job with new parameter values
     print("Running job.solve({'lidVelocity': 1.2, 'nCells': 6})...")

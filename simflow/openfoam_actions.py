@@ -20,14 +20,11 @@ class OpenFOAMAnalysis( WorkAction ):
     """
     Action that runs an OpenFOAM job in the current working directory.
 
-    Before running, files and directories listed in copy_paths are copied
-    into the current working directory.  Parameter values are then written
-    to system/parameters and the OpenFOAM commands are executed.
+    Parameter values are written to system/parameters and the OpenFOAM
+    commands are executed.
 
     Args:
         name (str): Name of the action.
-        copy_paths (list, optional): Paths (files or directories) to copy
-            into the current working directory before running.
         job_flag (JobType, optional): Combination of flags for mesh, solve,
             post-pro, vtk.  Defaults to all flags.
         solve_cmd (str, optional): The OpenFOAM solver command. Defaults to
@@ -37,8 +34,8 @@ class OpenFOAMAnalysis( WorkAction ):
     """
 
     @WorkAction.allow_variables_as_arguments
-    def __init__( self, name, copy_paths=[], job_flag=None, solve_cmd='laplacianFoam', mesh_cmd=None ):
-        super().__init__(name, copy_paths=copy_paths )
+    def __init__( self, name, job_flag=None, solve_cmd='laplacianFoam', mesh_cmd=None ):
+        super().__init__(name)
         self.solve_cmd = solve_cmd
         self.mesh_cmd = mesh_cmd
         if job_flag is None:
@@ -50,29 +47,6 @@ class OpenFOAMAnalysis( WorkAction ):
             self.job_flag = job_flag
         self.description = f'OpenFOAM analysis using solver {solve_cmd}'
 
-    def _find_parameters_file(self):
-        """Locate system/parameters, checking cwd first then copy_paths sources."""
-        # 1. Already present in the working directory (after a previous copy or
-        #    when the action runs directly inside the case directory).
-        par_file = Path.cwd() / 'system' / 'parameters'
-        if par_file.exists():
-            return par_file
-
-        # 2. Search each entry in copy_paths.
-        if self.copy_paths:
-            for cp in self.copy_paths:
-                cp = Path(cp)
-                # Entry is the system/ directory itself
-                candidate = cp / 'parameters'
-                if candidate.exists():
-                    return candidate
-                # Entry is the case root directory
-                candidate = cp / 'system' / 'parameters'
-                if candidate.exists():
-                    return candidate
-
-        return None
-
     def variables( self ):
         """
         Returns the variables defined in system/parameters file.
@@ -80,9 +54,9 @@ class OpenFOAMAnalysis( WorkAction ):
         Returns:
             set: Set of type Variable.
         """
-        par_file = self._find_parameters_file()
-        if par_file is None:
-            logger.warning("Parameters file not found. Have the file been copied yet?")
+        par_file = Path.cwd() / 'system' / 'parameters'
+        if not par_file.exists():
+            logger.warning("Parameters (system/parameters) file not found. Have the files been copied yet?")
             return set()
 
         vars_list = set()
@@ -98,14 +72,15 @@ class OpenFOAMAnalysis( WorkAction ):
 
         # Find key-value pairs
         matches = re.finditer(r'^\s*(\w+)\s+([^;]+);', content, flags=re.MULTILINE)
+        descr = f"From \'{par_file}\'"
         for match in matches:
             name, val_str = match.groups()
             val_str = val_str.strip()
             try:
                 val = float(val_str)
-                vars_list.add(simvars.FloatVariable(name, val))
+                vars_list.add(simvars.FloatVariable(name, val, description=descr ))
             except ValueError:
-                vars_list.add(simvars.UnknownVariable(name, val_str))
+                vars_list.add(simvars.UnknownVariable(name, val_str, description=descr ))
 
         return vars_list
 
@@ -194,6 +169,7 @@ class OpenFOAM_Field( WorkAction ):
         self.time = time
         self.location = location
         self.field_var = field_variable
+        self.data_type = np.array
         self.description = f'OpenFOAM field of variable {field_variable} at time {time} at location {location}'
 
     @WorkAction.assign_variables_values_to_members
@@ -223,6 +199,7 @@ class OpenFOAM_History( WorkAction ):
         super().__init__( name )
         self.point_idx = point_idx
         self.field_var = field_variable
+        self.data_type = np.array
         self.description = f'OpenFOAM time history of variable {field_variable} at point index {point_idx}'
 
     @WorkAction.assign_variables_values_to_members

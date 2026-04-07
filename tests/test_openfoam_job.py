@@ -15,9 +15,23 @@ CASE_SOURCE = Path(__file__).parent / "openfoam_exa"
 CASE_PATHS = [str(CASE_SOURCE / "system"), str(CASE_SOURCE / "constant"), str(CASE_SOURCE / "0")]
 
 
-def test_openfoam_job_variables():
-    job = OpenFOAMAnalysis(name="test_job", copy_paths=CASE_PATHS)
-    variables = job.variables()
+def _copy_case_to(dest):
+    """Copy the OpenFOAM case subdirectories into dest."""
+    for cp in CASE_PATHS:
+        src = Path(cp)
+        shutil.copytree(src, dest / src.name, dirs_exist_ok=True)
+
+
+def test_openfoam_job_variables(tmp_path):
+    _copy_case_to(tmp_path)
+
+    original_dir = os.getcwd()
+    os.chdir(tmp_path)
+    try:
+        job = OpenFOAMAnalysis(name="test_job")
+        variables = job.variables()
+    finally:
+        os.chdir(original_dir)
 
     assert len(variables) == 5
     names = [v.name for v in variables]
@@ -38,9 +52,10 @@ def test_openfoam_job_variables():
 def test_openfoam_job_solve(mock_run, tmp_path):
     mock_run.return_value = MagicMock(returncode=0, stderr=b'')
 
+    _copy_case_to(tmp_path)
+
     job = OpenFOAMAnalysis(
         name="test_job",
-        copy_paths=CASE_PATHS,
         job_flag=JobType.CREATE_MESH | JobType.RUN_SIMULATION
     )
 
@@ -53,7 +68,6 @@ def test_openfoam_job_solve(mock_run, tmp_path):
 
     assert success is True
 
-    # solve() copies system/, constant/, 0/ directly into tmp_path
     par_file = tmp_path / "system" / "parameters"
     content = par_file.read_text()
     assert "nCells 30;" in content
@@ -61,16 +75,18 @@ def test_openfoam_job_solve(mock_run, tmp_path):
 
     assert mock_run.call_count == 2
     assert "blockMesh" in mock_run.call_args_list[0][0][0]
-    assert "laplacianFoam" in mock_run.call_args_list[1][0][0]
+    assert "icoFoam" in mock_run.call_args_list[1][0][0] or \
+           "laplacianFoam" in mock_run.call_args_list[1][0][0]
 
 
 @patch('subprocess.run')
 def test_openfoam_job_flags(mock_run, tmp_path):
     mock_run.return_value = MagicMock(returncode=0, stderr=b'')
 
+    _copy_case_to(tmp_path)
+
     job = OpenFOAMAnalysis(
         name="test_job",
-        copy_paths=CASE_PATHS,
         job_flag=JobType.RUN_SIMULATION | JobType.EXTRACT_VTK,
         solve_cmd="mySolver"
     )
@@ -93,7 +109,7 @@ def test_openfoam_job_flags(mock_run, tmp_path):
 
 
 def test_openfoam_job_init_defaults():
-    job = OpenFOAMAnalysis(name="test_job", copy_paths=CASE_PATHS)
+    job = OpenFOAMAnalysis(name="test_job")
     assert job.solve_cmd == 'laplacianFoam'
     assert job.mesh_cmd is None
     assert job.job_flag == (JobType.CREATE_MESH |

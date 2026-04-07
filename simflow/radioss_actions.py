@@ -11,6 +11,7 @@ from pathlib import Path
 from simflow.actions import WorkAction
 from simflow.rare import HistoryEvaluation
 from simflow.util.openradios_reader import OpenRadiosKeywordReader
+import simflow.variables as simvars
 
 import simflow.VTK.read_vtk as read_vtk
 import simflow.args
@@ -373,17 +374,17 @@ class RadiossAnalysis(WorkAction):
         base_file_name = RADIOSS_BASE_F_NAME+'.k'
 
         with OpenRadiosKeywordReader( self.input_file_path ) as orkr:
-            params = orkr.parameters()
-            logger.info("Existing parameters:")
-            for name, (ptype, value) in params.items():
-                logger.info(f"  {name} ({ptype}): {value}")
+            #params = orkr.parameters()
+            #logger.info("Existing parameters:")
+            #for name, (ptype, value) in params.items():
+            #    logger.info(f"  {name} ({ptype}): {value}")
 
             orkr.set_parameters( val_dict )
 
-            params_updated = orkr.parameters()
-            logger.info("Updated parameters:")
-            for name, (ptype, value) in params_updated.items():
-                logger.info(f"  {name} ({ptype}): {value}")
+            #params_updated = orkr.parameters()
+            #logger.info("Updated parameters:")
+            #for name, (ptype, value) in params_updated.items():
+            #    logger.info(f"  {name} ({ptype}): {value}")
 
             orkr.write( base_file_name )
 
@@ -394,6 +395,33 @@ class RadiossAnalysis(WorkAction):
 
         return True 
 
+
+    def variables(self):
+        """Returns the variables defined in the Radioss input file.
+
+        Returns:
+            set: Set of Variable instances.
+        """
+        file_to_open = Path(self.input_file_path)
+
+        if not file_to_open.exists():
+            logger.warning(f"Cannot find input file for variables(): {self.input_file_path}")
+            return set()
+
+        variables = set()
+        with OpenRadiosKeywordReader(file_to_open) as orkr:
+            for name, (ptype, value) in orkr.parameters().items():
+                if ptype == 'REAL':
+                    variables.add(simvars.FloatVariable(name, float(value)))
+                elif ptype == 'INTEGER':
+                    variables.add(simvars.IntSetVariable(name, int(value)))
+                elif ptype in ('REAL_EXPR', 'INT_EXPR'):
+                    variables.add(simvars.UnknownVariable(name, value))
+                elif ptype == 'TEXT':
+                    variables.add(simvars.StrSetVariable(name, str(value)))
+                else:
+                    variables.add(simvars.UnknownVariable(name, value))
+        return variables
 
     def write_deck( self, dpath, variable_dict=None ):
         """ write FEA deck using given parameter values.

@@ -29,6 +29,7 @@ Key Features
 - **Remote Execution**: Submit computational subgraphs to remote computing resources while maintaining local workflow coordination
 - **Multi-Solver Support**: Currently compatible with LS-DYNA and Radioss for structural analysis, and OpenFOAM for computational fluid dynamics
 - **Dependency Resolution**: Automatically manages execution order based on inter-action dependencies, ensuring downstream actions wait for required upstream results
+- **Discoverability**: Query any graph for its inputs (``variables()``) and outputs (``outputs()``) without running it — solver actions read their parameterised input files to report variable names, types, and default values
 - **Scalability**: Designed to scale through integration with the Gemini CLI for the extension and use of the module.
 
 Typical Workflow
@@ -48,7 +49,9 @@ Simflow streamlines the complexity of managing heterogeneous simulation environm
    :caption: Contents:
 
    actions_descr
+   dirs
    vars
+   discover
    exa
    remote
    api

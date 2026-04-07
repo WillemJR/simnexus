@@ -23,6 +23,7 @@ solvers like LS-DYNA, Radioss, and OpenFOAM.
 - **Native Multi-Solver Support**: Currently compatible with LS-DYNA and Radioss for structural analysis, and OpenFOAM for computational fluid dynamics
 - **Remote Execution**: Submit computational subgraphs to remote computing resources while maintaining local workflow coordination
 - **Dependency Resolution**: Automatically manages execution order based on inter-action dependencies, ensuring downstream actions wait for required upstream results
+- **Discoverability**: Query any graph for its inputs (`variables()`) and outputs (`outputs()`) without running it — solver actions read their parameterised input files to report variable names, types, and default values
 - **Scalability using ML**: Designed to scale through integration with the Gemini CLI for the extension and use of the module.
 
 ## Typical Workflow
@@ -53,16 +54,19 @@ pip install simflow
 
 ## Todo
 
-* Add CopyPaths() and Rename()
-    - to cwd ?
-    - rename
+* copy_paths for remote?
+
+* Docs: 'Discovering output' should be 'Discovering graph abilities'
 
 
-* Sort out file paths. Maybe mutually exclusive (no dyna i={input_deck}).
-    - copy_paths can be in WorkArea or in WorkFlow / DirectedGraph
-    - input_paths can  also be in FoamAna / RadiosAna / DynaAnak
-    - FoamAna / RadiosAna / DynaAnak should have input_paths, input_path
-    - how is variables() discovered for all.
+* DONE:  Actions should report outputs (with descriptions). This is for inclusion into agent.
+
+* DONE:  Actions should report outputs (with descriptions). This is for inclusion into agent.
+
+*  DONE: Variables should have a description argument. Report using variables().
+
+*  MDO example. with and w/o workareas.
+
 
 * DONE? WorkArea 
     * SimIter should be subclass of WorkArea?

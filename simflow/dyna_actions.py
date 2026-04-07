@@ -26,14 +26,13 @@ class DynaAnalysis(WorkAction):
             name (str):
             cmd (str): path to ls-dyna executable or command
             input_path (str): parameterized keyword file
-            copy_paths (list) : List of file and directories to be copied to work area.
     """
 
-    def __init__( self, name, cmd=simflow.args.DYNA_DFLT_CMD, input_path=None,copy_paths=[] ):
+    def __init__( self, name, cmd=simflow.args.DYNA_DFLT_CMD, input_path=None ):
 
         assert input_path is not None, 'No input LS-DYNA file specified.'
 
-        super().__init__(name, cmd, copy_paths=copy_paths )
+        super().__init__(name, cmd, copy_paths=[] )
         self.input_file_path = input_path
         self.description = f'LS-DYNA analysis using input file {input_path}'
 
@@ -121,46 +120,28 @@ class DynaAnalysis(WorkAction):
         The type and value of the variables are as in
         the LS-DYNA input deck.
 
-        Tries self.input_file_path first; if that cannot be opened,
-        searches self.copy_paths for an entry whose filename matches.
-
         Returns
             set : Set of Variables.
         """
-        file_to_open = None
-        input_path = Path( self.input_file_path )
+        file_to_open = Path( self.input_file_path )
 
-        if input_path.exists():
-            file_to_open = input_path
-        else:
-            target_name = input_path.name
-            for cp in self.copy_paths:
-                cp_path = Path(cp)
-                if cp_path.is_file() and cp_path.name == target_name:
-                    file_to_open = cp_path
-                    break
-                elif cp_path.is_dir():
-                    candidate = cp_path / target_name
-                    if candidate.exists():
-                        file_to_open = candidate
-                        break
-
-        if file_to_open is None:
+        if not file_to_open.exists():
             logger.warning( f"Cannot find input file for variables(): {self.input_file_path}" )
             return set()
 
         variables = set()
+        descr = f"From \'{self.input_file_path}\'"
         with dynakw.DynaKeywordReader( file_to_open ) as dkr:
             params = dkr.parameters()
             for name, value in params.items():
                 if isinstance(value, float):
-                    variables.add( simvars.FloatVariable(name, value) )
+                    variables.add( simvars.FloatVariable(name, value, description=descr) )
                 elif isinstance(value, int):
-                    variables.add( simvars.IntSetVariable(name, value) )
+                    variables.add( simvars.IntSetVariable(name, value, description=descr) )
                 elif isinstance(value, str):
-                    variables.add( simvars.StrSetVariable(name, value) )
+                    variables.add( simvars.StrSetVariable(name, value, description=descr) )
                 else:
-                    variables.add( simvars.UnknownVariable(name, "") )
+                    variables.add( simvars.UnknownVariable(name, "", description=descr) )
 
         return variables
 

@@ -39,6 +39,12 @@ def main():
     wf.add_action( run_rad )
     wrk_area = WorkArea( wf )
 
+    # Discover variables — WorkArea copies files first so DynaAnalysis can read them.
+    discovered_vars = wrk_area.variables()
+    print("Discovered variables:")
+    for v in discovered_vars:
+        print(f"  {v}")
+
     # 4. Execute the workflow
     # Provide values for the variables defined in the Jinja template
     val_dict = { 'E': 210.0, 'SIG_Y': 310.0 }

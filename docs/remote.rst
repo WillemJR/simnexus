@@ -52,8 +52,9 @@ Arguments:
     - ``input_files``: A list of local file paths that need to be sent to the remote server.
     - ``output_patterns``: (Optional) A list of file patterns to retrieve.
 
-Discovering Available Actions
------------------------------
+
+Discovering Available Remove Graphs
+------------------------------------
 
 If a server has pre-registered actions, you can query them from the client:
 
@@ -64,7 +65,7 @@ If a server has pre-registered actions, you can query them from the client:
     for name, desc in actions.items():
         print(f"Action: {name} - {desc}")
 
-Example: Using a Named Action
+Example: Using a Named Graph
 -----------------------------
 
 Using a named action reduces network overhead as the graph structure itself is already on the server.
