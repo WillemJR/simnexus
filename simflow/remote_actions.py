@@ -25,19 +25,21 @@ class RemoteAction(WorkAction):
     Executes a registered WorkAction on a remote server via gRPC.
     Requires a target_action_name to execute a pre-registered action on the server.
     """
-    def __init__(self, name, target_action_name=None, server_address=None, input_files=None, output_patterns=None):
+    def __init__(self, name, target_action_name=None, server_address=None, copy_paths=None, output_patterns=None):
         """
         Args:
             name (str): Name of this action.
             target_action_name (str, optional): Name of a pre-registered action on the server.
             server_address (str): 'host:port' of the remote server.
-            input_files (list): List of file paths (local) to send to the remote.
+            copy_paths (list): List of local file or directory paths to send to the remote.
+                Files are sent using their basename. Directories are walked recursively and
+                sent preserving their internal structure relative to the directory's parent.
             output_patterns (list): List of glob patterns for files to retrieve from remote.
         """
         super().__init__(name)
         self.target_action_name = target_action_name
         self.server_address = server_address
-        self.input_files = input_files or []
+        self.copy_paths = copy_paths or []
         self.output_patterns = output_patterns or []
         self.description = f'Remote action executing {target_action_name} on {server_address}'
 
@@ -71,16 +73,23 @@ class RemoteAction(WorkAction):
         if self.output_patterns:
             req.output_patterns.extend(self.output_patterns)
 
-        # Read input files
-        for fpath in self.input_files:
-            if os.path.exists(fpath):
-                with open(fpath, 'rb') as f:
+        # Send copy_paths (files and directories) to remote
+        for path in self.copy_paths:
+            if os.path.isfile(path):
+                with open(path, 'rb') as f:
                     content = f.read()
-                # Use basename for the remote side
-                fname = os.path.basename(fpath)
-                req.input_files.append(remote_actions_pb2.File(name=fname, content=content))
+                req.input_files.append(remote_actions_pb2.File(name=os.path.basename(path), content=content))
+            elif os.path.isdir(path):
+                parent = os.path.dirname(os.path.abspath(path))
+                for root, _, files in os.walk(path):
+                    for file in files:
+                        fpath = os.path.join(root, file)
+                        rel = os.path.relpath(fpath, parent)
+                        with open(fpath, 'rb') as f:
+                            content = f.read()
+                        req.input_files.append(remote_actions_pb2.File(name=rel, content=content))
             else:
-                logger.warning(f"Input file not found: {fpath}")
+                logger.warning(f"Path not found: {path}")
 
         # 2. Connect and Send
         try:
@@ -133,8 +142,11 @@ class SimFlowService(remote_actions_pb2_grpc.SimFlowRemoteServicer):
             # 1. Setup environment
             os.chdir(tmp_dir)
             
-            # Write input files
+            # Write input files (preserving any directory structure in the name)
             for f_msg in request.input_files:
+                parent = os.path.dirname(f_msg.name)
+                if parent:
+                    os.makedirs(parent, exist_ok=True)
                 with open(f_msg.name, 'wb') as f:
                     f.write(f_msg.content)
             

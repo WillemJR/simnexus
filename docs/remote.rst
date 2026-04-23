@@ -49,7 +49,7 @@ Arguments:
     - ``name``: The name of the remote action wrapper.
     - ``target_action_name``: The name of a pre-registered action on the server.
     - ``server_address``: The address (`host:port`) of the remote server.
-    - ``input_files``: A list of local file paths that need to be sent to the remote server.
+    - ``copy_paths``: A list of local file or directory paths to send to the remote server. Files are sent by basename; directories are walked recursively with their internal structure preserved.
     - ``output_patterns``: (Optional) A list of file patterns to retrieve.
 
 

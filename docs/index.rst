@@ -9,7 +9,7 @@ Simflow
 =========
 
 A Python module for orchestrating complex simulations 
-with native support for LS-DYNA, Radioss, and OpenFOAM.
+with native support for LS-DYNA, OpenRadioss, and OpenFOAM.
 
 Overview
 --------
@@ -17,20 +17,21 @@ Overview
 Simflow enables the automation and coordination of
 multi-physics simulation workflows — from input preparation and
 remote execution to results extraction and post-processing.
-The module is particularly suited for simulations that span multiple domains, such as combined structural and fluid dynamics analyses.
+The module is particularly suited for simulations that span
+multiple domains, such as combined structural and fluid dynamics analyses.
 
 Simflow has native support for
-solvers like LS-DYNA, Radioss, and OpenFOAM. 
+solvers like LS-DYNA, OpenRadioss, and OpenFOAM. 
 
 Key Features
 ------------
 
 - **Workflow Management**: Define simulation workflows as directed acyclic graphs (DAGs) where actions are executed based on dependency relationships and completion status of prerequisite tasks
+- **Native Solver Support**: Specify input parameter values and the results to extract for a supported solver.  Currently implemented are LS-DYNA and OpenRadioss for structural analysis, and OpenFOAM for computational fluid dynamics
 - **Remote Execution**: Submit computational subgraphs to remote computing resources while maintaining local workflow coordination
-- **Multi-Solver Support**: Currently compatible with LS-DYNA and Radioss for structural analysis, and OpenFOAM for computational fluid dynamics
 - **Dependency Resolution**: Automatically manages execution order based on inter-action dependencies, ensuring downstream actions wait for required upstream results
 - **Discoverability**: Query any graph for its inputs (``variables()``) and outputs (``outputs()``) without running it — solver actions read their parameterised input files to report variable names, types, and default values
-- **Scalability**: Designed to scale through integration with the Gemini CLI for the extension and use of the module.
+- **Scalability**: Designed to scale through integration with an LLM CLI for the extension and use of the module.
 
 Typical Workflow
 ----------------
@@ -39,7 +40,7 @@ Typical Workflow
 2. Define analysis actions and their dependencies
 3. Execute simulations on designated compute resources (local or remote)
 4. Extract relevant results from solver outputs
-5. Aggregate and summarize findings for review
+5. Aggregate and summarize findings 
 
 Simflow streamlines the complexity of managing heterogeneous simulation environments, enabling researchers and engineers to focus on analysis rather than workflow orchestration.
 
