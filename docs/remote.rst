@@ -1,7 +1,8 @@
 Remote Execution
 ================
 
-Simflow supports executing actions on remote compute resources using gRPC. This allows you to offload heavy computations or specific solver tasks to dedicated servers or containers while orchestrating the workflow locally.
+Simflow supports executing actions on remote compute resources using gRPC.
+This allows you to offload computations to dedicated servers or containers while orchestrating the workflow locally.
 
 Architecture
 ------------
@@ -10,9 +11,6 @@ The remote execution system consists of two main components:
 
 1.  **Server (`ServerAction` or `NamedServerAction`)**: A process running on the remote machine that listens for incoming tasks. It executes each task in an isolated temporary directory. It holds pre-registered "named" graphs.
 2.  **Client (`RemoteAction`)**: A special action type in your local workflow that refers to a pre-registered action on the server by name.
-
-.. warning::
-    **Security Notice**: The data transfer relies on Python's `pickle` module for maximum flexibility. `pickle` is **not secure** against erroneous or maliciously constructed data. Never unpickle data received from an untrusted or unauthenticated source. This feature should only be used within trusted networks (e.g., internal HPC clusters, VPNs).
 
 Setting up the Server
 ---------------------
@@ -94,8 +92,12 @@ Implementation Details
 
 Site security
 --------------
-Adding security is very doable. The main issue is that it will be
-specified by the system adminitrator at every site, so a standard
-solution is not doable.
+A standard solution for security is not doable. It can be added however.
+The main issue is that it will be
+specified by the system adminitrator at every site.
+
+.. warning::
+    **Security Notice**: The provided feature should only be used within trusted networks (e.g., internal HPC clusters, VPNs).  The data transfer relies on Python's `pickle` module for maximum flexibility. `pickle` is **not secure** against erroneous or maliciously constructed data. Never unpickle data received from an untrusted or unauthenticated source.
+
 
 

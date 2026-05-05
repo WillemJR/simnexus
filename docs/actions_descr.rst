@@ -20,9 +20,14 @@ It can be anything from a geometry creation, an FEA analysis,
 to mathematical computations.
 Once you have an action defined, you can call the 'solve()' method
 to execute.
+
 The return value of the 'solve()' method depends on the action; for example,
 for a d3plot database extraction it may return the extracted data
 as a numpy array.
+
+You can call the 'solve()' method on a garaph. In which case it will return a dictionary
+containing the names and return values of all the children;
+e.g. ``{'child_A': array([2, 1, 2]), 'child_B': 3.1}``.
 
 .. code-block:: python
 
@@ -32,7 +37,6 @@ as a numpy array.
 
 You can chain actions to edit a mesh or extract results as described below.
 
-# what does solve do?
 
 Defining a user action
 -------------------------
