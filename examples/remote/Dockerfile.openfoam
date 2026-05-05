@@ -1,0 +1,31 @@
+# Build from the project root:
+#   docker build -f examples/remote/Dockerfile.openfoam -t simflow-openfoam .
+#   docker run --rm -p 50051:50051 simflow-openfoam
+#
+# Base image: ESI OpenFOAM v2312 (ships icoFoam and blockMesh).
+# Swap for openfoam/openfoam12-default and adjust the source path below
+# if you prefer the openfoam.org release.
+
+FROM opencfd/openfoam-run:2312
+
+USER root
+
+# Python is pre-installed in the OpenFOAM image; add pip and grpc deps.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends python3-pip && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy the project and install simflow with gRPC extras.
+WORKDIR /simflow
+COPY requirements.txt pyproject.toml ./
+RUN pip3 install --break-system-packages grpcio grpcio-tools
+COPY . .
+RUN pip3 install --break-system-packages -e .
+
+EXPOSE 50051
+
+# Source the OpenFOAM environment so blockMesh/icoFoam are in PATH when
+# OpenFOAMAnalysis launches them as subprocesses.
+CMD ["/bin/bash", "-c", \
+     "source /opt/openfoam-v2312/etc/bashrc && \
+      python3 /simflow/examples/remote/openfoam_remote_server.py"]

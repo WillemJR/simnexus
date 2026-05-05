@@ -20,9 +20,6 @@ API Reference
 .. automodule:: simflow.jinja_actions
    :members:
 
-.. automodule:: simflow.curve_similarity
-   :members:
-
 .. automodule:: simflow.remote_actions
    :members:
 
