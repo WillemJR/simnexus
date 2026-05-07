@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "simnexus"
-version = "0.1.0"
+version = "0.1.2"
 description = "A Python module for modelling complex simulation workflows."
 readme = "README.md"
 license = {file = "LICENSE.md"}
@@ -17,8 +17,12 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-requires-python = ">=3.7"
-dependencies = []
+requires-python = ">=3.8"
+dependencies = [
+    "numpy>=1.21",
+    "pandas>=1.3",
+    "Jinja2>=3.0",
+]
 
 
 [project.urls]
@@ -26,6 +30,17 @@ Homepage = "https://github.com/WillemJR/simnexus"
 
 
 [project.optional-dependencies]
+remote = [
+    "grpcio>=1.50",
+    "grpcio-tools>=1.50",
+]
+dyna = [
+    "lasso-dyna",
+    "dynakw",
+]
+plot = [
+    "matplotlib>=3.5",
+]
 dev = [
     "pytest",
 ]

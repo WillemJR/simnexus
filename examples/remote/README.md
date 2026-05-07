@@ -41,8 +41,9 @@ docker build -f examples/remote/Dockerfile.openfoam -t simnexus-openfoam .
 ```
 
 > The base image is `opencfd/openfoam-run:2312` (ESI OpenFOAM v2312, which
-> ships `icoFoam` and `blockMesh`).  Edit the `FROM` line and the `source`
-> path in the `CMD` if you prefer a different OpenFOAM release.
+> ships `icoFoam` and `blockMesh`).  To use a different OpenFOAM release,
+> edit the `FROM` line and the bashrc path in the `ENTRYPOINT`
+> (`/usr/lib/openfoam/openfoam2312/etc/bashrc`).
 
 ### 2. Start the server container
 

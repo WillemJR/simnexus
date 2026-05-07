@@ -9,12 +9,12 @@ Usage
 -----
 1. Build and start the server container (from the project root):
 
-       docker build -f examples/Dockerfile.openfoam -t simnexus-openfoam .
+       docker build -f examples/remote/Dockerfile.openfoam -t simnexus-openfoam .
        docker run --rm -p 50051:50051 simnexus-openfoam
 
 2. Run this script locally:
 
-       python examples/openfoam_remote_example.py
+       python examples/remote/openfoam_remote_example.py
 """
 import logging
 logging.basicConfig(level=logging.WARNING)
@@ -24,7 +24,7 @@ from simnexus.remote_actions import RemoteAction
 
 SERVER = 'localhost:50051'
 
-case_dir = Path(__file__).parent.parent / "tests" / "openfoam_exa"
+case_dir = Path(__file__).parent.parent.parent / "tests" / "openfoam_exa"
 if not case_dir.exists():
     exit(f"Error: case directory not found: {case_dir}")
 

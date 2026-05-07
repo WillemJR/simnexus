@@ -1,6 +1,5 @@
 import os
 from abc import ABC, abstractmethod
-import pandas
 import numpy as np
 
 from simnexus.args import EvalType
