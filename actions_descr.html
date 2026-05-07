@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>A graph of actions &#8212; simnexus 1.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/classic.css?v=2bf1fcf8" />
+    
+    <script src="_static/documentation_options.js?v=292eb321"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Creating directories and copying files" href="dirs.html" />
+    <link rel="prev" title="SimNexus" href="index.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="dirs.html" title="Creating directories and copying files"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="SimNexus"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">simnexus 1.0.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">A graph of actions</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="a-graph-of-actions">
+<h1>A graph of actions<a class="headerlink" href="#a-graph-of-actions" title="Link to this heading">¶</a></h1>
+<p>All the steps in a simulation are encapsulated in actions.
+The basic action types can be a change to an input deck, running an OpenFOAM analysis, or
+extracting results from an analysis.</p>
+<p>Some actions are used for control e.g. to set up the simulation as a graph where some actions depend on other actions.</p>
+<p>The diagram below illustrates a workflow where a single geometry creation step leads to two parallel analysis branches: one for OpenRadioss and another for LS-DYNA. Each branch includes meshing and parameterization steps, and finally, the results from both solvers are combined to compute the overall design performance.</p>
+<img alt="Multi-solver workflow graph" class="align-center" src="_images/workflow_graph.svg" />
+<section id="using-an-action">
+<h2>Using an action<a class="headerlink" href="#using-an-action" title="Link to this heading">¶</a></h2>
+<p>An action defines an operation in the workflow.
+It can be anything from a geometry creation, an FEA analysis,
+to mathematical computations.
+Once you have an action defined, you can call the ‘solve()’ method
+to execute.</p>
+<p>The return value of the ‘solve()’ method depends on the action; for example,
+for a d3plot database extraction it may return the extracted data
+as a numpy array.</p>
+<p>You can call the ‘solve()’ method on a garaph. In which case it will return a dictionary
+containing the names and return values of all the children;
+e.g. <code class="docutils literal notranslate"><span class="pre">{'child_A':</span> <span class="pre">array([2,</span> <span class="pre">1,</span> <span class="pre">2]),</span> <span class="pre">'child_B':</span> <span class="pre">3.1}</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">simnexus.dyna_actions</span><span class="w"> </span><span class="kn">import</span> <span class="n">DynaAnalysis</span>
+<span class="n">dyna</span> <span class="o">=</span> <span class="n">DynaAnalysis</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;RunSpring&quot;</span><span class="p">,</span> <span class="n">input_path</span><span class="o">=</span><span class="s2">&quot;spring.k&quot;</span><span class="p">)</span>
+<span class="n">ret</span> <span class="o">=</span> <span class="n">dyna</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span> <span class="p">{</span><span class="s1">&#39;K&#39;</span><span class="p">:</span> <span class="mf">100.</span><span class="p">}</span> <span class="p">)</span>
+</pre></div>
+</div>
+<p>You can chain actions to edit a mesh or extract results as described below.</p>
+</section>
+<section id="defining-a-user-action">
+<h2>Defining a user action<a class="headerlink" href="#defining-a-user-action" title="Link to this heading">¶</a></h2>
+<p>You can create your own action by subclassing WorkAction
+and defining the action in the ‘solve()’ method.
+The optional <code class="docutils literal notranslate"><span class="pre">description</span></code> argument documents what the action returns.
+If omitted, the class docstring is used.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">simnexus.actions</span><span class="w"> </span><span class="kn">import</span> <span class="n">WorkAction</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">AdderAction</span><span class="p">(</span><span class="n">WorkAction</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Adds two numbers and returns the sum.&quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">solve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">val_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">val_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span>
+
+<span class="c1"># With an explicit description:</span>
+<span class="n">adder</span> <span class="o">=</span> <span class="n">AdderAction</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;add&#39;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s1">&#39;Sum of inputs a and b&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="setting-up-a-graph">
+<h2>Setting up a graph<a class="headerlink" href="#setting-up-a-graph" title="Link to this heading">¶</a></h2>
+<p>Two types of graphs are available:
+firstly, a WorkFlow, a simple version executing the actions sequentially;
+and a DirectedGraph, which allows execution to branch and execute
+actions in parallel.</p>
+<p>To use a WorkFlow to evaluate actions sequentially:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">simnexus.dyna_actions</span><span class="w"> </span><span class="kn">import</span> <span class="n">DynaAnalysis</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">simnexus.graph_actions</span><span class="w"> </span><span class="kn">import</span> <span class="n">WorkFlow</span>
+
+<span class="n">wf</span> <span class="o">=</span> <span class="n">WorkFlow</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;SpringWorkFlow&quot;</span><span class="p">)</span>
+<span class="n">wf</span><span class="o">.</span><span class="n">add_action</span><span class="p">(</span> <span class="n">DynaAnalysis</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;RunSpring&quot;</span><span class="p">,</span> <span class="n">input_path</span><span class="o">=</span><span class="s2">&quot;spring.k&quot;</span><span class="p">)</span> <span class="p">)</span>
+<span class="n">d3p</span> <span class="o">=</span> <span class="n">d3plot_File</span><span class="p">(</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;field&#39;</span> <span class="p">)</span>
+<span class="n">d3p</span><span class="o">.</span><span class="n">NodalValue</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;n5&#39;</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">nid</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">component</span><span class="o">=</span> <span class="s1">&#39;node_displacement&#39;</span>  <span class="p">)</span>
+<span class="n">wf</span><span class="o">.</span><span class="n">add_action</span><span class="p">(</span> <span class="n">d3p</span> <span class="p">)</span>
+
+<span class="n">ret</span> <span class="o">=</span> <span class="n">wf</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span> <span class="p">{</span><span class="s1">&#39;K&#39;</span><span class="p">:</span> <span class="mf">100.</span><span class="p">}</span> <span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span> <span class="s1">&#39;Displacement of node 5&#39;</span><span class="p">,</span> <span class="n">ret</span><span class="p">[</span><span class="s1">&#39;n5&#39;</span><span class="p">]</span> <span class="p">)</span>
+</pre></div>
+</div>
+<p>To use a DirectedGraph:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># FINISH TEST : ADD AS EXAMPLE</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">simnexus.dyna_actions</span><span class="w"> </span><span class="kn">import</span> <span class="n">DynaAnalysis</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">simnexus.graph_actions</span><span class="w"> </span><span class="kn">import</span> <span class="n">DirectedGraph</span>
+
+<span class="n">dg</span> <span class="o">=</span> <span class="n">DirectedGraph</span><span class="p">(</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;MDO&#39;</span> <span class="p">)</span>
+
+<span class="c1"># OpenRadioss branch</span>
+<span class="n">rr</span> <span class="o">=</span> <span class="n">dg</span><span class="o">.</span><span class="n">add_action</span><span class="p">(</span> <span class="n">RadiossAnalysis</span><span class="p">(</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;rad&#39;</span><span class="p">,</span>
+                                <span class="n">cmd</span><span class="o">=</span><span class="s1">&#39;radioss_using_dyna_inp&#39;</span><span class="p">,</span>
+                                <span class="n">create_d3plot</span><span class="o">=</span><span class="kc">True</span> <span class="p">)</span> <span class="p">)</span>
+
+
+<span class="c1"># LS-DYNA branch</span>
+<span class="n">rs</span> <span class="o">=</span> <span class="n">dg</span><span class="o">.</span><span class="n">add_action</span><span class="p">(</span> <span class="n">DynaAnalysis</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;RunSpring&quot;</span><span class="p">,</span> <span class="n">input_path</span><span class="o">=</span><span class="s2">&quot;spring.k&quot;</span><span class="p">)</span> <span class="p">)</span>
+
+<span class="n">d3p</span> <span class="o">=</span> <span class="n">d3plot_File</span><span class="p">(</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;field&#39;</span> <span class="p">)</span>
+<span class="n">d3p</span><span class="o">.</span><span class="n">NodalValue</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;n5&#39;</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">nid</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">component</span><span class="o">=</span> <span class="s1">&#39;node_displacement&#39;</span>  <span class="p">)</span>
+<span class="n">dg</span><span class="o">.</span><span class="n">add_action</span><span class="p">(</span> <span class="n">d3p</span><span class="p">,</span> <span class="n">parents</span><span class="o">=</span> <span class="p">[</span><span class="n">rs</span><span class="p">]</span> <span class="p">)</span>
+
+
+<span class="c1"># Merge back</span>
+<span class="n">dg</span><span class="o">.</span><span class="n">add_action</span><span class="p">(</span> <span class="n">tail_a</span><span class="p">,</span> <span class="n">parents</span><span class="o">=</span><span class="p">[</span><span class="n">rr</span><span class="p">,</span> <span class="n">d3p</span> <span class="p">]</span> <span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="index.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">A graph of actions</a><ul>
+<li><a class="reference internal" href="#using-an-action">Using an action</a></li>
+<li><a class="reference internal" href="#defining-a-user-action">Defining a user action</a></li>
+<li><a class="reference internal" href="#setting-up-a-graph">Setting up a graph</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="index.html"
+                          title="previous chapter">SimNexus</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="dirs.html"
+                          title="next chapter">Creating directories and copying files</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/actions_descr.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="dirs.html" title="Creating directories and copying files"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="SimNexus"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">simnexus 1.0.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">A graph of actions</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2026, Willem Roux.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    </div>
+  </body>
+</html>

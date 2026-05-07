@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>API Reference &#8212; simnexus 1.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/classic.css?v=2bf1fcf8" />
+    
+    <script src="_static/documentation_options.js?v=292eb321"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Remote Execution" href="remote.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="remote.html" title="Remote Execution"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">simnexus 1.0.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">API Reference</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-simnexus.actions">
+<span id="api-reference"></span><h1>API Reference<a class="headerlink" href="#module-simnexus.actions" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="simnexus.actions.MathEvaluation">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">simnexus.actions.</span></span><span class="sig-name descname"><span class="pre">MathEvaluation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">copy_paths</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lower_bound</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upper_bound</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;EvalType.NOT_SPECIFIED:</span> <span class="pre">1&gt;</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.actions.MathEvaluation" title="Link to this definition">¶</a></dt>
+<dd><p>Mathematical operation on results.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>)</p></li>
+<li><p><strong>cmd</strong> (<em>str</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>outcome of operation</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Any</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.actions.MathEvaluation.solve">
+<span class="sig-name descname"><span class="pre">solve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val_dict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.actions.MathEvaluation.solve" title="Link to this definition">¶</a></dt>
+<dd><p>Solve/compute for action or graph.
+An action will return any computed results.</p>
+<p>A graph will append any computed results to
+val_dict and return that.
+So A.solve( {‘v1’:1.2} ) may return {‘v1’:1.2, ‘A’:3.4},
+where the ‘A’:3.4 was added with ‘A’ the name of the action.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>val_dict</strong> (<em>dict</em>) – variable values and input of any type.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>dict with all results and inputs</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simnexus.actions.WorkAction">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">simnexus.actions.</span></span><span class="sig-name descname"><span class="pre">WorkAction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">copy_paths</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lower_bound</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upper_bound</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;EvalType.NOT_SPECIFIED:</span> <span class="pre">1&gt;</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.actions.WorkAction" title="Link to this definition">¶</a></dt>
+<dd><p>Base class for the nodes in the graph.
+Each action encapsulate an operations on the data stream.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>)</p></li>
+<li><p><strong>cmd</strong> (<em>str</em>)</p></li>
+<li><p><strong>copy_paths</strong> (<em>list</em>) – List of file and directories to be copied to work area.</p></li>
+<li><p><strong>lower_bound</strong> (<em>float</em>) – Lower bound on output value during design</p></li>
+<li><p><strong>upper_bound</strong> (<em>float</em>) – Lower bound on output value during design</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>outcome of operation</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Any</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.actions.WorkAction.allow_variables_as_arguments">
+<span class="sig-name descname"><span class="pre">allow_variables_as_arguments</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.actions.WorkAction.allow_variables_as_arguments" title="Link to this definition">¶</a></dt>
+<dd><p>A decorator for the __init__() method allowing you to
+use variables as arguments constructing this class.</p>
+<p>The  arguments to a class can be declared to be variables,
+e.g. Action( name=, cmd=, arg1=FloatVariable( ‘E’, 123.4 ) )
+to be used as action.solve( {‘E’:3.} )
+This requires that the subclass must used the decorators
+allow_variables_as_arguments and
+assign_variables_values_to_members as:</p>
+<p>&#64;WorkAction.allow_variables_as_arguments</p>
+<dl class="simple">
+<dt>def __init__( self, name, cmd=None, v=None ):</dt><dd><p>…</p>
+</dd>
+</dl>
+<p>&#64;WorkAction.assign_variables_values_to_members</p>
+<dl class="simple">
+<dt>def solve(self,  val_dict=None ):</dt><dd><p>…</p>
+</dd>
+</dl>
+<p>Child actions are created with the variables.</p>
+<p>You cannot do computations with the variables in
+__init__() because the values are only set at the end.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.actions.WorkAction.assign_variables_values_to_members">
+<span class="sig-name descname"><span class="pre">assign_variables_values_to_members</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.actions.WorkAction.assign_variables_values_to_members" title="Link to this definition">¶</a></dt>
+<dd><p>A decorator for the solve() method allowing you to
+use variables as arguments constructing this class.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.actions.WorkAction.outputs">
+<span class="sig-name descname"><span class="pre">outputs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.actions.WorkAction.outputs" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the output type and description of this action.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(data_type, description)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.actions.WorkAction.solve">
+<span class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">solve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#simnexus.actions.WorkAction.solve" title="Link to this definition">¶</a></dt>
+<dd><p>Solve/compute for action or graph.
+An action will return any computed results.</p>
+<p>A graph will append any computed results to
+val_dict and return that.
+So A.solve( {‘v1’:1.2} ) may return {‘v1’:1.2, ‘A’:3.4},
+where the ‘A’:3.4 was added with ‘A’ the name of the action.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>val_dict</strong> (<em>dict</em>) – variable values and input of any type.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>dict with all results and inputs</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.actions.WorkAction.variables">
+<span class="sig-name descname"><span class="pre">variables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.actions.WorkAction.variables" title="Link to this definition">¶</a></dt>
+<dd><p>These are the variabls defined for the WorkAction
+and used in the solve() method.
+For a graph this would be the variables used in
+all the children.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Set of type Variable.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>set</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class" id="module-simnexus.variables">
+<dt class="sig sig-object py" id="simnexus.variables.FloatVariable">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">simnexus.variables.</span></span><span class="sig-name descname"><span class="pre">FloatVariable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upper_bound</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lower_bound</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.variables.FloatVariable" title="Link to this definition">¶</a></dt>
+<dd><p>A variable that may only assume an float value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – Name of the variable.</p></li>
+<li><p><strong>value</strong> (<em>float</em>) – (Initial) Value of the variable.</p></li>
+<li><p><strong>upper_bound</strong> (<em>float</em>) – Maximum value of the variable.</p></li>
+<li><p><strong>lower_bound</strong> (<em>float</em>) – Minimum value of the variable.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simnexus.variables.IntSetVariable">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">simnexus.variables.</span></span><span class="sig-name descname"><span class="pre">IntSetVariable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allowable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.variables.IntSetVariable" title="Link to this definition">¶</a></dt>
+<dd><p>A variable that may only assume an integer value.
+It has a set of allowable values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – Name of the variable.</p></li>
+<li><p><strong>value</strong> (<em>int</em>) – (Initial) Value of the variable.</p></li>
+<li><p><strong>allowable</strong> (<em>set</em>) – A set of allowable integer values.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simnexus.variables.StrSetVariable">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">simnexus.variables.</span></span><span class="sig-name descname"><span class="pre">StrSetVariable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allowable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.variables.StrSetVariable" title="Link to this definition">¶</a></dt>
+<dd><p>A variable that may only assume an string value.
+It has a set of allowable values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – Name of the variable.</p></li>
+<li><p><strong>value</strong> (<em>str</em>) – (Initial) Value of the variable.</p></li>
+<li><p><strong>allowable</strong> (<em>set</em>) – A set of allowable string values.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simnexus.variables.UnknownVariable">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">simnexus.variables.</span></span><span class="sig-name descname"><span class="pre">UnknownVariable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.variables.UnknownVariable" title="Link to this definition">¶</a></dt>
+<dd><p>A variable that may assume a value of unknown type.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – Name of the variable.</p></li>
+<li><p><strong>value</strong> (<em>str</em>) – (Initial) Value of the variable.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simnexus.variables.Variable">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">simnexus.variables.</span></span><span class="sig-name descname"><span class="pre">Variable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.variables.Variable" title="Link to this definition">¶</a></dt>
+<dd><p>Abstract class for variables.</p>
+</dd></dl>
+
+<dl class="py class" id="module-simnexus.graph_actions">
+<dt class="sig sig-object py" id="simnexus.graph_actions.DirectedGraph">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">simnexus.graph_actions.</span></span><span class="sig-name descname"><span class="pre">DirectedGraph</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">asynch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">work_area_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.graph_actions.DirectedGraph" title="Link to this definition">¶</a></dt>
+<dd><p>A directed graph used to determine the order of evaluation and
+dependencies.</p>
+<p>Used e.g. for MDO for solvers run in parallel.</p>
+<p>A graph will append any computed results to
+val_dict and return that.
+So A.solve( {‘v1’:1.2} ) may return {‘v1’:1.2, ‘A’:3.4},
+where the ‘A’:3.4 was added with ‘A’ the name of the action.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>)</p></li>
+<li><p><strong>asynch</strong> (<em>list</em>)</p></li>
+<li><p><strong>work_area_path</strong> (<em>str</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary containing action_name:action_result pairs</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.graph_actions.DirectedGraph.add_action">
+<span class="sig-name descname"><span class="pre">add_action</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">action</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parents</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.graph_actions.DirectedGraph.add_action" title="Link to this definition">¶</a></dt>
+<dd><p>Add a node to the graph.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>action</strong> (<em>action</em>)</p></li>
+<li><p><strong>parents</strong> (<em>list</em>) – Creates an graph edge from the parent actions to this node. The action will wait for the parent actions to finish.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.graph_actions.DirectedGraph.outputs">
+<span class="sig-name descname"><span class="pre">outputs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.graph_actions.DirectedGraph.outputs" title="Link to this definition">¶</a></dt>
+<dd><p>Collects outputs of all child actions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>{action_name: (data_type, description)}</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.graph_actions.DirectedGraph.solve">
+<span class="sig-name descname"><span class="pre">solve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val_dict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.graph_actions.DirectedGraph.solve" title="Link to this definition">¶</a></dt>
+<dd><p>A graph will append any computed results to
+val_dict and return that.
+So A.solve( {‘v1’:1.2} ) may return {‘v1’:1.2, ‘A’:3.4},
+where the ‘A’:3.4 was added with ‘A’ the name of the action.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><dl class="simple">
+<dt>Dictionary containing action_name:action_result pairs</dt><dd><p>appended to val_dict.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.graph_actions.DirectedGraph.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.graph_actions.DirectedGraph.update" title="Link to this definition">¶</a></dt>
+<dd><p>From observer pattern. Called by actions that have finished.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>message</strong> (<em>any</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.graph_actions.DirectedGraph.variables">
+<span class="sig-name descname"><span class="pre">variables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.graph_actions.DirectedGraph.variables" title="Link to this definition">¶</a></dt>
+<dd><p>These are the variabls defined for the WorkAction
+and used in the solve() method.
+For a graph this would be the variables used in
+all the children.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Set of type Variable.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>set</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simnexus.graph_actions.SimulationIterator">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">simnexus.graph_actions.</span></span><span class="sig-name descname"><span class="pre">SimulationIterator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">graph</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameter_list</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">work_area_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">copy_paths</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.graph_actions.SimulationIterator" title="Link to this definition">¶</a></dt>
+<dd><p>Used to evaluate different designs in different directories.
+It calls the graph in different subdirectories – a subdirectory per design.
+Use WorkArea to overwrite the results in a directory.</p>
+<p>This is designed as a top-level action.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>graph</strong> (<a class="reference internal" href="#simnexus.graph_actions.DirectedGraph" title="simnexus.graph_actions.DirectedGraph"><em>DirectedGraph</em></a>) – DirectedGraph or WorkFlow</p></li>
+<li><p><strong>parameter_list</strong> (<em>list</em>) – Only needed to provided default values to eval.</p></li>
+<li><p><strong>work_area_path</strong> (<em>str</em>) – Default is to ./{graph.name}</p></li>
+<li><p><strong>copy_paths</strong> (<em>list</em>)</p></li>
+<li><p><strong>clean_start</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Output from graph (it adds nothing).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.graph_actions.SimulationIterator.collect_for_expdes">
+<span class="sig-name descname"><span class="pre">collect_for_expdes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">exp_des</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var_names</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dependent_pars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.graph_actions.SimulationIterator.collect_for_expdes" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>exp_des</strong></p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>parameter names, value list
+outcome (dict): evaluation name, value list. Value can be list or dict (of lists).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>par_val_dict (dict)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.graph_actions.SimulationIterator.collect_for_varrange">
+<span class="sig-name descname"><span class="pre">collect_for_varrange</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">var_range_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dependent_pars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.graph_actions.SimulationIterator.collect_for_varrange" title="Link to this definition">¶</a></dt>
+<dd><p>Creates a combination of var_range_dict. Input is not a experimental design.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>parameter names, value list
+outcome (dict): evaluation name, value list. Value can be list or dict (of lists).</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>par_val_dict (dict)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.graph_actions.SimulationIterator.gather_outputs">
+<span class="sig-name descname"><span class="pre">gather_outputs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.graph_actions.SimulationIterator.gather_outputs" title="Link to this definition">¶</a></dt>
+<dd><p>Called in root subdirectory.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.graph_actions.SimulationIterator.iterdir">
+<span class="sig-name descname"><span class="pre">iterdir</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.graph_actions.SimulationIterator.iterdir" title="Link to this definition">¶</a></dt>
+<dd><p>Iterator for the run directories. These are jobs that were previously run.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Path instances.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.graph_actions.SimulationIterator.outcomes_as_lists">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">outcomes_as_lists</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">list_of_evals</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.graph_actions.SimulationIterator.outcomes_as_lists" title="Link to this definition">¶</a></dt>
+<dd><p>Transform list of evals (a list of dictionaries) to a dictionary of lists.
+[{‘a’:1},{‘a’:1}] -&gt; {‘a’:[1,2]}</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>list_of_evals</strong> – a list of dictionaries</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>dictionaries of lists</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict_lists</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.graph_actions.SimulationIterator.outputs">
+<span class="sig-name descname"><span class="pre">outputs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.graph_actions.SimulationIterator.outputs" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the output type and description of this action.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(data_type, description)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.graph_actions.SimulationIterator.read_outputs">
+<span class="sig-name descname"><span class="pre">read_outputs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.graph_actions.SimulationIterator.read_outputs" title="Link to this definition">¶</a></dt>
+<dd><p>Called in run subdirectory.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.graph_actions.SimulationIterator.solve">
+<span class="sig-name descname"><span class="pre">solve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val_dict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.graph_actions.SimulationIterator.solve" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Output from graph (it adds nothing).</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.graph_actions.SimulationIterator.variables">
+<span class="sig-name descname"><span class="pre">variables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.graph_actions.SimulationIterator.variables" title="Link to this definition">¶</a></dt>
+<dd><p>These are the variabls defined for the WorkAction
+and used in the solve() method.
+For a graph this would be the variables used in
+all the children.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Set of type Variable.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>set</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.graph_actions.SimulationIterator.write_outputs">
+<span class="sig-name descname"><span class="pre">write_outputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">evals</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.graph_actions.SimulationIterator.write_outputs" title="Link to this definition">¶</a></dt>
+<dd><p>Called in run subdirectory.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simnexus.graph_actions.WorkArea">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">simnexus.graph_actions.</span></span><span class="sig-name descname"><span class="pre">WorkArea</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">graph</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">work_area_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">copy_paths</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.graph_actions.WorkArea" title="Link to this definition">¶</a></dt>
+<dd><p>Evaluates graph in a seperate directory.
+Previous results in the directory are overwritten.
+Required files may be copied to this area.</p>
+<p>Use SimulationIterator if you wish to have a subdirectory
+for each design evaluated.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>graph</strong> (<a class="reference internal" href="#simnexus.graph_actions.DirectedGraph" title="simnexus.graph_actions.DirectedGraph"><em>DirectedGraph</em></a>) – DirectedGraph or WorkFlow</p></li>
+<li><p><strong>work_area_path</strong> (<em>str</em>) – Default is to ./{graph.name}</p></li>
+<li><p><strong>copy_paths</strong> (<em>list</em>) – List of names of file to be copied to work area.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Output from graph (it adds nothing).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.graph_actions.WorkArea.outputs">
+<span class="sig-name descname"><span class="pre">outputs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.graph_actions.WorkArea.outputs" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the output type and description of this action.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(data_type, description)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.graph_actions.WorkArea.solve">
+<span class="sig-name descname"><span class="pre">solve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val_dict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.graph_actions.WorkArea.solve" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Output from graph (it adds nothing).</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.graph_actions.WorkArea.variables">
+<span class="sig-name descname"><span class="pre">variables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.graph_actions.WorkArea.variables" title="Link to this definition">¶</a></dt>
+<dd><p>These are the variabls defined for the WorkAction
+and used in the solve() method.
+For a graph this would be the variables used in
+all the children.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Set of type Variable.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>set</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simnexus.graph_actions.WorkFlow">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">simnexus.graph_actions.</span></span><span class="sig-name descname"><span class="pre">WorkFlow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">actions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">work_area_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.graph_actions.WorkFlow" title="Link to this definition">¶</a></dt>
+<dd><p>Calls a chain of evaluations. Results get passed down the chain.
+Used when everything is sequential.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>)</p></li>
+<li><p><strong>actions</strong> (<em>list</em>)</p></li>
+<li><p><strong>work_area_path</strong> (<em>str</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary containing action_name:action_result pairs</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.graph_actions.WorkFlow.add_action">
+<span class="sig-name descname"><span class="pre">add_action</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">action</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.graph_actions.WorkFlow.add_action" title="Link to this definition">¶</a></dt>
+<dd><p>Adds action to workflow.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> (<em>action</em>) – Action to add</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class" id="module-simnexus.dyna_actions">
+<dt class="sig sig-object py" id="simnexus.dyna_actions.DynaAnalysis">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">simnexus.dyna_actions.</span></span><span class="sig-name descname"><span class="pre">DynaAnalysis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ls-dyna'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.dyna_actions.DynaAnalysis" title="Link to this definition">¶</a></dt>
+<dd><p>This runs an LS-DYNA simulation.
+It will substitute the PARAMETER values with
+provided values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>)</p></li>
+<li><p><strong>cmd</strong> (<em>str</em>) – path to ls-dyna executable or command</p></li>
+<li><p><strong>input_path</strong> (<em>str</em>) – parameterized keyword file</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.dyna_actions.DynaAnalysis.variables">
+<span class="sig-name descname"><span class="pre">variables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.dyna_actions.DynaAnalysis.variables" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the variables defined in the template.
+The type and value of the variables are as in
+the LS-DYNA input deck.</p>
+<dl class="simple">
+<dt>Returns</dt><dd><p>set : Set of Variables.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class" id="module-simnexus.d3plot_actions">
+<dt class="sig sig-object py" id="simnexus.d3plot_actions.d3plot_File">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">simnexus.d3plot_actions.</span></span><span class="sig-name descname"><span class="pre">d3plot_File</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d3plot_rootname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'d3plot'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.d3plot_actions.d3plot_File" title="Link to this definition">¶</a></dt>
+<dd><p>This opens the d3plot file for data extractions.
+The subsequent d3plot read operations must be added using methods on this method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>)</p></li>
+<li><p><strong>d3plot_rootname</strong> (<em>str</em>) – Default is ‘d3plot’.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>success (bool)</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.d3plot_actions.d3plot_File.NodalFieldData">
+<span class="sig-name descname"><span class="pre">NodalFieldData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.d3plot_actions.d3plot_File.NodalFieldData" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>state</strong> (<em>int</em>) – -1 is last</p></li>
+<li><p><strong>component</strong> (<em>str</em>)</p></li>
+<li><p><strong>required_part_id</strong> (<em>int</em>) – optional</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Nodal field data</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.d3plot_actions.d3plot_File.NodalHistory">
+<span class="sig-name descname"><span class="pre">NodalHistory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.d3plot_actions.d3plot_File.NodalHistory" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>nid</strong> (<em>int</em>)</p></li>
+<li><p><strong>component</strong> (<em>str</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>history at node</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.d3plot_actions.d3plot_File.NodalValue">
+<span class="sig-name descname"><span class="pre">NodalValue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.d3plot_actions.d3plot_File.NodalValue" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>nid</strong> (<em>int</em>)</p></li>
+<li><p><strong>state</strong> (<em>int</em>)</p></li>
+<li><p><strong>component</strong> (<em>str</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>value at node</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.d3plot_actions.d3plot_File.solve">
+<span class="sig-name descname"><span class="pre">solve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val_dict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.d3plot_actions.d3plot_File.solve" title="Link to this definition">¶</a></dt>
+<dd><p>A graph will append any computed results to
+val_dict and return that.
+So A.solve( {‘v1’:1.2} ) may return {‘v1’:1.2, ‘A’:3.4},
+where the ‘A’:3.4 was added with ‘A’ the name of the action.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><dl class="simple">
+<dt>Dictionary containing action_name:action_result pairs</dt><dd><p>appended to val_dict.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class" id="module-simnexus.jinja_actions">
+<dt class="sig sig-object py" id="simnexus.jinja_actions.JinjaReplace">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">simnexus.jinja_actions.</span></span><span class="sig-name descname"><span class="pre">JinjaReplace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.jinja_actions.JinjaReplace" title="Link to this definition">¶</a></dt>
+<dd><p>Action that uses Jinja2 to replace parameters in a file with values.</p>
+<p>The parameters in the file are indicated using double curly braces, e.g., ‘{{VAR1}}’.
+This action reads a template file, substitutes the parameters with provided values,
+and writes the result to an output file.</p>
+<p class="rubric">Example</p>
+<p>A line in the input file:
+‘1, 7.8000E-06, {{E}}, 0.3, {{SIG_Y}},  0.0, 0.0, 0.0’</p>
+<p>With values E=210.0e9 and SIG_Y=200.0e6, becomes:
+‘1, 7.8000E-06, 210.0e9, 0.3, 200.0e6,  0.0, 0.0, 0.0’</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – The name of the action.</p></li>
+<li><p><strong>input_file_path</strong> (<em>str</em>) – Path to the input file. This is the template file marked up using jinja delimiters</p></li>
+<li><p><strong>output_file_path</strong> (<em>str</em><em>, </em><em>optional</em>) – Path where the processed file will be written.
+Defaults to simnexus.args.RADIOSS_DFLT_FNAME.</p></li>
+<li><p><strong>val_format</strong> (<em>str</em><em>, </em><em>optional</em>) – Format string for floating point values (e.g., “%10.3g”).
+Defaults to “%10.3g”.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.jinja_actions.JinjaReplace.solve">
+<span class="sig-name descname"><span class="pre">solve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val_dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.jinja_actions.JinjaReplace.solve" title="Link to this definition">¶</a></dt>
+<dd><p>Solve/compute for action or graph.
+An action will return any computed results.</p>
+<p>A graph will append any computed results to
+val_dict and return that.
+So A.solve( {‘v1’:1.2} ) may return {‘v1’:1.2, ‘A’:3.4},
+where the ‘A’:3.4 was added with ‘A’ the name of the action.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>val_dict</strong> (<em>dict</em>) – variable values and input of any type.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>dict with all results and inputs</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.jinja_actions.JinjaReplace.variables">
+<span class="sig-name descname"><span class="pre">variables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.jinja_actions.JinjaReplace.variables" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the variables defined in the template.
+The type and value of the variables are unknown.</p>
+<dl class="simple">
+<dt>Returns</dt><dd><p>set : Set of type UnknownVariable.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="simnexus.jinja_actions.logger">
+<span class="sig-prename descclassname"><span class="pre">simnexus.jinja_actions.</span></span><span class="sig-name descname"><span class="pre">logger</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;Logger</span> <span class="pre">simnexus.jinja_actions</span> <span class="pre">(WARNING)&gt;</span></span><a class="headerlink" href="#simnexus.jinja_actions.logger" title="Link to this definition">¶</a></dt>
+<dd><p>The file is for cases where variables / parameters are defined inside the input decks
+using the jinja format ‘{{VAR1}}}’.</p>
+</dd></dl>
+
+<dl class="py class" id="module-simnexus.remote_actions">
+<dt class="sig sig-object py" id="simnexus.remote_actions.NamedServerAction">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">simnexus.remote_actions.</span></span><span class="sig-name descname"><span class="pre">NamedServerAction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50051</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_workers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.remote_actions.NamedServerAction" title="Link to this definition">¶</a></dt>
+<dd><p>Alias for ServerAction supporting named graphs.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simnexus.remote_actions.RemoteAction">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">simnexus.remote_actions.</span></span><span class="sig-name descname"><span class="pre">RemoteAction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_action_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">server_address</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">copy_paths</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_patterns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.remote_actions.RemoteAction" title="Link to this definition">¶</a></dt>
+<dd><p>Executes a registered WorkAction on a remote server via gRPC.
+Requires a target_action_name to execute a pre-registered action on the server.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.remote_actions.RemoteAction.available_actions">
+<span class="sig-name descname"><span class="pre">available_actions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.remote_actions.RemoteAction.available_actions" title="Link to this definition">¶</a></dt>
+<dd><p>Queries the remote server for available registered actions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A dictionary mapping action names to their descriptions.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.remote_actions.RemoteAction.solve">
+<span class="sig-name descname"><span class="pre">solve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val_dict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.remote_actions.RemoteAction.solve" title="Link to this definition">¶</a></dt>
+<dd><p>Solve/compute for action or graph.
+An action will return any computed results.</p>
+<p>A graph will append any computed results to
+val_dict and return that.
+So A.solve( {‘v1’:1.2} ) may return {‘v1’:1.2, ‘A’:3.4},
+where the ‘A’:3.4 was added with ‘A’ the name of the action.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>val_dict</strong> (<em>dict</em>) – variable values and input of any type.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>dict with all results and inputs</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simnexus.remote_actions.ServerAction">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">simnexus.remote_actions.</span></span><span class="sig-name descname"><span class="pre">ServerAction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50051</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_workers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.remote_actions.ServerAction" title="Link to this definition">¶</a></dt>
+<dd><p>Starts a gRPC server to execute actions remotely.
+Can be configured with pre-registered actions (graphs).</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.remote_actions.ServerAction.add_graph">
+<span class="sig-name descname"><span class="pre">add_graph</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">graph</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.remote_actions.ServerAction.add_graph" title="Link to this definition">¶</a></dt>
+<dd><p>Registers a graph (WorkAction) with a name and description.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simnexus.remote_actions.SimFlowService">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">simnexus.remote_actions.</span></span><span class="sig-name descname"><span class="pre">SimFlowService</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">actions_registry</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.remote_actions.SimFlowService" title="Link to this definition">¶</a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="simnexus.remote_actions.SimFlowService.GetAvailableActions">
+<span class="sig-name descname"><span class="pre">GetAvailableActions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.remote_actions.SimFlowService.GetAvailableActions" title="Link to this definition">¶</a></dt>
+<dd><p>Missing associated documentation comment in .proto file.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simnexus.remote_actions.SimFlowService.RunAction">
+<span class="sig-name descname"><span class="pre">RunAction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simnexus.remote_actions.SimFlowService.RunAction" title="Link to this definition">¶</a></dt>
+<dd><p>Missing associated documentation comment in .proto file.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="index.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">API Reference</a><ul>
+<li><a class="reference internal" href="#simnexus.actions.MathEvaluation"><code class="docutils literal notranslate"><span class="pre">MathEvaluation</span></code></a><ul>
+<li><a class="reference internal" href="#simnexus.actions.MathEvaluation.solve"><code class="docutils literal notranslate"><span class="pre">MathEvaluation.solve()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simnexus.actions.WorkAction"><code class="docutils literal notranslate"><span class="pre">WorkAction</span></code></a><ul>
+<li><a class="reference internal" href="#simnexus.actions.WorkAction.allow_variables_as_arguments"><code class="docutils literal notranslate"><span class="pre">WorkAction.allow_variables_as_arguments()</span></code></a></li>
+<li><a class="reference internal" href="#simnexus.actions.WorkAction.assign_variables_values_to_members"><code class="docutils literal notranslate"><span class="pre">WorkAction.assign_variables_values_to_members()</span></code></a></li>
+<li><a class="reference internal" href="#simnexus.actions.WorkAction.outputs"><code class="docutils literal notranslate"><span class="pre">WorkAction.outputs()</span></code></a></li>
+<li><a class="reference internal" href="#simnexus.actions.WorkAction.solve"><code class="docutils literal notranslate"><span class="pre">WorkAction.solve()</span></code></a></li>
+<li><a class="reference internal" href="#simnexus.actions.WorkAction.variables"><code class="docutils literal notranslate"><span class="pre">WorkAction.variables()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simnexus.variables.FloatVariable"><code class="docutils literal notranslate"><span class="pre">FloatVariable</span></code></a></li>
+<li><a class="reference internal" href="#simnexus.variables.IntSetVariable"><code class="docutils literal notranslate"><span class="pre">IntSetVariable</span></code></a></li>
+<li><a class="reference internal" href="#simnexus.variables.StrSetVariable"><code class="docutils literal notranslate"><span class="pre">StrSetVariable</span></code></a></li>
+<li><a class="reference internal" href="#simnexus.variables.UnknownVariable"><code class="docutils literal notranslate"><span class="pre">UnknownVariable</span></code></a></li>
+<li><a class="reference internal" href="#simnexus.variables.Variable"><code class="docutils literal notranslate"><span class="pre">Variable</span></code></a></li>
+<li><a class="reference internal" href="#simnexus.graph_actions.DirectedGraph"><code class="docutils literal notranslate"><span class="pre">DirectedGraph</span></code></a><ul>
+<li><a class="reference internal" href="#simnexus.graph_actions.DirectedGraph.add_action"><code class="docutils literal notranslate"><span class="pre">DirectedGraph.add_action()</span></code></a></li>
+<li><a class="reference internal" href="#simnexus.graph_actions.DirectedGraph.outputs"><code class="docutils literal notranslate"><span class="pre">DirectedGraph.outputs()</span></code></a></li>
+<li><a class="reference internal" href="#simnexus.graph_actions.DirectedGraph.solve"><code class="docutils literal notranslate"><span class="pre">DirectedGraph.solve()</span></code></a></li>
+<li><a class="reference internal" href="#simnexus.graph_actions.DirectedGraph.update"><code class="docutils literal notranslate"><span class="pre">DirectedGraph.update()</span></code></a></li>
+<li><a class="reference internal" href="#simnexus.graph_actions.DirectedGraph.variables"><code class="docutils literal notranslate"><span class="pre">DirectedGraph.variables()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simnexus.graph_actions.SimulationIterator"><code class="docutils literal notranslate"><span class="pre">SimulationIterator</span></code></a><ul>
+<li><a class="reference internal" href="#simnexus.graph_actions.SimulationIterator.collect_for_expdes"><code class="docutils literal notranslate"><span class="pre">SimulationIterator.collect_for_expdes()</span></code></a></li>
+<li><a class="reference internal" href="#simnexus.graph_actions.SimulationIterator.collect_for_varrange"><code class="docutils literal notranslate"><span class="pre">SimulationIterator.collect_for_varrange()</span></code></a></li>
+<li><a class="reference internal" href="#simnexus.graph_actions.SimulationIterator.gather_outputs"><code class="docutils literal notranslate"><span class="pre">SimulationIterator.gather_outputs()</span></code></a></li>
+<li><a class="reference internal" href="#simnexus.graph_actions.SimulationIterator.iterdir"><code class="docutils literal notranslate"><span class="pre">SimulationIterator.iterdir()</span></code></a></li>
+<li><a class="reference internal" href="#simnexus.graph_actions.SimulationIterator.outcomes_as_lists"><code class="docutils literal notranslate"><span class="pre">SimulationIterator.outcomes_as_lists()</span></code></a></li>
+<li><a class="reference internal" href="#simnexus.graph_actions.SimulationIterator.outputs"><code class="docutils literal notranslate"><span class="pre">SimulationIterator.outputs()</span></code></a></li>
+<li><a class="reference internal" href="#simnexus.graph_actions.SimulationIterator.read_outputs"><code class="docutils literal notranslate"><span class="pre">SimulationIterator.read_outputs()</span></code></a></li>
+<li><a class="reference internal" href="#simnexus.graph_actions.SimulationIterator.solve"><code class="docutils literal notranslate"><span class="pre">SimulationIterator.solve()</span></code></a></li>
+<li><a class="reference internal" href="#simnexus.graph_actions.SimulationIterator.variables"><code class="docutils literal notranslate"><span class="pre">SimulationIterator.variables()</span></code></a></li>
+<li><a class="reference internal" href="#simnexus.graph_actions.SimulationIterator.write_outputs"><code class="docutils literal notranslate"><span class="pre">SimulationIterator.write_outputs()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simnexus.graph_actions.WorkArea"><code class="docutils literal notranslate"><span class="pre">WorkArea</span></code></a><ul>
+<li><a class="reference internal" href="#simnexus.graph_actions.WorkArea.outputs"><code class="docutils literal notranslate"><span class="pre">WorkArea.outputs()</span></code></a></li>
+<li><a class="reference internal" href="#simnexus.graph_actions.WorkArea.solve"><code class="docutils literal notranslate"><span class="pre">WorkArea.solve()</span></code></a></li>
+<li><a class="reference internal" href="#simnexus.graph_actions.WorkArea.variables"><code class="docutils literal notranslate"><span class="pre">WorkArea.variables()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simnexus.graph_actions.WorkFlow"><code class="docutils literal notranslate"><span class="pre">WorkFlow</span></code></a><ul>
+<li><a class="reference internal" href="#simnexus.graph_actions.WorkFlow.add_action"><code class="docutils literal notranslate"><span class="pre">WorkFlow.add_action()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simnexus.dyna_actions.DynaAnalysis"><code class="docutils literal notranslate"><span class="pre">DynaAnalysis</span></code></a><ul>
+<li><a class="reference internal" href="#simnexus.dyna_actions.DynaAnalysis.variables"><code class="docutils literal notranslate"><span class="pre">DynaAnalysis.variables()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simnexus.d3plot_actions.d3plot_File"><code class="docutils literal notranslate"><span class="pre">d3plot_File</span></code></a><ul>
+<li><a class="reference internal" href="#simnexus.d3plot_actions.d3plot_File.NodalFieldData"><code class="docutils literal notranslate"><span class="pre">d3plot_File.NodalFieldData()</span></code></a></li>
+<li><a class="reference internal" href="#simnexus.d3plot_actions.d3plot_File.NodalHistory"><code class="docutils literal notranslate"><span class="pre">d3plot_File.NodalHistory()</span></code></a></li>
+<li><a class="reference internal" href="#simnexus.d3plot_actions.d3plot_File.NodalValue"><code class="docutils literal notranslate"><span class="pre">d3plot_File.NodalValue()</span></code></a></li>
+<li><a class="reference internal" href="#simnexus.d3plot_actions.d3plot_File.solve"><code class="docutils literal notranslate"><span class="pre">d3plot_File.solve()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simnexus.jinja_actions.JinjaReplace"><code class="docutils literal notranslate"><span class="pre">JinjaReplace</span></code></a><ul>
+<li><a class="reference internal" href="#simnexus.jinja_actions.JinjaReplace.solve"><code class="docutils literal notranslate"><span class="pre">JinjaReplace.solve()</span></code></a></li>
+<li><a class="reference internal" href="#simnexus.jinja_actions.JinjaReplace.variables"><code class="docutils literal notranslate"><span class="pre">JinjaReplace.variables()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simnexus.jinja_actions.logger"><code class="docutils literal notranslate"><span class="pre">logger</span></code></a></li>
+<li><a class="reference internal" href="#simnexus.remote_actions.NamedServerAction"><code class="docutils literal notranslate"><span class="pre">NamedServerAction</span></code></a></li>
+<li><a class="reference internal" href="#simnexus.remote_actions.RemoteAction"><code class="docutils literal notranslate"><span class="pre">RemoteAction</span></code></a><ul>
+<li><a class="reference internal" href="#simnexus.remote_actions.RemoteAction.available_actions"><code class="docutils literal notranslate"><span class="pre">RemoteAction.available_actions()</span></code></a></li>
+<li><a class="reference internal" href="#simnexus.remote_actions.RemoteAction.solve"><code class="docutils literal notranslate"><span class="pre">RemoteAction.solve()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simnexus.remote_actions.ServerAction"><code class="docutils literal notranslate"><span class="pre">ServerAction</span></code></a><ul>
+<li><a class="reference internal" href="#simnexus.remote_actions.ServerAction.add_graph"><code class="docutils literal notranslate"><span class="pre">ServerAction.add_graph()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simnexus.remote_actions.SimFlowService"><code class="docutils literal notranslate"><span class="pre">SimFlowService</span></code></a><ul>
+<li><a class="reference internal" href="#simnexus.remote_actions.SimFlowService.GetAvailableActions"><code class="docutils literal notranslate"><span class="pre">SimFlowService.GetAvailableActions()</span></code></a></li>
+<li><a class="reference internal" href="#simnexus.remote_actions.SimFlowService.RunAction"><code class="docutils literal notranslate"><span class="pre">SimFlowService.RunAction()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="remote.html"
+                          title="previous chapter">Remote Execution</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/api.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="remote.html" title="Remote Execution"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">simnexus 1.0.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">API Reference</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2026, Willem Roux.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    </div>
+  </body>
+</html>

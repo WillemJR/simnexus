@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Remote Execution &#8212; simnexus 1.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/classic.css?v=2bf1fcf8" />
+    
+    <script src="_static/documentation_options.js?v=292eb321"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="API Reference" href="api.html" />
+    <link rel="prev" title="Examples" href="exa.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="api.html" title="API Reference"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="exa.html" title="Examples"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">simnexus 1.0.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Remote Execution</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="remote-execution">
+<h1>Remote Execution<a class="headerlink" href="#remote-execution" title="Link to this heading">¶</a></h1>
+<p>SimNexus supports executing actions on remote compute resources using gRPC.
+This allows you to offload computations to dedicated servers or containers while orchestrating the workflow locally.</p>
+<section id="architecture">
+<h2>Architecture<a class="headerlink" href="#architecture" title="Link to this heading">¶</a></h2>
+<p>The remote execution system consists of two main components:</p>
+<ol class="arabic simple">
+<li><p><strong>Server (`ServerAction` or `NamedServerAction`)</strong>: A process running on the remote machine that listens for incoming tasks. It executes each task in an isolated temporary directory. It holds pre-registered “named” graphs.</p></li>
+<li><p><strong>Client (`RemoteAction`)</strong>: A special action type in your local workflow that refers to a pre-registered action on the server by name.</p></li>
+</ol>
+</section>
+<section id="setting-up-the-server">
+<h2>Setting up the Server<a class="headerlink" href="#setting-up-the-server" title="Link to this heading">¶</a></h2>
+<p>On the remote machine (or container), you need to start the <cite>ServerAction</cite>. You can also register specific graphs that clients can then trigger by name.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">simnexus.remote_actions</span><span class="w"> </span><span class="kn">import</span> <span class="n">NamedServerAction</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">my_project</span><span class="w"> </span><span class="kn">import</span> <span class="n">MyHeavyWorkflow</span>
+
+<span class="c1"># Start the server on port 50051</span>
+<span class="n">server</span> <span class="o">=</span> <span class="n">NamedServerAction</span><span class="p">(</span><span class="n">port</span><span class="o">=</span><span class="mi">50051</span><span class="p">)</span>
+
+<span class="c1"># Pre-register a workflow</span>
+<span class="n">workflow</span> <span class="o">=</span> <span class="n">MyHeavyWorkflow</span><span class="p">(</span><span class="s2">&quot;simulation_v1&quot;</span><span class="p">)</span>
+<span class="n">server</span><span class="o">.</span><span class="n">add_graph</span><span class="p">(</span><span class="s2">&quot;heavy_sim&quot;</span><span class="p">,</span> <span class="n">workflow</span><span class="p">,</span> <span class="s2">&quot;Runs the standard heavy simulation v1&quot;</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Server is running...&quot;</span><span class="p">)</span>
+<span class="n">server</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+<span class="c1"># Keep the main thread alive</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">server</span><span class="o">.</span><span class="n">wait_for_termination</span><span class="p">()</span>
+<span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+    <span class="n">server</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="defining-remote-actions">
+<h2>Defining Remote Actions<a class="headerlink" href="#defining-remote-actions" title="Link to this heading">¶</a></h2>
+<p>To run an action remotely, you use a <cite>RemoteAction</cite>. You must provide a <cite>target_action_name</cite> which corresponds to an action registered on the server.</p>
+<dl class="simple">
+<dt>Arguments:</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">name</span></code>: The name of the remote action wrapper.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">target_action_name</span></code>: The name of a pre-registered action on the server.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">server_address</span></code>: The address (<cite>host:port</cite>) of the remote server.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">copy_paths</span></code>: A list of local file or directory paths to send to the remote server. Files are sent by basename; directories are walked recursively with their internal structure preserved.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">output_patterns</span></code>: (Optional) A list of file patterns to retrieve.</p></li>
+</ul>
+</dd>
+</dl>
+</section>
+<section id="discovering-available-remove-graphs">
+<h2>Discovering Available Remove Graphs<a class="headerlink" href="#discovering-available-remove-graphs" title="Link to this heading">¶</a></h2>
+<p>If a server has pre-registered actions, you can query them from the client:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">remote</span> <span class="o">=</span> <span class="n">RemoteAction</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;query&quot;</span><span class="p">,</span> <span class="n">server_address</span><span class="o">=</span><span class="s1">&#39;remote-host:50051&#39;</span><span class="p">)</span>
+<span class="n">actions</span> <span class="o">=</span> <span class="n">remote</span><span class="o">.</span><span class="n">available_actions</span><span class="p">()</span>
+<span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">desc</span> <span class="ow">in</span> <span class="n">actions</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Action: </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="n">desc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="example-using-a-named-graph">
+<h2>Example: Using a Named Graph<a class="headerlink" href="#example-using-a-named-graph" title="Link to this heading">¶</a></h2>
+<p>Using a named action reduces network overhead as the graph structure itself is already on the server.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">simnexus.remote_actions</span><span class="w"> </span><span class="kn">import</span> <span class="n">RemoteAction</span>
+
+<span class="c1"># Configure the remote wrapper using a named action</span>
+<span class="n">remote_task</span> <span class="o">=</span> <span class="n">RemoteAction</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;remote_wrapper&quot;</span><span class="p">,</span>
+    <span class="n">target_action_name</span><span class="o">=</span><span class="s2">&quot;heavy_sim&quot;</span><span class="p">,</span>
+    <span class="n">server_address</span><span class="o">=</span><span class="s1">&#39;remote-host:50051&#39;</span><span class="p">,</span>
+    <span class="n">output_patterns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;results.csv&#39;</span><span class="p">]</span>
+<span class="p">)</span>
+
+<span class="c1"># Execute</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">remote_task</span><span class="o">.</span><span class="n">solve</span><span class="p">({</span><span class="s1">&#39;param1&#39;</span><span class="p">:</span> <span class="mi">100</span><span class="p">})</span>
+</pre></div>
+</div>
+</section>
+<section id="implementation-details">
+<h2>Implementation Details<a class="headerlink" href="#implementation-details" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><strong>Isolation</strong>: Each action runs in a unique temporary directory on the server. This prevents file conflicts between concurrent jobs.</p></li>
+<li><p><strong>Dependencies</strong>: The remote environment must have <cite>simnexus</cite> and all necessary dependencies installed.</p></li>
+<li><p><strong>File Transfer</strong>: Large files (up to ~50MB) are supported by default. For very large datasets, consider using a shared file system or external storage service, passing only the paths in the <cite>val_dict</cite>.</p></li>
+</ul>
+</section>
+<section id="site-security">
+<h2>Site security<a class="headerlink" href="#site-security" title="Link to this heading">¶</a></h2>
+<p>A standard solution for security is not doable. It can be added however.
+The main issue is that it will be
+specified by the system adminitrator at every site.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><strong>Security Notice</strong>: The provided feature should only be used within trusted networks (e.g., internal HPC clusters, VPNs).  The data transfer relies on Python’s <cite>pickle</cite> module for maximum flexibility. <cite>pickle</cite> is <strong>not secure</strong> against erroneous or maliciously constructed data. Never unpickle data received from an untrusted or unauthenticated source.</p>
+</div>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="index.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">Remote Execution</a><ul>
+<li><a class="reference internal" href="#architecture">Architecture</a></li>
+<li><a class="reference internal" href="#setting-up-the-server">Setting up the Server</a></li>
+<li><a class="reference internal" href="#defining-remote-actions">Defining Remote Actions</a></li>
+<li><a class="reference internal" href="#discovering-available-remove-graphs">Discovering Available Remove Graphs</a></li>
+<li><a class="reference internal" href="#example-using-a-named-graph">Example: Using a Named Graph</a></li>
+<li><a class="reference internal" href="#implementation-details">Implementation Details</a></li>
+<li><a class="reference internal" href="#site-security">Site security</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="exa.html"
+                          title="previous chapter">Examples</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="api.html"
+                          title="next chapter">API Reference</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/remote.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="api.html" title="API Reference"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="exa.html" title="Examples"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">simnexus 1.0.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Remote Execution</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2026, Willem Roux.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    </div>
+  </body>
+</html>

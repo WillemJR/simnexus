@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Creating directories and copying files &#8212; simnexus 1.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/classic.css?v=2bf1fcf8" />
+    
+    <script src="_static/documentation_options.js?v=292eb321"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Variables" href="vars.html" />
+    <link rel="prev" title="A graph of actions" href="actions_descr.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="vars.html" title="Variables"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="actions_descr.html" title="A graph of actions"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">simnexus 1.0.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Creating directories and copying files</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="creating-directories-and-copying-files">
+<h1>Creating directories and copying files<a class="headerlink" href="#creating-directories-and-copying-files" title="Link to this heading">¶</a></h1>
+<p>Solver actions such as <code class="docutils literal notranslate"><span class="pre">DynaAnalysis</span></code>, <code class="docutils literal notranslate"><span class="pre">RadiossAnalysis</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">OpenFOAMAnalysis</span></code> expect their input files to be present in the
+current working directory when they run.  Two classes handle directory
+creation and file copying automatically: <code class="docutils literal notranslate"><span class="pre">WorkArea</span></code> and
+<code class="docutils literal notranslate"><span class="pre">SimulationIterator</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">copy_paths</span></code> is always specified on <code class="docutils literal notranslate"><span class="pre">WorkArea</span></code> or
+<code class="docutils literal notranslate"><span class="pre">SimulationIterator</span></code> — not on individual solver actions.</p>
+<section id="workarea">
+<h2>WorkArea<a class="headerlink" href="#workarea" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">WorkArea</span></code> evaluates a graph in a dedicated directory.
+Each call to <code class="docutils literal notranslate"><span class="pre">solve()</span></code> cleans the directory and re-copies the required
+files, so previous results are overwritten.  This is the right choice
+for a single run or when you want to inspect intermediate files after
+the run.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">simnexus.graph_actions</span><span class="w"> </span><span class="kn">import</span> <span class="n">WorkFlow</span><span class="p">,</span> <span class="n">WorkArea</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">simnexus.dyna_actions</span><span class="w"> </span><span class="kn">import</span> <span class="n">DynaAnalysis</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">simnexus.d3plot_actions</span><span class="w"> </span><span class="kn">import</span> <span class="n">d3plot_File</span>
+
+<span class="n">wf</span> <span class="o">=</span> <span class="n">WorkFlow</span><span class="p">(</span><span class="s1">&#39;SpringWorkFlow&#39;</span><span class="p">)</span>
+<span class="n">wf</span><span class="o">.</span><span class="n">add_action</span><span class="p">(</span><span class="n">DynaAnalysis</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;run&#39;</span><span class="p">,</span> <span class="n">input_path</span><span class="o">=</span><span class="s1">&#39;spring.k&#39;</span><span class="p">))</span>
+<span class="n">wf</span><span class="o">.</span><span class="n">add_action</span><span class="p">(</span><span class="n">d3plot_File</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;field&#39;</span><span class="p">))</span>
+
+<span class="c1"># &#39;spring.k&#39; is copied from its source location into ./SpringWorkFlow/</span>
+<span class="c1"># before the graph runs.</span>
+<span class="n">wa</span> <span class="o">=</span> <span class="n">WorkArea</span><span class="p">(</span><span class="n">wf</span><span class="p">,</span> <span class="n">copy_paths</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;path/to/spring.k&#39;</span><span class="p">])</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">wa</span><span class="o">.</span><span class="n">solve</span><span class="p">({</span><span class="s1">&#39;K&#39;</span><span class="p">:</span> <span class="mf">200.0</span><span class="p">})</span>
+</pre></div>
+</div>
+<p>By default the work directory is <code class="docutils literal notranslate"><span class="pre">{cwd}/{graph.name}</span></code>.
+A custom path can be supplied as the second argument:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">wa</span> <span class="o">=</span> <span class="n">WorkArea</span><span class="p">(</span><span class="n">wf</span><span class="p">,</span> <span class="n">work_area_path</span><span class="o">=</span><span class="s1">&#39;~/runs/spring&#39;</span><span class="p">,</span> <span class="n">copy_paths</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;path/to/spring.k&#39;</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>The directory path may contain <code class="docutils literal notranslate"><span class="pre">~</span></code> and environment variables; both are
+expanded automatically.</p>
+</section>
+<section id="simulationiterator">
+<h2>SimulationIterator<a class="headerlink" href="#simulationiterator" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">SimulationIterator</span></code> evaluates a graph once per design point, placing
+each run in its own numbered subdirectory (<code class="docutils literal notranslate"><span class="pre">job_0</span></code>, <code class="docutils literal notranslate"><span class="pre">job_1</span></code>, …).
+The required files are copied into each job directory before the graph
+runs.  Use this when you need to keep the results from every run, for
+example during a parameter study or optimisation.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">simnexus.graph_actions</span><span class="w"> </span><span class="kn">import</span> <span class="n">WorkFlow</span><span class="p">,</span> <span class="n">SimulationIterator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">simnexus.dyna_actions</span><span class="w"> </span><span class="kn">import</span> <span class="n">DynaAnalysis</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">simnexus.d3plot_actions</span><span class="w"> </span><span class="kn">import</span> <span class="n">d3plot_File</span>
+
+<span class="n">wf</span> <span class="o">=</span> <span class="n">WorkFlow</span><span class="p">(</span><span class="s1">&#39;SpringWorkFlow&#39;</span><span class="p">)</span>
+<span class="n">wf</span><span class="o">.</span><span class="n">add_action</span><span class="p">(</span><span class="n">DynaAnalysis</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;run&#39;</span><span class="p">,</span> <span class="n">input_path</span><span class="o">=</span><span class="s1">&#39;spring.k&#39;</span><span class="p">))</span>
+<span class="n">wf</span><span class="o">.</span><span class="n">add_action</span><span class="p">(</span><span class="n">d3plot_File</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;field&#39;</span><span class="p">))</span>
+
+<span class="n">itr</span> <span class="o">=</span> <span class="n">SimulationIterator</span><span class="p">(</span><span class="n">wf</span><span class="p">,</span> <span class="n">copy_paths</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;path/to/spring.k&#39;</span><span class="p">])</span>
+
+<span class="c1"># Each call to solve() creates a new job_N subdirectory.</span>
+<span class="n">itr</span><span class="o">.</span><span class="n">solve</span><span class="p">({</span><span class="s1">&#39;K&#39;</span><span class="p">:</span> <span class="mf">100.0</span><span class="p">})</span>   <span class="c1"># writes to SpringWorkFlow/job_0/</span>
+<span class="n">itr</span><span class="o">.</span><span class="n">solve</span><span class="p">({</span><span class="s1">&#39;K&#39;</span><span class="p">:</span> <span class="mf">200.0</span><span class="p">})</span>   <span class="c1"># writes to SpringWorkFlow/job_1/</span>
+</pre></div>
+</div>
+<p>The resulting directory layout is:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>SpringWorkFlow/
+├── job_0/
+│   ├── iter_variables.json
+│   └── actions_output.pkl
+├── job_1/
+│   ├── iter_variables.json
+│   └── actions_output.pkl
+</pre></div>
+</div>
+<p>Pass <code class="docutils literal notranslate"><span class="pre">clean_start=True</span></code> to remove any existing results directory
+before starting:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">itr</span> <span class="o">=</span> <span class="n">SimulationIterator</span><span class="p">(</span><span class="n">wf</span><span class="p">,</span> <span class="n">copy_paths</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;path/to/spring.k&#39;</span><span class="p">],</span> <span class="n">clean_start</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="variable-discovery">
+<h2>Variable discovery<a class="headerlink" href="#variable-discovery" title="Link to this heading">¶</a></h2>
+<p>Both <code class="docutils literal notranslate"><span class="pre">WorkArea</span></code> and <code class="docutils literal notranslate"><span class="pre">SimulationIterator</span></code> support variable discovery
+via <code class="docutils literal notranslate"><span class="pre">variables()</span></code>.  Files are copied into a temporary subdirectory
+first so that solver actions can read their input files.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">wa</span> <span class="o">=</span> <span class="n">WorkArea</span><span class="p">(</span><span class="n">wf</span><span class="p">,</span> <span class="n">copy_paths</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;path/to/spring.k&#39;</span><span class="p">])</span>
+<span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">wa</span><span class="o">.</span><span class="n">variables</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+
+<span class="n">itr</span> <span class="o">=</span> <span class="n">SimulationIterator</span><span class="p">(</span><span class="n">wf</span><span class="p">,</span> <span class="n">copy_paths</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;path/to/spring.k&#39;</span><span class="p">])</span>
+<span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">itr</span><span class="o">.</span><span class="n">variables</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>See <a class="reference internal" href="discover.html"><span class="doc">Discovering graph usage</span></a> for more details on variable and output discovery.</p>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="index.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">Creating directories and copying files</a><ul>
+<li><a class="reference internal" href="#workarea">WorkArea</a></li>
+<li><a class="reference internal" href="#simulationiterator">SimulationIterator</a></li>
+<li><a class="reference internal" href="#variable-discovery">Variable discovery</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="actions_descr.html"
+                          title="previous chapter">A graph of actions</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="vars.html"
+                          title="next chapter">Variables</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/dirs.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="vars.html" title="Variables"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="actions_descr.html" title="A graph of actions"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">simnexus 1.0.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Creating directories and copying files</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2026, Willem Roux.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    </div>
+  </body>
+</html>

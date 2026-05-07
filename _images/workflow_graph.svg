@@ -1,0 +1,54 @@
+<svg width="600" height="400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#333" />
+    </marker>
+  </defs>
+  
+  <!-- Styles -->
+  <style>
+    .rect { fill: #f9f9f9; stroke: #333; stroke-width: 2; }
+    .text { font-family: Arial, sans-serif; font-size: 14px; text-anchor: middle; fill: #333; }
+    .line { stroke: #333; stroke-width: 2; marker-end: url(#arrowhead); }
+    .header { font-weight: bold; }
+  </style>
+
+  <!-- Nodes -->
+  <!-- Geometry -->
+  <rect x="225" y="20" width="150" height="50" rx="5" ry="5" class="rect" />
+  <text x="300" y="50" class="text header">Geometry Creation</text>
+
+  <!-- OpenRadioss Branch -->
+  <rect x="50" y="120" width="180" height="50" rx="5" ry="5" class="rect" />
+  <text x="140" y="150" class="text">OpenRadioss Mesh</text>
+  
+  <rect x="50" y="220" width="180" height="50" rx="5" ry="5" class="rect" />
+  <text x="140" y="250" class="text">OpenRadioss Execution</text>
+
+  <!-- LS-DYNA Branch -->
+  <rect x="370" y="120" width="180" height="50" rx="5" ry="5" class="rect" />
+  <text x="460" y="150" class="text">LS-DYNA Mesh</text>
+  
+  <rect x="370" y="220" width="180" height="50" rx="5" ry="5" class="rect" />
+  <text x="460" y="250" class="text">LS-DYNA Execution</text>
+
+  <!-- Performance -->
+  <rect x="200" y="320" width="200" height="50" rx="5" ry="5" class="rect" />
+  <text x="300" y="350" class="text header">Design Performance</text>
+
+  <!-- Edges -->
+  <!-- Geometry to Meshes -->
+  <line x1="250" y1="70" x2="160" y2="110" class="line" />
+  <line x1="350" y1="70" x2="440" y2="110" class="line" />
+
+  <!-- Radioss Mesh to Param -->
+  <line x1="140" y1="170" x2="140" y2="210" class="line" />
+
+  <!-- LS-DYNA Mesh to Param -->
+  <line x1="460" y1="170" x2="460" y2="210" class="line" />
+
+  <!-- Param to Performance -->
+  <line x1="160" y1="270" x2="250" y2="310" class="line" />
+  <line x1="440" y1="270" x2="350" y2="310" class="line" />
+
+</svg>
