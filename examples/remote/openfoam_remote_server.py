@@ -6,7 +6,7 @@ and OpenFOAM_Field (pressure extraction at t=0.5).  The client sends the case
 directories (system/, constant/, 0/) via copy_paths, which are written to an
 isolated temp directory before solve() is called.
 
-Start via the Dockerfile CMD; see Dockerfile.openfoam.
+Start via the Dockerfile ENTRYPOINT; see Dockerfile.openfoam.
 """
 import logging
 logging.basicConfig(level=logging.INFO)

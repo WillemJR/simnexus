@@ -51,7 +51,7 @@ Arguments:
     - ``output_patterns``: (Optional) A list of file patterns to retrieve.
 
 
-Discovering Available Remove Graphs
+Discovering Available Remote Graphs
 ------------------------------------
 
 If a server has pre-registered actions, you can query them from the client:
