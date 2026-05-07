@@ -6,7 +6,7 @@ from typing import List, Tuple, Optional
 import numpy as np
 from pathlib import Path
 
-from simflow.args import Location
+from simnexus.args import Location
 
 import logging
 logger = logging.getLogger(__name__)

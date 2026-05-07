@@ -5,12 +5,12 @@ import os
 import sys
 from pathlib import Path
 
-# Add project root to path to ensure simflow is found
+# Add project root to path to ensure simnexus is found
 sys.path.append( str(Path(__file__).parent.parent) )
 
-from simflow.jinja_actions import JinjaReplace
-from simflow.radioss_actions import RadiossAnalysis
-from simflow.graph_actions import WorkFlow, WorkArea
+from simnexus.jinja_actions import JinjaReplace
+from simnexus.radioss_actions import RadiossAnalysis
+from simnexus.graph_actions import WorkFlow, WorkArea
 
 def main():
     # Paths

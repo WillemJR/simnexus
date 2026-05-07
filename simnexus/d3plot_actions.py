@@ -4,9 +4,9 @@ import json
 import subprocess
 from pathlib import Path
 
-import simflow.args
-from simflow.actions import WorkAction
-from simflow.graph_actions import WorkFlow
+import simnexus.args
+from simnexus.actions import WorkAction
+from simnexus.graph_actions import WorkFlow
 
 import logging
 logger = logging.getLogger(__name__)

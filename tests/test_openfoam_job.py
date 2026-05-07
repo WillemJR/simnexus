@@ -3,9 +3,9 @@ import shutil
 import pytest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
-from simflow.openfoam_actions import OpenFOAMAnalysis
-from simflow.args import JobType
-import simflow.variables as simvars
+from simnexus.openfoam_actions import OpenFOAMAnalysis
+from simnexus.args import JobType
+import simnexus.variables as simvars
 
 # Source case directory — used as copy_paths source; never mutated by tests.
 CASE_SOURCE = Path(__file__).parent / "openfoam_exa"

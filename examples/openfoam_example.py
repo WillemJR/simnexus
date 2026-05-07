@@ -2,10 +2,10 @@ import logging
 logging.basicConfig(level=logging.WARNING)
 
 from pathlib import Path
-from simflow.args import JobType
-from simflow.graph_actions import WorkFlow, WorkArea
-from simflow.openfoam_actions import OpenFOAMAnalysis
-from simflow.openfoam_actions import OpenFOAM_Field, OpenFOAM_History
+from simnexus.args import JobType
+from simnexus.graph_actions import WorkFlow, WorkArea
+from simnexus.openfoam_actions import OpenFOAMAnalysis
+from simnexus.openfoam_actions import OpenFOAM_Field, OpenFOAM_History
 
 def openfoam_example():
 

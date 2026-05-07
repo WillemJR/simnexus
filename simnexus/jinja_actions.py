@@ -2,9 +2,9 @@ import jinja2
 
 from pathlib import Path
 from jinja2 import meta
-from simflow.actions import WorkAction
-import simflow.args
-import simflow.variables
+from simnexus.actions import WorkAction
+import simnexus.args
+import simnexus.variables
 
 import logging
 logger = logging.getLogger(__name__)
@@ -33,14 +33,14 @@ class JinjaReplace(WorkAction):
         name (str): The name of the action.
         input_file_path (str): Path to the input file. This is the template file marked up using jinja delimiters
         output_file_path (str, optional): Path where the processed file will be written. 
-            Defaults to simflow.args.RADIOSS_DFLT_FNAME.
+            Defaults to simnexus.args.RADIOSS_DFLT_FNAME.
         val_format (str, optional): Format string for floating point values (e.g., "%10.3g"). 
             Defaults to "%10.3g".
     """
 
     @WorkAction.allow_variables_as_arguments
     def __init__( self, name, input_file_path,
-                  output_file_path=simflow.args.RADIOSS_DFLT_FNAME, val_format="%10.3g", copy_paths=[] ):
+                  output_file_path=simnexus.args.RADIOSS_DFLT_FNAME, val_format="%10.3g", copy_paths=[] ):
         WorkAction.__init__(self, name, copy_paths=copy_paths)
 
         self.input_file_path = input_file_path
@@ -82,7 +82,7 @@ class JinjaReplace(WorkAction):
             set : Set of type UnknownVariable.
         """
         descr = f"From \'{self.input_file_path}\'"
-        return { simflow.variables.UnknownVariable(pn, "", description=descr) for pn in self.par_names }
+        return { simnexus.variables.UnknownVariable(pn, "", description=descr) for pn in self.par_names }
 
     def _find_input_file( self ):
         """Locate the input file, checking self.input_file_path first,

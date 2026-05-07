@@ -5,10 +5,10 @@ import json
 import subprocess
 from pathlib import Path
 
-import simflow.args
-import simflow.variables as simvars
-from simflow.actions import WorkAction
-from simflow.graph_actions import WorkFlow
+import simnexus.args
+import simnexus.variables as simvars
+from simnexus.actions import WorkAction
+from simnexus.graph_actions import WorkFlow
 
 import logging
 logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ class DynaAnalysis(WorkAction):
             input_path (str): parameterized keyword file
     """
 
-    def __init__( self, name, cmd=simflow.args.DYNA_DFLT_CMD, input_path=None ):
+    def __init__( self, name, cmd=simnexus.args.DYNA_DFLT_CMD, input_path=None ):
 
         assert input_path is not None, 'No input LS-DYNA file specified.'
 
@@ -47,7 +47,7 @@ class DynaAnalysis(WorkAction):
         with open( 'dyna_variables.json','w' ) as vf:
             json.dump( val_dict, vf )
 
-        base_file_name = simflow.args.DYNA_BASE_FILE_NAME+'.k'
+        base_file_name = simnexus.args.DYNA_BASE_FILE_NAME+'.k'
         
         with dynakw.DynaKeywordReader( self.input_file_path ) as dkr:
             # Get existing parameters

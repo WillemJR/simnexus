@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-from simflow.protos import remote_actions_pb2 as simflow_dot_protos_dot_remote__actions__pb2
+from simnexus.protos import remote_actions_pb2 as simnexus_dot_protos_dot_remote__actions__pb2
 
 GRPC_GENERATED_VERSION = '1.76.0'
 GRPC_VERSION = grpc.__version__
@@ -18,14 +18,14 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + ' but the generated code in simflow/protos/remote_actions_pb2_grpc.py depends on'
+        + ' but the generated code in simnexus/protos/remote_actions_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
     )
 
 
-class SimFlowRemoteStub(object):
+class SimNexusRemoteStub(object):
     """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
@@ -35,18 +35,18 @@ class SimFlowRemoteStub(object):
             channel: A grpc.Channel.
         """
         self.RunAction = channel.unary_unary(
-                '/simflow.SimFlowRemote/RunAction',
-                request_serializer=simflow_dot_protos_dot_remote__actions__pb2.ActionRequest.SerializeToString,
-                response_deserializer=simflow_dot_protos_dot_remote__actions__pb2.ActionResponse.FromString,
+                '/simnexus.SimNexusRemote/RunAction',
+                request_serializer=simnexus_dot_protos_dot_remote__actions__pb2.ActionRequest.SerializeToString,
+                response_deserializer=simnexus_dot_protos_dot_remote__actions__pb2.ActionResponse.FromString,
                 _registered_method=True)
         self.GetAvailableActions = channel.unary_unary(
-                '/simflow.SimFlowRemote/GetAvailableActions',
-                request_serializer=simflow_dot_protos_dot_remote__actions__pb2.Empty.SerializeToString,
-                response_deserializer=simflow_dot_protos_dot_remote__actions__pb2.AvailableActionsResponse.FromString,
+                '/simnexus.SimNexusRemote/GetAvailableActions',
+                request_serializer=simnexus_dot_protos_dot_remote__actions__pb2.Empty.SerializeToString,
+                response_deserializer=simnexus_dot_protos_dot_remote__actions__pb2.AvailableActionsResponse.FromString,
                 _registered_method=True)
 
 
-class SimFlowRemoteServicer(object):
+class SimNexusRemoteServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def RunAction(self, request, context):
@@ -62,27 +62,27 @@ class SimFlowRemoteServicer(object):
         raise NotImplementedError('Method not implemented!')
 
 
-def add_SimFlowRemoteServicer_to_server(servicer, server):
+def add_SimNexusRemoteServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'RunAction': grpc.unary_unary_rpc_method_handler(
                     servicer.RunAction,
-                    request_deserializer=simflow_dot_protos_dot_remote__actions__pb2.ActionRequest.FromString,
-                    response_serializer=simflow_dot_protos_dot_remote__actions__pb2.ActionResponse.SerializeToString,
+                    request_deserializer=simnexus_dot_protos_dot_remote__actions__pb2.ActionRequest.FromString,
+                    response_serializer=simnexus_dot_protos_dot_remote__actions__pb2.ActionResponse.SerializeToString,
             ),
             'GetAvailableActions': grpc.unary_unary_rpc_method_handler(
                     servicer.GetAvailableActions,
-                    request_deserializer=simflow_dot_protos_dot_remote__actions__pb2.Empty.FromString,
-                    response_serializer=simflow_dot_protos_dot_remote__actions__pb2.AvailableActionsResponse.SerializeToString,
+                    request_deserializer=simnexus_dot_protos_dot_remote__actions__pb2.Empty.FromString,
+                    response_serializer=simnexus_dot_protos_dot_remote__actions__pb2.AvailableActionsResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'simflow.SimFlowRemote', rpc_method_handlers)
+            'simnexus.SimNexusRemote', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('simflow.SimFlowRemote', rpc_method_handlers)
+    server.add_registered_method_handlers('simnexus.SimNexusRemote', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
-class SimFlowRemote(object):
+class SimNexusRemote(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
@@ -99,9 +99,9 @@ class SimFlowRemote(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/simflow.SimFlowRemote/RunAction',
-            simflow_dot_protos_dot_remote__actions__pb2.ActionRequest.SerializeToString,
-            simflow_dot_protos_dot_remote__actions__pb2.ActionResponse.FromString,
+            '/simnexus.SimNexusRemote/RunAction',
+            simnexus_dot_protos_dot_remote__actions__pb2.ActionRequest.SerializeToString,
+            simnexus_dot_protos_dot_remote__actions__pb2.ActionResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -126,9 +126,9 @@ class SimFlowRemote(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/simflow.SimFlowRemote/GetAvailableActions',
-            simflow_dot_protos_dot_remote__actions__pb2.Empty.SerializeToString,
-            simflow_dot_protos_dot_remote__actions__pb2.AvailableActionsResponse.FromString,
+            '/simnexus.SimNexusRemote/GetAvailableActions',
+            simnexus_dot_protos_dot_remote__actions__pb2.Empty.SerializeToString,
+            simnexus_dot_protos_dot_remote__actions__pb2.AvailableActionsResponse.FromString,
             options,
             channel_credentials,
             insecure,

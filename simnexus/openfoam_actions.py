@@ -10,10 +10,10 @@ from typing import List, Tuple, Optional
 import logging
 logger = logging.getLogger(__name__)
 
-from simflow.args import Location, JobType
-from simflow.actions import WorkAction
-import simflow.variables as simvars
-from simflow.util.openfoam_reader import OpenFOAMFieldReader
+from simnexus.args import Location, JobType
+from simnexus.actions import WorkAction
+import simnexus.variables as simvars
+from simnexus.util.openfoam_reader import OpenFOAMFieldReader
 
 
 class OpenFOAMAnalysis( WorkAction ):

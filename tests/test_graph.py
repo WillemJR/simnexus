@@ -3,12 +3,12 @@ import sys, os
 sys.path.append( "/".join(os.path.dirname(os.path.realpath(__file__)).split("/")[:-2]) )
 from pathlib import Path
 
-import simflow
-import simflow.radioss_actions
-import simflow.jinja_actions
-from simflow.variables import FloatVariable
-from simflow.graph_actions import DirectedGraph, WorkFlow, WorkArea, SimulationIterator
-from simflow.actions import WorkAction
+import simnexus
+import simnexus.radioss_actions
+import simnexus.jinja_actions
+from simnexus.variables import FloatVariable
+from simnexus.graph_actions import DirectedGraph, WorkFlow, WorkArea, SimulationIterator
+from simnexus.actions import WorkAction
 
 
 input_path = Path(__file__).parent.parent / "tests" / "spring.k"

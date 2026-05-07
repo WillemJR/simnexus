@@ -23,9 +23,9 @@ the run.
 
 .. code-block:: python
 
-    from simflow.graph_actions import WorkFlow, WorkArea
-    from simflow.dyna_actions import DynaAnalysis
-    from simflow.d3plot_actions import d3plot_File
+    from simnexus.graph_actions import WorkFlow, WorkArea
+    from simnexus.dyna_actions import DynaAnalysis
+    from simnexus.d3plot_actions import d3plot_File
 
     wf = WorkFlow('SpringWorkFlow')
     wf.add_action(DynaAnalysis(name='run', input_path='spring.k'))
@@ -56,9 +56,9 @@ example during a parameter study or optimisation.
 
 .. code-block:: python
 
-    from simflow.graph_actions import WorkFlow, SimulationIterator
-    from simflow.dyna_actions import DynaAnalysis
-    from simflow.d3plot_actions import d3plot_File
+    from simnexus.graph_actions import WorkFlow, SimulationIterator
+    from simnexus.dyna_actions import DynaAnalysis
+    from simnexus.d3plot_actions import d3plot_File
 
     wf = WorkFlow('SpringWorkFlow')
     wf.add_action(DynaAnalysis(name='run', input_path='spring.k'))

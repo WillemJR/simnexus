@@ -2,25 +2,25 @@
 API Reference
 =============
 
-.. automodule:: simflow.actions
+.. automodule:: simnexus.actions
    :members:
 
-.. automodule:: simflow.variables
+.. automodule:: simnexus.variables
    :members:
 
-.. automodule:: simflow.graph_actions
+.. automodule:: simnexus.graph_actions
    :members:
 
-.. automodule:: simflow.dyna_actions
+.. automodule:: simnexus.dyna_actions
    :members:
 
-.. automodule:: simflow.d3plot_actions
+.. automodule:: simnexus.d3plot_actions
    :members:
 
-.. automodule:: simflow.jinja_actions
+.. automodule:: simnexus.jinja_actions
    :members:
 
-.. automodule:: simflow.remote_actions
+.. automodule:: simnexus.remote_actions
    :members:
 
 

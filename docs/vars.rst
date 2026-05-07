@@ -12,7 +12,7 @@ If not provided, the class docstring is used as the description.
 
 .. code-block:: python
 
-    from simflow.variables import FloatVariable
+    from simnexus.variables import FloatVariable
 
     temperature = FloatVariable('T', 75., lower_bound=10., upper_bound=200.,
                                 description='Inlet temperature in Kelvin')
@@ -30,7 +30,7 @@ First, you have to define the variable
 
 .. code-block:: python
 
-        from simflow.variables import FloatVariable
+        from simnexus.variables import FloatVariable
 
         temperature = FloatVariable( 'T', 75., lower_bound=10.0, upper_bound=200. )
         etime = FloatVariable( 'ET', 40. )
@@ -40,8 +40,8 @@ Having defined a variable you can use it to control actions
 
 .. code-block:: python
 
-        from simflow.variables import FloatVariable
-        from simflow.openfoam_actions import OpenFOAM_Field
+        from simnexus.variables import FloatVariable
+        from simnexus.openfoam_actions import OpenFOAM_Field
 
         # define variable
         etime = FloatVariable( 'ET', 40. )

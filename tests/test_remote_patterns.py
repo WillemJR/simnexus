@@ -3,8 +3,8 @@ import threading
 import time
 import os
 import shutil
-from simflow.actions import WorkAction
-from simflow.remote_actions import RemoteAction, ServerAction
+from simnexus.actions import WorkAction
+from simnexus.remote_actions import RemoteAction, ServerAction
 
 class FileGenTask(WorkAction):
     def solve(self, val_dict=None):

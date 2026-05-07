@@ -31,7 +31,7 @@ e.g. ``{'child_A': array([2, 1, 2]), 'child_B': 3.1}``.
 
 .. code-block:: python
 
-        from simflow.dyna_actions import DynaAnalysis
+        from simnexus.dyna_actions import DynaAnalysis
         dyna = DynaAnalysis(name="RunSpring", input_path="spring.k")
         ret = dyna.solve( {'K': 100.} )
 
@@ -47,7 +47,7 @@ If omitted, the class docstring is used.
 
 .. code-block:: python
 
-    from simflow.actions import WorkAction
+    from simnexus.actions import WorkAction
 
     class AdderAction(WorkAction):
         """Adds two numbers and returns the sum."""
@@ -73,8 +73,8 @@ To use a WorkFlow to evaluate actions sequentially:
 
 .. code-block:: python
 
-    from simflow.dyna_actions import DynaAnalysis
-    from simflow.graph_actions import WorkFlow
+    from simnexus.dyna_actions import DynaAnalysis
+    from simnexus.graph_actions import WorkFlow
 
     wf = WorkFlow(name="SpringWorkFlow")
     wf.add_action( DynaAnalysis(name="RunSpring", input_path="spring.k") )
@@ -91,8 +91,8 @@ To use a DirectedGraph:
 .. code-block:: python
 
     # FINISH TEST : ADD AS EXAMPLE
-    from simflow.dyna_actions import DynaAnalysis
-    from simflow.graph_actions import DirectedGraph
+    from simnexus.dyna_actions import DynaAnalysis
+    from simnexus.graph_actions import DirectedGraph
 
     dg = DirectedGraph( name='MDO' )
 

@@ -1,11 +1,11 @@
-.. simflow documentation master file, created by
+.. simnexus documentation master file, created by
    sphinx-quickstart on Sat Jan 17 10:54:09 2026.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
     Add your content using ``reStructuredText`` syntax. See the `reStructuredText <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_ documentation for details.
 
-Simflow
+SimNexus
 =========
 
 A Python module for orchestrating complex simulations 
@@ -14,13 +14,13 @@ with native support for LS-DYNA, OpenRadioss, and OpenFOAM.
 Overview
 --------
 
-Simflow enables the automation and coordination of
+SimNexus enables the automation and coordination of
 multi-physics simulation workflows — from input preparation and
 remote execution to results extraction and post-processing.
 The module is particularly suited for simulations that span
 multiple domains, such as combined structural and fluid dynamics analyses.
 
-Simflow has native support for
+SimNexus has native support for
 solvers like LS-DYNA, OpenRadioss, and OpenFOAM. 
 
 Key Features
@@ -42,7 +42,7 @@ Typical Workflow
 4. Extract relevant results from solver outputs
 5. Aggregate and summarize findings 
 
-Simflow streamlines the complexity of managing heterogeneous simulation environments, enabling researchers and engineers to focus on analysis rather than workflow orchestration.
+SimNexus streamlines the complexity of managing heterogeneous simulation environments, enabling researchers and engineers to focus on analysis rather than workflow orchestration.
 
 
 .. toctree::

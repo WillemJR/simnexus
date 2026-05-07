@@ -6,7 +6,7 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'simflow'
+project = 'simnexus'
 copyright = '2026, Willem Roux'
 author = 'Willem Roux'
 release = '1.0.1'

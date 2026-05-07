@@ -1,12 +1,12 @@
 
-# Simflow
+# SimNexus
 
 A Python module for orchestrating complex simulations 
 with native support for LS-DYNA, OpenRadioss, and OpenFOAM.
 
 ## Overview
 
-Simflow enables the automation and coordination of
+SimNexus enables the automation and coordination of
 multi-physics simulation workflows.
 The module is particularly suited for simulations that span multiple domains, such as combined structural and fluid dynamics analyses.
 
@@ -14,7 +14,7 @@ It supports tasks from from input preparation and
 remote execution to results extraction and post-processing.
 
 
-Simflow has a native support for
+SimNexus has a native support for
 solvers like LS-DYNA, OpenRadioss, and OpenFOAM. 
 
 ## Key Features
@@ -34,13 +34,13 @@ solvers like LS-DYNA, OpenRadioss, and OpenFOAM.
 4. Extract relevant results from solver outputs
 5. Aggregate and summarize findings 
 
-Simflow streamlines the complexity of managing heterogeneous simulation environments, enabling researchers and engineers to focus on analysis rather than workflow orchestration.
+SimNexus streamlines the complexity of managing heterogeneous simulation environments, enabling researchers and engineers to focus on analysis rather than workflow orchestration.
 
 
 ## Documentation
 (Path to be added. One provided is not yet active)
 
-[Online documentation is available here](https://willemjr.github.io/simflow/)
+[Online documentation is available here](https://willemjr.github.io/simnexus/)
 
 See also the docs directory.
 
@@ -48,7 +48,7 @@ See also the docs directory.
 ## Installation
 
 ```bash
-pip install simflow
+pip install simnexus
 ```
 
 ## Usage

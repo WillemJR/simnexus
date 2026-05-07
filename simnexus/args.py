@@ -48,7 +48,7 @@ MetaPar = namedtuple('MetaPar', ['doe_type', 'num_sample', 'factorial_order', 'm
 DesPar = namedtuple('DesPar', ['obj_func', 'start', 'var_bounds', ],
                                defaults=(None, None, None ) ) 
 
-RADIOSS_DFLT_FNAME = 'radioss_simflow_file.k'
+RADIOSS_DFLT_FNAME = 'radioss_simnexus_file.k'
 OPT_RESULTS_DIR = 'OptimizationResults'
 ACTIONS_OUTPUT_PATH = 'actions_output.pkl'
 

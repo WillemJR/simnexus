@@ -3,17 +3,17 @@ from abc import ABC, abstractmethod
 import pandas
 import numpy as np
 
-from simflow.args import EvalType
+from simnexus.args import EvalType
 
 import logging
 logger = logging.getLogger(__name__)
 
 from abc import ABC, abstractmethod
 
-from simflow.util.observer import Subject, notify_observers
+from simnexus.util.observer import Subject, notify_observers
 
-from simflow.variables import Variable
-from simflow.actions import WorkAction
+from simnexus.variables import Variable
+from simnexus.actions import WorkAction
 
 
 class HistoryEvaluation(WorkAction):

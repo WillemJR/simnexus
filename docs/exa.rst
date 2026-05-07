@@ -12,9 +12,9 @@ The study is parameterized using the \*PARAMETER keyword.
 
 .. code-block:: python
 
-    from simflow.graph_actions import WorkFlow, WorkArea
-    from simflow.dyna_actions import DynaAnalysis
-    from simflow.d3plot_actions import d3plot_File
+    from simnexus.graph_actions import WorkFlow, WorkArea
+    from simnexus.dyna_actions import DynaAnalysis
+    from simnexus.d3plot_actions import d3plot_File
 
     # 1. Define a workflow
     wf = WorkFlow("DynaWorkflow")
@@ -53,9 +53,9 @@ input deck.
 
 .. code-block:: python
 
-    from simflow.jinja_actions import JinjaReplace
-    from simflow.radioss_actions import RadiossAnalysis
-    from simflow.graph_actions import WorkFlow
+    from simnexus.jinja_actions import JinjaReplace
+    from simnexus.radioss_actions import RadiossAnalysis
+    from simnexus.graph_actions import WorkFlow
 
     wf = WorkFlow('RadiossWorkflow')
 
@@ -88,8 +88,8 @@ via ``copy_paths`` and are copied to the work directory before the solver runs.
 
 .. code-block:: python
 
-    from simflow.openfoam_actions import OpenFOAMAnalysis, OpenFOAM_Field
-    from simflow.graph_actions import WorkFlow, WorkArea
+    from simnexus.openfoam_actions import OpenFOAMAnalysis, OpenFOAM_Field
+    from simnexus.graph_actions import WorkFlow, WorkArea
 
     case_paths = ['path/to/case/system', 'path/to/case/constant', 'path/to/case/0']
 
@@ -109,8 +109,8 @@ Extraction of field data and histories from OpenFOAM cases.
 
 .. code-block:: python
 
-    from simflow.openfoam_actions import OpenFOAM_Field, OpenFOAM_History
-    from simflow.graph_actions import WorkFlow
+    from simnexus.openfoam_actions import OpenFOAM_Field, OpenFOAM_History
+    from simnexus.graph_actions import WorkFlow
 
     wf = WorkFlow('OpenFOAM_Extraction')
 

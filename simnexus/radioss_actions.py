@@ -8,13 +8,13 @@ import numpy as np
 
 from pathlib import Path
 
-from simflow.actions import WorkAction
-from simflow.rare import HistoryEvaluation
-from simflow.util.openradios_reader import OpenRadiosKeywordReader
-import simflow.variables as simvars
+from simnexus.actions import WorkAction
+from simnexus.rare import HistoryEvaluation
+from simnexus.util.openradios_reader import OpenRadiosKeywordReader
+import simnexus.variables as simvars
 
-import simflow.VTK.read_vtk as read_vtk
-import simflow.args
+import simnexus.VTK.read_vtk as read_vtk
+import simnexus.args
 
 import logging
 logger = logging.getLogger(__name__)
@@ -325,7 +325,7 @@ class RadiossAnalysis(WorkAction):
                             vortex_radioss.animtod3plot.Anim_to_D3plot
     """
 
-    def __init__( self, name, cmd='rad_dyna_inp', input_path=simflow.args.RADIOSS_DFLT_FNAME, create_d3plot=True, copy_paths=[] ):
+    def __init__( self, name, cmd='rad_dyna_inp', input_path=simnexus.args.RADIOSS_DFLT_FNAME, create_d3plot=True, copy_paths=[] ):
 
         assert input_path is not None, 'No input OpenRadioss file specified. Specify the path to radioss input file.'
 

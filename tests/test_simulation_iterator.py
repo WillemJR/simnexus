@@ -2,8 +2,8 @@ import sys, os, shutil
 from pathlib import Path
 import pytest
 
-from simflow.graph_actions import WorkFlow, WorkArea, SimulationIterator
-from simflow.actions import MathEvaluation
+from simnexus.graph_actions import WorkFlow, WorkArea, SimulationIterator
+from simnexus.actions import MathEvaluation
 
 def test_work_area_custom_path():
     print("Testing WorkArea with custom path...")
@@ -25,9 +25,9 @@ def test_work_area_custom_path():
         wa.rm_rundir()
 
 @pytest.mark.parametrize("path_template", [
-    "/tmp/simflow_WA_test",
-    "~/tmp/simflow_WA_test",
-    "$HOME/tmp/simflow_WA_test"
+    "/tmp/simnexus_WA_test",
+    "~/tmp/simnexus_WA_test",
+    "$HOME/tmp/simnexus_WA_test"
 ])
 def test_simulation_iterator_special_paths(path_template):
     print(f"Testing SimulationIterator with path: {path_template}")

@@ -11,8 +11,8 @@ import logging
 # Add project root to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-from simflow.actions import WorkAction
-from simflow.remote_actions import RemoteAction, ServerAction
+from simnexus.actions import WorkAction
+from simnexus.remote_actions import RemoteAction, ServerAction
 
 logging.basicConfig(level=logging.INFO)
 

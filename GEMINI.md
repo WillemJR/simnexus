@@ -1,5 +1,5 @@
 # Overview
-The 'simflow' python module is for modelling of complex simulations worklows.
+The 'simnexus' python module is for modelling of complex simulations worklows.
 The workflow consists of of actions assembled into a directed graph.
 The actions can be varied; e.g. a strutural evaluations, a mathematical operation, or a file edit.
 Part of the graph can be performed on remote computers. 
@@ -13,14 +13,14 @@ the execution of these actions till the required prior actions have completed.
 The project directory and core classes are given below.
 
 ```
-simflow/
+simnexus/
 ├── GEMINI.md
 ├── LICENSE
 ├── pyproject.toml
 ├── README.md
 ├── requirements.txt
 ├── docs/                   # documentation maintained using sphinx
-├── simflow/                # python code directory
+├── simnexus/                # python code directory
 │   ├── GEMINI.md           # implementaion details of the classes
 │   ├── __init__.py
 │   ├── actions.py          # base class for all actions in the graph
@@ -41,7 +41,7 @@ simflow/
 
 # The Action base class
 
-The `WorkAction` base class (defined in `simflow/actions.py`) is the base building block for operations in a workflow. It inherits from `Subject` to support the observer pattern, allowing the workflow manager (like `DirectedGraph` or `WorkFlow`) to track execution status.
+The `WorkAction` base class (defined in `simnexus/actions.py`) is the base building block for operations in a workflow. It inherits from `Subject` to support the observer pattern, allowing the workflow manager (like `DirectedGraph` or `WorkFlow`) to track execution status.
 
 Key features:
 - **`solve(self, val_dict)`**: The abstract method that performs the action's logic. It receives a dictionary `val_dict` containing the current values of variables and results from prior actions. This method returns the data computed by the class.
@@ -63,7 +63,7 @@ Asynchronous Execution: `_observed_eval_async` allows running the action in a se
 
 
 # Remote execution
-The `simflow.remote_actions` module enables executing of actions on remote compute resources. It consists of the following:
+The `simnexus.remote_actions` module enables executing of actions on remote compute resources. It consists of the following:
 - **`ServerAction` / `NamedServerAction` (Remote)**: A gRPC server that accepts tasks, executes them in isolated temporary directories, and returns results. It supports registering named graphs via `add_graph(name, graph, description)` to enforce a secure registry-based execution model.
 - **`RemoteAction` (Client)**: A wrapper that specifies a `target_action_name` to execute a pre-registered action on the server. It retrieves the results and generated files. Discoverability of server-side actions is provided via `available_actions()`.
 

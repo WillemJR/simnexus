@@ -7,9 +7,9 @@ import glob
 from concurrent import futures
 import logging
 
-from simflow.actions import WorkAction
-from simflow.protos import remote_actions_pb2
-from simflow.protos import remote_actions_pb2_grpc
+from simnexus.actions import WorkAction
+from simnexus.protos import remote_actions_pb2
+from simnexus.protos import remote_actions_pb2_grpc
 
 # Increase max message size to 50MB
 MAX_MESSAGE_LENGTH = 50 * 1024 * 1024
@@ -52,7 +52,7 @@ class RemoteAction(WorkAction):
         """
         try:
             with grpc.insecure_channel(self.server_address, options=OPTIONS) as channel:
-                stub = remote_actions_pb2_grpc.SimFlowRemoteStub(channel)
+                stub = remote_actions_pb2_grpc.SimNexusRemoteStub(channel)
                 resp = stub.GetAvailableActions(remote_actions_pb2.Empty())
                 return {a.name: a.description for a in resp.actions}
         except grpc.RpcError as e:
@@ -94,7 +94,7 @@ class RemoteAction(WorkAction):
         # 2. Connect and Send
         try:
             with grpc.insecure_channel(self.server_address, options=OPTIONS) as channel:
-                stub = remote_actions_pb2_grpc.SimFlowRemoteStub(channel)
+                stub = remote_actions_pb2_grpc.SimNexusRemoteStub(channel)
                 logger.info(f"Sending action '{self.name}' to {self.server_address}...")
                 resp = stub.RunAction(req)
         except grpc.RpcError as e:
@@ -111,7 +111,7 @@ class RemoteAction(WorkAction):
         # Save output files
         for f_msg in resp.output_files:
             # We save them in the current directory (or we could specify a dir)
-            # Assuming current working directory for now as per simflow conventions
+            # Assuming current working directory for now as per simnexus conventions
             with open(f_msg.name, 'wb') as f:
                 f.write(f_msg.content)
             logger.info(f"Received file: {f_msg.name}")
@@ -119,7 +119,7 @@ class RemoteAction(WorkAction):
         return result
 
 
-class SimFlowService(remote_actions_pb2_grpc.SimFlowRemoteServicer):
+class SimNexusService(remote_actions_pb2_grpc.SimNexusRemoteServicer):
     def __init__(self, actions_registry=None):
         self.actions_registry = actions_registry or {}
 
@@ -133,7 +133,7 @@ class SimFlowService(remote_actions_pb2_grpc.SimFlowRemoteServicer):
 
     def RunAction(self, request, context):
         resp = remote_actions_pb2.ActionResponse()
-        tmp_dir = tempfile.mkdtemp(prefix=f"simflow_remote_{request.action_name}_")
+        tmp_dir = tempfile.mkdtemp(prefix=f"simnexus_remote_{request.action_name}_")
         original_cwd = os.getcwd()
         
         try:
@@ -227,8 +227,8 @@ class ServerAction:
             futures.ThreadPoolExecutor(max_workers=self.max_workers),
             options=OPTIONS
         )
-        remote_actions_pb2_grpc.add_SimFlowRemoteServicer_to_server(
-            SimFlowService(self.actions_registry), 
+        remote_actions_pb2_grpc.add_SimNexusRemoteServicer_to_server(
+            SimNexusService(self.actions_registry),
             self.server
         )
         self.server.add_insecure_port(f'[::]:{self.port}')

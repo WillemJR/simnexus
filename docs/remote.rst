@@ -1,7 +1,7 @@
 Remote Execution
 ================
 
-Simflow supports executing actions on remote compute resources using gRPC.
+SimNexus supports executing actions on remote compute resources using gRPC.
 This allows you to offload computations to dedicated servers or containers while orchestrating the workflow locally.
 
 Architecture
@@ -19,7 +19,7 @@ On the remote machine (or container), you need to start the `ServerAction`. You 
 
 .. code-block:: python
 
-    from simflow.remote_actions import NamedServerAction
+    from simnexus.remote_actions import NamedServerAction
     from my_project import MyHeavyWorkflow
 
     # Start the server on port 50051
@@ -70,7 +70,7 @@ Using a named action reduces network overhead as the graph structure itself is a
 
 .. code-block:: python
 
-    from simflow.remote_actions import RemoteAction
+    from simnexus.remote_actions import RemoteAction
 
     # Configure the remote wrapper using a named action
     remote_task = RemoteAction(
@@ -87,7 +87,7 @@ Implementation Details
 ----------------------
 
 - **Isolation**: Each action runs in a unique temporary directory on the server. This prevents file conflicts between concurrent jobs.
-- **Dependencies**: The remote environment must have `simflow` and all necessary dependencies installed.
+- **Dependencies**: The remote environment must have `simnexus` and all necessary dependencies installed.
 - **File Transfer**: Large files (up to ~50MB) are supported by default. For very large datasets, consider using a shared file system or external storage service, passing only the paths in the `val_dict`.
 
 Site security

@@ -4,9 +4,9 @@ logging.basicConfig(level=logging.WARNING)
 import sys, os
 from pathlib import Path
 
-from simflow.dyna_actions import DynaAnalysis
-from simflow.d3plot_actions import d3plot_File
-from simflow.graph_actions import WorkFlow, WorkArea
+from simnexus.dyna_actions import DynaAnalysis
+from simnexus.d3plot_actions import d3plot_File
+from simnexus.graph_actions import WorkFlow, WorkArea
 
 def run_example():
 

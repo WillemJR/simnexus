@@ -1,27 +1,27 @@
 
 from pathlib import Path
 
-import simflow.variables
-from simflow.jinja_actions import JinjaReplace
-from simflow.graph_actions import WorkFlow, SimulationIterator, DirectedGraph
-from simflow.dyna_actions import DynaAnalysis
+import simnexus.variables
+from simnexus.jinja_actions import JinjaReplace
+from simnexus.graph_actions import WorkFlow, SimulationIterator, DirectedGraph
+from simnexus.dyna_actions import DynaAnalysis
 
 input_path = Path(__file__).parent.parent / "tests" / "spring.k"
 
 def test_float():
-    fv = simflow.variables.FloatVariable( 'F', 1.0 )
+    fv = simnexus.variables.FloatVariable( 'F', 1.0 )
     fv.value = 1.23
 
-    fv = simflow.variables.FloatVariable( 'F', 4.0, upper_bound=5., lower_bound=4. )
+    fv = simnexus.variables.FloatVariable( 'F', 4.0, upper_bound=5., lower_bound=4. )
     fv.value = 4.3
 
 def test_intset():
-    iv = simflow.variables.IntSetVariable( 'I', 1, [1,2,7] )
+    iv = simnexus.variables.IntSetVariable( 'I', 1, [1,2,7] )
 
     iv.value = 7
 
 def test_strset():
-    iv = simflow.variables.StrSetVariable( 'I', 'foo', ['foo','fam'] )
+    iv = simnexus.variables.StrSetVariable( 'I', 'foo', ['foo','fam'] )
 
     iv.value = 'fam'
 
