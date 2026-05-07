@@ -37,6 +37,13 @@ solvers like LS-DYNA, OpenRadioss, and OpenFOAM.
 Simflow streamlines the complexity of managing heterogeneous simulation environments, enabling researchers and engineers to focus on analysis rather than workflow orchestration.
 
 
+## Documentation
+(Path to be added. One provided is not yet active)
+
+[Online documentation is available here](https://willemjr.github.io/simflow/)
+
+See also the docs directory.
+
 
 ## Installation
 
@@ -45,62 +52,21 @@ pip install simflow
 ```
 
 ## Usage
+See the documentation and the examples directory for examples.
 
 (Coming soon)
 
-## Documentation
+
+
+# Example problems
+The example problems demonstrate:
+
+ - An LS-DYNA workflow consisting of editing parameter values, job submission, and results extraction.
+ - An OpenRadioss workflow consisting of editing parameter values, job submission, and results extraction.
+ - An OpenFOAM. workflow consisting of editing parameter values, job submission, and results extraction.
+ - Remote execution examples.
+
 
 ## License
-
-## Todo
-
-* copy_paths for remote?
-
-* Docs: 'Discovering output' should be 'Discovering graph abilities'
-
-
-* DONE:  Actions should report outputs (with descriptions). This is for inclusion into agent.
-
-* DONE:  Actions should report outputs (with descriptions). This is for inclusion into agent.
-
-*  DONE: Variables should have a description argument. Report using variables().
-
-*  MDO example. with and w/o workareas.
-
-
-* DONE? WorkArea 
-    * SimIter should be subclass of WorkArea?
-    * Part of above copy_paths = in work_area and simulationIterator and remote
-
-
-
-* OpenFOAM should reset parameter file? Create backup?
-
-* Document OpenFOAM 
-  - Needs data in VTK and constant/polyMesh/points
-
-* How does Variable interact with solve()?
-     * solve( variables=, val_dict=)
-     * solve( *args, **kwargs )?
-     * SimulationIterator( parameter_list= ) : for default values if not provided in solve
-     * solve_dict not val_dict ?
-
-* Extracting DSA from adjointOptimisaFoam
-
-* Documentation
-    Several: variables, graph, examples.
-    variables() method and return values
-
-* D3Plot clean up
-    * argument specifying how results are read. Component names differ
-    * Arguments doc and clean up
-    * Report BUG: coordinates is initial coordinates for all timesteps,
-               node_displacement are coordinates
-
-* similaritymeasures and numpy are requirements.
-
-* Set up remote using grpc
-   * Security
-   * Advanced? Graph defined on remote.
-   * Test in container.
+This project is licensed under the MIT License.
 
