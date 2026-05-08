@@ -7,7 +7,7 @@ from simnexus.graph_actions import WorkFlow, WorkArea
 from simnexus.openfoam_actions import OpenFOAMAnalysis
 from simnexus.openfoam_actions import OpenFOAM_Field, OpenFOAM_History
 
-def openfoam_example():
+def create_openfoam_graph():
 
     case_dir = Path(__file__).parent.parent / "tests" / "openfoam_exa"
     if not case_dir.exists(): exit(f"Error: {case_dir} does not exist.")
@@ -26,26 +26,33 @@ def openfoam_example():
         solve_cmd="icoFoam",
         mesh_cmd="blockMesh" ) )
 
-    field_ext = OpenFOAM_Field(
-        name='p',
+    wf.add_action(  OpenFOAM_Field(  # Extract field of pressure values
+        name='pressure',
         field_variable='p',
-        time=0.5
-    )
-    wf.add_action(field_ext)
+        time=0.5 ) )
 
     wa = WorkArea(wf, copy_paths=case_paths)
 
-    # Discover variables — WorkArea copies files first so OpenFOAMAnalysis can read system/parameters.
-    discovered_vars = wa.variables()
-    print("Discovered variables:")
-    for v in discovered_vars:
-        print(f"  {v}")
-
-    # Run the job with new parameter values
-    print("Running job.solve({'lidVelocity': 1.2, 'nCells': 6})...")
-    outcomes = wa.solve({"lidVelocity": 1.2, "nCells": 6})
-    print(f"Job outcomes: {outcomes}")
+    return wa
 
 
-if __name__ == "__main__":
-    openfoam_example()
+of_graph = create_openfoam_graph()
+
+# List graph variables and outputs
+print("\n\nGraph variables:")
+for v in of_graph.variables():
+        print(f" - {v}")
+
+print("\n\nGraph outputs:")
+for name, (eval_type, description) in of_graph.outputs().items():
+    print(f' - {name}: {eval_type} — {description}')
+
+
+# Run the job with new parameter values
+print("\n\nRunning job.solve({'lidVelocity': 1.2, 'nCells': 6})...")
+outcomes = of_graph.solve({"lidVelocity": 1.2, "nCells": 6})
+
+# Print the computed field
+print(f"Pressure field:", outcomes['pressure'] )
+
+

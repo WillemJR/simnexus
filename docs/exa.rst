@@ -49,7 +49,8 @@ OpenRadioss
 The example does an analysis and extracts results. 
 
 The study is parameterized using the jinja double brace format in the
-input deck.
+input deck as well as  parameters defined using /PARAMETER in
+the OpenRadioss input deck.
 
 .. code-block:: python
 
