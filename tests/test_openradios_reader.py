@@ -123,12 +123,11 @@ def test_set_case_insensitive(keyword_file):
         assert okr.parameters()["MW"][1] == 0.032
 
 
-def test_set_unknown_name_warns(keyword_file, caplog):
-    import logging
+def test_set_unknown_name_ignored(keyword_file):
     with OpenRadiosKeywordReader(keyword_file) as okr:
-        with caplog.at_level(logging.WARNING):
-            okr.set_parameters({"NONEXISTENT": 1.0})
-    assert "NONEXISTENT" in caplog.text
+        params_before = okr.parameters().copy()
+        okr.set_parameters({"NONEXISTENT": 1.0})
+        assert okr.parameters() == params_before
 
 
 # ---------------------------------------------------------------------------

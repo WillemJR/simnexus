@@ -72,8 +72,8 @@ class OpenRadiosKeywordReader:
     def set_parameters(self, params_dict: Dict[str, Any]) -> None:
         """Update parameter values in-memory.
 
-        Name matching is case-insensitive.  Unrecognised names are logged as
-        warnings and silently skipped.
+        Name matching is case-insensitive.  Unrecognised names are silently
+        ignored.
 
         Args:
             params_dict: ``{name: new_value}``
