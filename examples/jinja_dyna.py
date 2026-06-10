@@ -8,9 +8,9 @@ from pathlib import Path
 # Add project root to path to ensure simnexus is found
 sys.path.append( str(Path(__file__).parent.parent) )
 
-from simnexus.jinja_actions import JinjaReplace
-from simnexus.radioss_actions import RadiossAnalysis
 from simnexus.graph_actions import WorkFlow, WorkArea
+from simnexus.jinja_actions import JinjaReplace
+from simnexus.dyna_actions import DynaAnalysis
 
 def main():
     # Paths
@@ -25,18 +25,19 @@ def main():
     # and writes to 'par_tens_ready.k'
     jinja_act = JinjaReplace( 
         name='prepare_deck', 
-        input_file_path=str(input_deck),
+        input_file_path=str(input_deck), output_file_path='edited.k',
         val_format="%10.3g"
     )
 
-    # 2. Define RadiossAnalysis to run the simulation
-    # It takes the substituted file 'par_tens_ready.k' as input.
-    run_rad = RadiossAnalysis( name='rad', cmd='radioss_using_dyna_inp' )
+    # 2. Use DynaAnalysis to run the simulation
+    # It takes the substituted file 'edited.k' as input.
+    run_dyna = DynaAnalysis("DYNA", cmd='ls-dyna', input_path='edited.k')
+
 
     # 3. Create a workflow and add actions
     wf = WorkFlow( 'Radioss_WorkFlow' )
     wf.add_action( jinja_act )
-    wf.add_action( run_rad )
+    wf.add_action( run_dyna )
     wrk_area = WorkArea( wf )
 
     # Discover variables — WorkArea copies files first so DynaAnalysis can read them.

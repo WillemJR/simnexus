@@ -17,7 +17,7 @@ def run_example():
 
     wf = WorkFlow( "Dyna_WorkFlow" )
     
-    run_dyna = DynaAnalysis("Spring", input_path=fe_name)
+    run_dyna = DynaAnalysis("Spring", cmd='ls-dyna', input_path=fe_name)
     wf.add_action(run_dyna)
 
     # Results are extracted from the d3plot file.
