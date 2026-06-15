@@ -35,21 +35,13 @@ class DynaAnalysis(WorkAction):
         super().__init__(name, cmd, copy_paths=[] )
         self.input_file_path = input_path
         self.description = f'LS-DYNA analysis using input file {input_path}'
+        self.root_name= simnexus.args.DYNA_BASE_FILE_NAME
 
-    def solve( self,  val_dict=None ):
-        """ """
 
-        if not Path( self.input_file_path ).exists():
-            exit( f' *** Error {self.input_file_path} not in run directory. Likely not copied by Iterator.' )
+    @staticmethod
+    def _replace_parameters( val_dict, input_file_path,  base_file_name ):
 
-        if val_dict is None: val_dict = {}
-
-        with open( 'dyna_variables.json','w' ) as vf:
-            json.dump( val_dict, vf )
-
-        base_file_name = simnexus.args.DYNA_BASE_FILE_NAME+'.k'
-        
-        with dynakw.DynaKeywordReader( self.input_file_path ) as dkr:
+        with dynakw.DynaKeywordReader( input_file_path ) as dkr:
             # Get existing parameters
             params = dkr.parameters()
             logger.info("\nExisting parameters:")
@@ -65,6 +57,22 @@ class DynaAnalysis(WorkAction):
                  logger.info(f"  {name}: {value}")
 
             dkr.write( base_file_name )
+
+
+    def solve( self,  val_dict=None ):
+        """ """
+
+        if not Path( self.input_file_path ).exists():
+            exit( f' *** Error {self.input_file_path} not in run directory. Likely not copied by Iterator.' )
+
+        if val_dict is None: val_dict = {}
+
+        with open( 'dyna_variables.json','w' ) as vf:
+            json.dump( val_dict, vf )
+
+        base_file_name = self.root_name+'.k'
+        
+        DynaAnalysis._replace_parameters( val_dict, self.input_file_path, base_file_name )
 
         have_normal_termination = self._run_solver_in_dir( base_file_name )
 

@@ -20,6 +20,7 @@ from simnexus.radioss_actions import RadiossAnalysis, RadiossCSVHistory, CSVNode
 from simnexus.radioss_actions import FieldData, FieldDataHist
 from simnexus.radioss_actions import NodalFieldData_VTK, ElementNodalFieldData_VTK, MetaData_VTK
 from simnexus.jinja_actions import JinjaReplace
+from simnexus.radioss_using_dyna_inp import RadiossUsingDynaInput
 
 import logging
 logging.basicConfig(filename='solve.log', filemode='w', level=logging.INFO )
@@ -29,8 +30,8 @@ def test_seq( ):
 
     chain = WorkFlow( 'RadiossChain' )
 
-    chain.add_action( JinjaReplace( name='SetVars', input_file_path='tests/par_tens.k' ) )
-    chain.add_action( RadiossAnalysis( 'RadiosRun' ) )
+    chain.add_action( JinjaReplace( name='SetVars', input_file_path='tests/par_tens.k', output_file_path='edited.k' ) )
+    chain.add_action(  RadiossUsingDynaInput("RadiossRun", cmd="rad_dyna_inp", input_path='edited.k', create_vtk=True, create_csv=True ) )
     chain.add_action( RadiossCSVHistory('hist_eval', '{"quantity":"EXTERNAL WORK" }' ) )
 
     chain.add_action( MetaData_VTK( 'meta', state=2, required_part_id=3 ) )
@@ -76,8 +77,8 @@ def test_hist_node( ):
 
     chain = WorkFlow( 'RadiossChain' )
 
-    chain.add_action( JinjaReplace( name='SetVars', input_file_path='tests/par_tens.k' ) )
-    chain.add_action( RadiossAnalysis( 'RadiossRun' ) )
+    chain.add_action( JinjaReplace( name='SetVars', input_file_path='tests/par_tens.k', output_file_path='edited.k'  ) )
+    chain.add_action(  RadiossUsingDynaInput("RadiossRun", cmd="rad_dyna_inp", input_path='edited.k', create_csv=True ) )
     chain.add_action( CSVNodeLocationHistory('node_loc_h', 851 ) )
     chain.add_action( CSVNodeLocation('node_loc', 851 ) )
 
@@ -95,8 +96,9 @@ def test_exp_des( ):
 
     chain = WorkFlow( 'RadiossChain' )
 
-    chain.add_action( JinjaReplace( name='SetVars', input_file_path='tests/par_tens_1p.k' ) )
-    chain.add_action( RadiossAnalysis( 'RadiossRun' ) )
+    chain.add_action( JinjaReplace( name='SetVars', input_file_path='tests/par_tens_1p.k', output_file_path='edited.k'  ) )
+    chain.add_action(  RadiossUsingDynaInput("RadiossRun", cmd="rad_dyna_inp", input_path='edited.k',
+                                             create_d3plot=True, create_vtk=True, create_csv=True) )
     chain.add_action( CSVNodeLocationHistory('node_loc_h', 851 ) )
     chain.add_action( CSVNodeLocation('node_loc', 851 ) )
 
@@ -108,11 +110,6 @@ def test_exp_des( ):
     chain.add_action( ElementNodalFieldData_VTK('field_eval_element_node',
                                         required_part_id=3, # NYI, bug if multiple parts?
                                         el_nodal_data_names=[ 'NODE_ID', '2DELEM_Specific_Energy' ],) )
-
-    # needs testing
-    #chain.add_action( ElementFieldData_VTK('field_eval_element_node',
-    #                                    required_part_id=3, # NYI, bug if multiple parts?
-    #                                    el_data_names=[ 'NODE_ID', '2DELEM_Specific_Energy' ],) )
 
     simu_iter = SimulationIterator( chain, copy_paths=['tests/par_tens_1p.k'] )
 
@@ -141,21 +138,17 @@ def test_d3p( ):
 
     chain = WorkFlow( 'RadiossChain' )
 
-    chain.add_action( JinjaReplace( name='SetVars', input_file_path='tests/par_tens.k' ) )
-    chain.add_action( RadiossAnalysis( 'RadiossRun', create_d3plot=True ) )
-
-    # -------------
+    chain.add_action( JinjaReplace( name='SetVars', input_file_path='tests/par_tens.k', output_file_path='edited.k' ) )
+    chain.add_action(  RadiossUsingDynaInput("RunSpring", cmd="rad_dyna_inp", input_path='edited.k',
+                                              create_d3plot=True, create_csv=True) )
 
     d3p = d3plot_File( 'field' )
     d3p.MultNodalFieldData('nfield', state=2, required_part_id=3,
-                                                         node_data_names=[ 'node_ids', 'node_displacement' ] )
-    #d3p.MultElementNodalFieldData('nfield', state=2, required_part_id=3,  # TODO: map el to nodal
-    #                                                     element_nodal_data_names=[ 'node_ids', 'node_displacement' ] )
+                              node_data_names=[ 'node_ids', 'node_displacement' ] )
     d3p.MultElementFieldData('efield', state=2, required_part_id=3, element_type=FilterType.SHELL,
-                                                         element_data_names=[ 'element_shell_stress', 'element_shell_internal_energy' ] )
+                             element_data_names=[ 'element_shell_stress', 'element_shell_internal_energy' ] )
     chain.add_action( d3p )
 
-    # -------------
 
     simu_iter = SimulationIterator( chain, copy_paths=['tests/par_tens.k'] )
     simu_iter.rm_rundir() # clean_start=True) )
@@ -174,11 +167,10 @@ def test_d3p( ):
     simu_iter.rm_rundir()
 
 if __name__ == '__main__':
-    #test_radios_eval()
-    #test_hist_eval( )
     #test_hist_node( )
     #test_seq( )
-    #test_exp_des( )
-    test_d3p( )
+
+    test_exp_des( )
+    #test_d3p( )
 
 

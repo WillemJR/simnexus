@@ -35,7 +35,7 @@ def main():
 
 
     # 3. Create a workflow and add actions
-    wf = WorkFlow( 'Radioss_WorkFlow' )
+    wf = WorkFlow( 'JD_WorkFlow' )
     wf.add_action( jinja_act )
     wf.add_action( run_dyna )
     wrk_area = WorkArea( wf )

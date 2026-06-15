@@ -28,17 +28,17 @@ from simnexus.args import RADIOSS_ENGINE_F_NAME # _0001
 # utilities
 #
 
-def get_last_run_idx():
+def get_last_run_idx(root_name=RADIOSS_ROOT_NAME):
     p = Path( '.' )
     max_idx = -1
-    for g in p.glob(RADIOSS_ROOT_NAME+'_*.vtk') :
+    for g in p.glob(root_name+'_*.vtk') :
         idx = int(str(g).split('.')[0].split('_')[-1])
         if idx > max_idx: max_idx = idx
     return max_idx
 
-def get_last_run_name():
-    max_idx = get_last_run_idx()
-    return RADIOSS_ROOT_NAME+'_%03d.vtk'%(max_idx)
+def get_last_run_name(root_name=RADIOSS_ROOT_NAME):
+    max_idx = get_last_run_idx(root_name)
+    return root_name+'_%03d.vtk'%(max_idx)
 
 #
 # end utilities
@@ -49,21 +49,28 @@ def get_last_run_name():
 class RadiossCSVHistory(HistoryEvaluation):
     """ Extraction of Radioss history 
 
+    Args:
+        name (str) :
+        cmd (str) :
+        root_name (str) : root_name of radios input. E.g. 'dyna_action_inp' to read dyna_action_inpT01.csv
     Returns:
       hist (list): [ [time vals],  [vals] ]
     """
 
 
-    def __init__( self, name, cmd ):
+    def __init__( self, name, cmd, root_name=RADIOSS_ROOT_NAME ):
         super().__init__(name, cmd )
         self.args = json.loads( cmd )
         self.parent_simu = None
+        self.root_name = root_name
         self.description = f'Radioss CSV history extraction of {self.args.get("quantity", "")}'
 
 
     def solve( self, val_dict=None ):
 
-        df = pandas.read_csv( RADIOSS_ROOT_NAME+'T01.csv' )
+        fname = self.root_name+'T01.csv'
+        logger.info( f'RadiossCSVHistory reading \'{fname}\'' )
+        df = pandas.read_csv( fname )
 
         time =  df[ 'time' ]
         val_key = self.args['quantity']
@@ -86,27 +93,29 @@ class CSVNodeLocationHistory(HistoryEvaluation):
     """
 
 
-    def __init__( self, name, node_id ):
-        """ Extraction of Radioss nodal location history 
+    def __init__( self, name, node_id, root_name=RADIOSS_ROOT_NAME ):
+        """ Extraction of Radioss nodal location history
 
         Args:
             name (str)
             node_id (str):
+            root_name (str):
         """
         super().__init__(name, "" )
         self.node_id = node_id
         self.parent_simu = None
+        self.root_name = root_name
         self.description = f'Radioss nodal location history for node {node_id}'
 
 
     def solve( self, val_dict=None ):
-        """ Extraction of Radioss nodal location history 
+        """ Extraction of Radioss nodal location history
 
         Returns:
           hist (list): [ [time vals],  [3][vals] ]
         """
 
-        df = pandas.read_csv( RADIOSS_ROOT_NAME+'T01.csv' )
+        df = pandas.read_csv( self.root_name+'T01.csv' )
 
         time =  df[ 'time' ]
         # "DATABASE_HISTORY_NODE                    682                                          var 22",
@@ -138,8 +147,8 @@ class CSVNodeLocationHistory(HistoryEvaluation):
 
 class CSVNodeLocation(CSVNodeLocationHistory):
 
-    def __init__( self, name, node_id, step=-1 ):
-        super().__init__(name, node_id )
+    def __init__( self, name, node_id, step=-1, root_name=RADIOSS_ROOT_NAME ):
+        super().__init__(name, node_id, root_name )
         self.step = step
         self.description = f'Radioss nodal location for node {node_id} at step {step}'
 
@@ -157,14 +166,13 @@ class ScalarEvaluation(RadiossCSVHistory):
     Returns: float
     """
 
-    def __init__( self, name, cmd ):
-        super().__init__(name, cmd )
+    def __init__( self, name, cmd, root_name=RADIOSS_ROOT_NAME ):
+        super().__init__(name, cmd, root_name )
         self.args = json.loads( cmd )
         self.parent_simu = None
         self.description = f'Radioss scalar evaluation of {self.args.get("quantity", "")} at step {self.args.get("step", "")}'
 
     def solve( self,  val_dict=None ):
-        #h = self.get_radios_hist( val_dict )
         h = super().solve( val_dict )
         return h[1][ self.args['step'] ]
 
@@ -184,11 +192,12 @@ class FieldData(WorkAction):
     Returns:
         ndict, edict # ndict={coords,data}, edict={..., data}
     """
-    def __init__( self, name, state=-1, *args, **kwargs ):
+    def __init__( self, name, state=-1, *args, root_name=RADIOSS_ROOT_NAME, **kwargs ):
         super().__init__(name, None )
         self.state= state
         self.args= args
         self.kwargs= kwargs
+        self.root_name = root_name
         self.description = f'Radioss field data at state {state}'
 
 
@@ -197,9 +206,9 @@ class FieldData(WorkAction):
 
     def eval_old( self,  val_dict=None ):
         if self.state > -1:
-            vtk_file_name = RADIOSS_ROOT_NAME+'_%03d.vtk'%(self.state)
+            vtk_file_name = self.root_name+'_%03d.vtk'%(self.state)
         else:
-            vtk_file_name = get_last_run_name()
+            vtk_file_name = get_last_run_name(self.root_name)
         v = read_vtk.read_part_mesh( vtk_file_name, *self.args, **self.kwargs )
         return v
 
@@ -281,10 +290,11 @@ class ElementFieldData_VTK(FieldData):
 
 class FieldDataHist(WorkAction):
 
-    def __init__( self, name, *args, **kwargs ):
+    def __init__( self, name, *args, root_name=RADIOSS_ROOT_NAME, **kwargs ):
         super().__init__(name, None )
         self.args= args
         self.kwargs= kwargs
+        self.root_name = root_name
         self.description = f'Radioss field data history'
 
 
@@ -294,8 +304,8 @@ class FieldDataHist(WorkAction):
         # el_nodal_data_names becomes node data
         ndata = {name:[] for name in self.kwargs['node_data_names']+self.kwargs['el_nodal_data_names'] }
         edata = {name:[] for name in self.kwargs['el_data_names'] }
-        for run_idx in range( 1, get_last_run_idx()+1 ):
-            vtk_file_name = RADIOSS_ROOT_NAME+'_%03d.vtk'%(run_idx)
+        for run_idx in range( 1, get_last_run_idx(self.root_name)+1 ):
+            vtk_file_name = self.root_name+'_%03d.vtk'%(run_idx)
             nv, ev = read_vtk.read_part_mesh( vtk_file_name, *self.args, **self.kwargs )
             coords.append( nv['coords'] )
 
@@ -316,11 +326,37 @@ class FieldDataHist(WorkAction):
 
 
 
+class RadiossAnalysisBase:
+
+    def _create_d3plot_file( self, root_name ):
+        try:
+            from vortex_radioss.animtod3plot.Anim_to_D3plot import readAndConvert
+        except:
+            exit( ' *** Error Install vortex_radioss.animtod3plot from \'https://www.vortex-cae.com/vortex-radioss\'.' )
+
+        try:
+            readAndConvert( str( Path.cwd().joinpath( root_name) )  )
+        except Exception as e:
+            logger.error(f"Cannot convert OpenRadioss output to d3plot file: {e}")
+
+        # Rename generated d3plot files
+        # Pattern: filename.d3plot* -> d3plot*
+        pattern = f"{root_name}.d3plot*"
+        for file_path in glob.glob(pattern):
+            # We only want to replace the prefix in the basename
+            base_name = os.path.basename(file_path)
+            if base_name.startswith(f"{root_name}."):
+                new_name = base_name.replace(f"{root_name}.", "", 1)
+                logger.info(f"Renaming {base_name} to {new_name}")
+                os.rename(file_path, new_name)
 
 
 
 
-class RadiossAnalysis(WorkAction):
+
+
+
+class RadiossAnalysis(WorkAction,RadiossAnalysisBase):
 
     """ Runs an openRadioss simulation. 
 
@@ -339,7 +375,7 @@ class RadiossAnalysis(WorkAction):
                   starter_input_path=simnexus.args.RADIOSS_DFLT_FNAME,
                   engine_cmd='openradioss_engine',
                   engine_input_path=None,
-                  create_d3plot=True,
+                  create_d3plot=False,
                   create_vtk=False,
                   to_vtk_cmd='anim_to_vtk_linux64_gf',
                   create_csv=False,
@@ -404,30 +440,6 @@ class RadiossAnalysis(WorkAction):
         out_file.close()
         err_file.close()
 
-    def _create_d3plot_file( self ):
-        try:
-            from vortex_radioss.animtod3plot.Anim_to_D3plot import readAndConvert
-        except:
-            exit( ' *** Error Install vortex_radioss.animtod3plot from \'https://www.vortex-cae.com/vortex-radioss\'.' )
-
-        try:
-            readAndConvert( str( Path.cwd().joinpath( RADIOSS_ROOT_NAME) )  )
-        except Exception as e:
-            logger.error(f"Cannot convert OpenRadioss output to d3plot file: {e}")
-
-        # Rename generated d3plot files
-        # Pattern: filename.d3plot* -> d3plot*
-        pattern = f"{RADIOSS_ROOT_NAME}.d3plot*"
-        for file_path in glob.glob(pattern):
-            # We only want to replace the prefix in the basename
-            base_name = os.path.basename(file_path)
-            if base_name.startswith(f"{RADIOSS_ROOT_NAME}."):
-                new_name = base_name.replace(f"{RADIOSS_ROOT_NAME}.", "", 1)
-                logger.info(f"Renaming {base_name} to {new_name}")
-                os.rename(file_path, new_name)
-
-
-
     def solve( self,  val_dict=None ):
 
         if not Path( self.starter_input_path ).exists():
@@ -457,9 +469,10 @@ class RadiossAnalysis(WorkAction):
 
         shutil.copy( self.engine_input_path, RADIOSS_ENGINE_F_NAME+'.rad' )
 
-        self._run_solver_in_dir( start_file_name, RADIOSS_ENGINE_F_NAME+'.rad' )
+        self._run_starter_in_dir( start_file_name )
+        self._run_engine_in_dir( RADIOSS_ENGINE_F_NAME+'.rad' )
 
-        if self.create_d3plot : self._create_d3plot_file()
+        if self.create_d3plot : self._create_d3plot_file(RADIOSS_ROOT_NAME)
         if self.create_vtk: self. _create_vtk_file( )
         if self.create_csv: self. _create_csv_file( )
 
@@ -504,26 +517,23 @@ class RadiossAnalysis(WorkAction):
             orkr.write( dpath )
 
 
-
-    def _run_solver_in_dir( self, start_file_name, engine_file_name ):
+    def _run_starter_in_dir( self, start_file_name ):
         """
         new_input:
         """
 
-        out_file = open( RADIOSS_BASE_F_NAME+'.stdout' , 'w' )
-        err_file = open( RADIOSS_BASE_F_NAME+'.stderr' , 'w')
+        out_file = open( RADIOSS_BASE_F_NAME+'.starter.stdout' , 'w' )
+        err_file = open( RADIOSS_BASE_F_NAME+'.starter.stderr' , 'w')
 
         subprocess.run( self.starter_cmd + ' -i ' + start_file_name, shell=True, stdout=out_file, stderr=err_file )
-        subprocess.run( self.engine_cmd + ' -i ' + engine_file_name, shell=True, stdout=out_file, stderr=err_file )
-
 
         have_error_termination = False
-        with open( RADIOSS_BASE_F_NAME+'.out',  'r' ) as outfile:
+        with open( RADIOSS_BASE_F_NAME+'.starter.stdout',  'r' ) as outfile:
             for line in outfile.readlines():
                 if 'ERROR TERMINATION' in line:
                     have_error_termination = True
         if have_error_termination is False:
-          with open( RADIOSS_ENGINE_F_NAME+'.out',  'r' ) as outfile:
+          with open( RADIOSS_ENGINE_F_NAME+'.starter.stdout',  'r' ) as outfile:
             for line in outfile.readlines():
                 if 'ERROR TERMINATION' in line:
                     have_error_termination = True
@@ -532,4 +542,37 @@ class RadiossAnalysis(WorkAction):
 
         out_file.close()
         err_file.close()
+
+
+
+
+    def _run_engine_in_dir( self, engine_file_name ):
+        """
+        new_input:
+        """
+
+        out_file = open( RADIOSS_BASE_F_NAME+'.engine.stdout' , 'w' )
+        err_file = open( RADIOSS_BASE_F_NAME+'.engine.stderr' , 'w')
+
+        subprocess.run( self.engine_cmd + ' -i ' + engine_file_name, shell=True, stdout=out_file, stderr=err_file )
+
+
+        have_error_termination = False
+        with open( RADIOSS_BASE_F_NAME+'.engine.stdout',  'r' ) as outfile:
+            for line in outfile.readlines():
+                if 'ERROR TERMINATION' in line:
+                    have_error_termination = True
+        if have_error_termination is False:
+          with open( RADIOSS_ENGINE_F_NAME+'.engine.stdout',  'r' ) as outfile:
+            for line in outfile.readlines():
+                if 'ERROR TERMINATION' in line:
+                    have_error_termination = True
+        if have_error_termination is True:
+            exit( f'ERROR OpenRadios run failed in \"{self.last_job_path}\"' )
+
+        out_file.close()
+        err_file.close()
+
+
+
 
