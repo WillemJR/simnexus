@@ -15,7 +15,8 @@ def test_radioss_using_dyna_input():
 
     wf = WorkFlow("SpringRadiossWorkFlow")
 
-    run_rad = RadiossUsingDynaInput("RunSpring", cmd="rad_dyna_inp", input_path=str(fe_path))
+    run_rad = RadiossUsingDynaInput("RunSpring", cmd="rad_dyna_inp", input_path=str(fe_path),
+                                    create_d3plot=True )
     wf.add_action(run_rad)
 
     d3p = d3plot_File("field")

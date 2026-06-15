@@ -170,7 +170,7 @@ if __name__ == '__main__':
     #test_hist_node( )
     #test_seq( )
 
-    test_exp_des( )
-    #test_d3p( )
+    #test_exp_des( )
+    test_d3p( )
 
 
