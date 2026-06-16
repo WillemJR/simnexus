@@ -69,6 +69,9 @@ class RadiossCSVHistory(HistoryEvaluation):
     def solve( self, val_dict=None ):
 
         fname = self.root_name+'T01.csv'
+        if not Path(fname).exists():
+            logger.error(f"Cannot open OpenRadioss CSV file. Did you set \'create_csv=True\' ")
+            raise FileNotFoundError(f'RadiossCSVHistory: CSV file not found: {fname}')
         logger.info( f'RadiossCSVHistory reading \'{fname}\'' )
         df = pandas.read_csv( fname )
 
@@ -209,6 +212,9 @@ class FieldData(WorkAction):
             vtk_file_name = self.root_name+'_%03d.vtk'%(self.state)
         else:
             vtk_file_name = get_last_run_name(self.root_name)
+        if not Path(vtk_file_name).exists():
+            logger.error(f"Cannot open VTK file. Did you set \'create_vtk=True\' ")
+            raise FileNotFoundError(f'VTK file not found: {vtk_file_name}')
         v = read_vtk.read_part_mesh( vtk_file_name, *self.args, **self.kwargs )
         return v
 
