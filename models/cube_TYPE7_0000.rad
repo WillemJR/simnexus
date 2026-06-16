@@ -13,12 +13,16 @@ cube_TYPE7
 #---1----|----2----|----3----|----4----|----5----|----6----|----7----|----8----|----9----|---10----|
 #-  2. MATERIALS:
 #---1----|----2----|----3----|----4----|----5----|----6----|----7----|----8----|----9----|---10----|
+/PARAMETER/GLOBAL/REAL/1
+Youngs modulus
+E                         210000
 /MAT/PLAS_JOHNS/1
 elasto_plastic material
 #              RHO_I
               7.8E-9              7.8E-9
 #                  E                  Nu     Iflag
-              210000                  .3         0
+                  &E                  .3         0
+#              210000                  .3         0
 #                  a                   b                   n           EPS_p_max            SIG_max0
                  200                 400                  .5                   0                   0
 #                  c           EPS_DOT_0       ICC   Fsmooth               F_cut               Chard

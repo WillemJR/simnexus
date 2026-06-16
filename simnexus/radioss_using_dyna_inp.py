@@ -96,7 +96,7 @@ class RadiossUsingDynaInput(RadiossAnalysis):
         #        if 'ERROR TERMINATION' in line:
         #            have_error_termination = True
         if have_error_termination is True:
-            exit( f'ERROR OpenRadios run failed in \"{self.last_job_path}\"' )
+            exit( f'ERROR OpenRadios run failed in \"{Path.cwd()}\"' )
 
         out_file.close()
         err_file.close()

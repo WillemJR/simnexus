@@ -538,13 +538,8 @@ class RadiossAnalysis(WorkAction,RadiossAnalysisBase):
             for line in outfile.readlines():
                 if 'ERROR TERMINATION' in line:
                     have_error_termination = True
-        if have_error_termination is False:
-          with open( RADIOSS_ENGINE_F_NAME+'.starter.stdout',  'r' ) as outfile:
-            for line in outfile.readlines():
-                if 'ERROR TERMINATION' in line:
-                    have_error_termination = True
         if have_error_termination is True:
-            exit( f'ERROR OpenRadios run failed in \"{self.last_job_path}\"' )
+            exit( f'ERROR OpenRadios starter run failed in \"{Path.cwd()}\"' )
 
         out_file.close()
         err_file.close()
@@ -557,24 +552,19 @@ class RadiossAnalysis(WorkAction,RadiossAnalysisBase):
         new_input:
         """
 
-        out_file = open( RADIOSS_BASE_F_NAME+'.engine.stdout' , 'w' )
-        err_file = open( RADIOSS_BASE_F_NAME+'.engine.stderr' , 'w')
+        out_file = open( RADIOSS_ENGINE_F_NAME+'.engine.stdout' , 'w' )
+        err_file = open( RADIOSS_ENGINE_F_NAME+'.engine.stderr' , 'w')
 
         subprocess.run( self.engine_cmd + ' -i ' + engine_file_name, shell=True, stdout=out_file, stderr=err_file )
 
 
         have_error_termination = False
-        with open( RADIOSS_BASE_F_NAME+'.engine.stdout',  'r' ) as outfile:
-            for line in outfile.readlines():
-                if 'ERROR TERMINATION' in line:
-                    have_error_termination = True
-        if have_error_termination is False:
-          with open( RADIOSS_ENGINE_F_NAME+'.engine.stdout',  'r' ) as outfile:
+        with open( RADIOSS_ENGINE_F_NAME+'.engine.stdout',  'r' ) as outfile:
             for line in outfile.readlines():
                 if 'ERROR TERMINATION' in line:
                     have_error_termination = True
         if have_error_termination is True:
-            exit( f'ERROR OpenRadios run failed in \"{self.last_job_path}\"' )
+            exit( f'ERROR OpenRadios engine run failed in \"{Path.cwd()}\"' )
 
         out_file.close()
         err_file.close()

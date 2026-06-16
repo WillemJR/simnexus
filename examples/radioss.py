@@ -1,5 +1,3 @@
-import numpy as np
-
 import logging
 logging.basicConfig(level=logging.WARNING)
 
@@ -11,6 +9,7 @@ from pathlib import Path
 sys.path.append( str(Path(__file__).parent.parent) )
 
 from simnexus.radioss_actions import RadiossAnalysis, RadiossCSVHistory, NodalFieldData_VTK
+from simnexus.d3plot_actions import d3plot_File
 from simnexus.graph_actions import WorkFlow, WorkArea
 
 def main():
@@ -28,27 +27,26 @@ def main():
                   starter_input_path=starter_deck,
                   engine_cmd='openradioss_engine',
                   engine_input_path=engine_deck,
-                  create_d3plot=False,
-                  create_vtk=True,
-                  create_csv=True )
+                  create_d3plot=True )
 
     # 2. Create a workflow and add actions
     wf = WorkFlow( 'Radioss_WorkFlow' )
     wf.add_action( run_rad )
-    wf.add_action( RadiossCSVHistory('KE_hist', '{"quantity":"KINETIC ENERGY" }' ) )
-    wf.add_action( NodalFieldData_VTK('disp_field', state=2, required_part_id=4,
-                                        node_data_names=[ 'NODE_ID', 'Velocity' ] ) )
+
+    d3p = d3plot_File( name='d3plot' )
+    d3p.NodalValue(name='n5', state=1, nid=5, component= 'node_displacement'  )
+    wf.add_action( d3p )
+
     wrk_area = WorkArea( wf, copy_paths=[starter_deck,engine_deck] )
 
-    # Discover variables — WorkArea copies files first so DynaAnalysis can read them.
+    # Discover variables defined in input deck and other actions
     discovered_vars = wrk_area.variables()
     print("Discovered variables:")
     for v in discovered_vars:
         print(f"  {v}")
 
-    # 3. Execute the workflow
-    # Provide values for the variables defined in the Jinja template
-    val_dict = { 'E': 210.0, 'SIG_Y': 310.0 }
+    # 3. Execute the workflow. Provide values for the variables.
+    val_dict = { 'E': 210000.0, }
 
     print("Starting workflow...")
     print(f"Parameters: {val_dict}")
