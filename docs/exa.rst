@@ -1,12 +1,12 @@
 
 Examples 
 ========
-
+In addition to the examples below, see the ``examples`` directory.
 
 LS-DYNA 
 ----------------------------------
 
-The example does an analysis and extracts results. 
+The example does an analysis, substitute parameter values, and extracts results. 
 
 The study is parameterized using the \*PARAMETER keyword.
 
@@ -21,7 +21,7 @@ The study is parameterized using the \*PARAMETER keyword.
 
     # 2. Add an action to run LS-DYNA
     # The 'input_path' file contains *PARAMETER keywords for substitution
-    run_dyna = DynaAnalysis("RunSimulation", input_path="model.k")
+    run_dyna = DynaAnalysis("RunDyna", cmd='ls-dyna', input_path="model.k")
     wf.add_action(run_dyna)
 
     # 3. Add an action to extract results from d3plot
@@ -46,7 +46,7 @@ The study is parameterized using the \*PARAMETER keyword.
 OpenRadioss 
 ----------------------------------
 
-The example does an analysis and extracts results. 
+The example does an analysis, substitute parameter values, and extracts results. 
 
 The study is parameterized using the /PARAMETER cards in
 the OpenRadioss input deck.
@@ -55,34 +55,46 @@ input deck (shown here only to demonstrate -- the use of jinja is not required).
 
 .. code-block:: python
 
-    from simnexus.jinja_actions import JinjaReplace
-    from simnexus.radioss_actions import RadiossAnalysis
-    from simnexus.graph_actions import WorkFlow
+        from simnexus.radioss_actions import RadiossAnalysis
+        from simnexus.d3plot_actions import d3plot_File
+        from simnexus.graph_actions import WorkFlow, WorkArea
 
-    wf = WorkFlow('RadiossWorkflow')
+        # Paths
+        starter_deck = Path('models/cube_TYPE7_0000.rad')
+        engine_deck  = Path('models/cube_TYPE7_0001.rad')
 
-    # 1. Prepare the input deck using Jinja2 templates
-    # Substitutes {{E}} and {{SIG_Y}} in 'model.rad'
-    jinja_act = JinjaReplace(
-        name='prepare_deck',
-        input_file_path='model.rad'
-    )
-    wf.add_action(jinja_act)
+        # 1. Define RadiossAnalysis to run the simulation
+        run_rad = RadiossAnalysis( name='rad',
+                          starter_cmd='openradioss_starter',
+                          starter_input_path=starter_deck,
+                          engine_cmd='openradioss_engine',
+                          engine_input_path=engine_deck,
+                          create_d3plot=True )
 
-    # 2. Run the OpenRadioss solver
-    run_rad = RadiossAnalysis(
-        name='run_solver',
-        cmd='starter_linux64_gf' # Path to your Radioss executable
-    )
-    wf.add_action(run_rad)
+        # 2. Create a workflow and add actions
+        wf = WorkFlow( 'Radioss_WorkFlow' )
+        wf.add_action( run_rad )
 
-    # 3. Execute the workflow
-    val_dict = {'E': 210000.0, 'SIG_Y': 250.0}
-    wf.solve(val_dict)
+        d3p = d3plot_File( name='d3plot' )
+        d3p.NodalValue(name='n5', state=1, nid=5, component= 'node_displacement'  )
+        wf.add_action( d3p )
+
+        wrk_area = WorkArea( wf, copy_paths=[starter_deck,engine_deck] )
+
+        # Discover variables defined in input deck and other actions
+        discovered_vars = wrk_area.variables()
+        print("Discovered variables:")
+        for v in discovered_vars:
+            print(f"  {v}")
+
+        # 3. Execute the workflow. Provide values for the variables.
+        ret = wrk_area.solve( { 'E': 210000.0, } )
+        print( 'output', ret )
 
 
 OpenFOAM
 ----------------------------------
+The example does an analysis, substitute parameter values, and extracts results. 
 
 The study is parameterized using the ``system/parameters`` file.
 Case files (``system/``, ``constant/``, ``0/``) are supplied to ``WorkArea``
