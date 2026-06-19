@@ -83,7 +83,7 @@ class d3plot_File(WorkFlow):
         # outdated meta_data?
         return self.add_action(_d3plot_PartMetaData(name, *args, **kwargs))
 
-    def NodalFieldData(self, name, *args, **kwargs):
+    def NodalField(self, name, *args, **kwargs):
         """
         Arguments:
             state (int): -1 is last
@@ -94,13 +94,13 @@ class d3plot_File(WorkFlow):
         """
         return self.add_action(_d3plot_NodalFieldData(name, *args, **kwargs))
 
-    def MultNodalFieldData(self, name, *args, **kwargs):
+    def MultNodalField(self, name, *args, **kwargs):
         return self.add_action(_d3plot_MultNodalFieldData(name, *args, **kwargs))
 
-    def MultElementNodalFieldData(self, name, *args, **kwargs):
+    def MultElementNodalField(self, name, *args, **kwargs):
         return self.add_action(_d3plot_MultElementNodalFieldData(name, *args, **kwargs))
 
-    def MultElementFieldData(self, name, *args, **kwargs):
+    def MultElementField(self, name, *args, **kwargs):
         return self.add_action(_d3plot_MultElementFieldData(name, *args, **kwargs))
 
     def NodalValue(self, name, *args, **kwargs):
@@ -286,7 +286,6 @@ class _d3plot_NodalValue( _d3plot_NodalFieldData):
 
     def solve( self,  val_dict=None ):
         data = super().solve( val_dict )
-        #print( 'super data', data )
 
         assert 'nid' in self.kwargs, '\'nid\' is an required argument for d3plot_NodalValue.' 
         assert 'required_part_id' not in self.kwargs, '\'required_part_id\' is not allowed for d3plot_NodalValue.' 

@@ -78,6 +78,32 @@ class DynaAnalysis(WorkAction):
 
         return have_normal_termination 
 
+
+    def _describe_returncode(self, returncode):
+        """Human-readable interpretation of a subprocess return code."""
+        # A process killed by a signal is reported as a negative code by
+        # subprocess, or as 128+signum by the shell (shell=True).
+        signum = None
+        if returncode < 0:
+            signum = -returncode
+        elif returncode > 128:
+            signum = returncode - 128
+
+        if signum is not None:
+            try:
+                import signal
+                name = signal.Signals(signum).name
+            except (ValueError, ImportError):
+                name = f"signal {signum}"
+            return f"terminated by {name} (exit code {returncode})"
+
+        if returncode == 127:
+            return f"command not found (exit code 127) - is '{self.cmd}' on PATH?"
+        if returncode == 126:
+            return "command found but not executable (exit code 126)"
+        return f"exit code {returncode}"
+
+
     def _run_solver_in_dir( self, base_file_name ):
         """
         """
@@ -93,6 +119,11 @@ class DynaAnalysis(WorkAction):
         out_file.close()
         err_file.close()
         
+        if flag.returncode != 0:
+            logger.error( f"LS-DYNA run in {os.getcwd()} failed: {self._describe_returncode(flag.returncode)}" )
+            logger.error(f"  command: {run_cmd}")
+
+
         have_normal_termination = False
         if Path('run_file.stdout').exists():
             with open( 'run_file.stdout', 'r' ) as outfile:

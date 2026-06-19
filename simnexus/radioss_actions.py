@@ -523,6 +523,32 @@ class RadiossAnalysis(WorkAction,RadiossAnalysisBase):
             orkr.write( dpath )
 
 
+    def _describe_returncode(self, returncode, cmd):
+        """Human-readable interpretation of a subprocess return code."""
+        # A process killed by a signal is reported as a negative code by
+        # subprocess, or as 128+signum by the shell (shell=True).
+        signum = None
+        if returncode < 0:
+            signum = -returncode
+        elif returncode > 128:
+            signum = returncode - 128
+
+        if signum is not None:
+            try:
+                import signal
+                name = signal.Signals(signum).name
+            except (ValueError, ImportError):
+                name = f"signal {signum}"
+            return f"terminated by {name} (exit code {returncode})"
+
+        if returncode == 127:
+            return f"command not found (exit code 127) - is '{cmd}' on PATH?"
+        if returncode == 126:
+            return "command found but not executable (exit code 126)"
+        return f"exit code {returncode}"
+
+
+
     def _run_starter_in_dir( self, start_file_name ):
         """
         new_input:
@@ -531,7 +557,11 @@ class RadiossAnalysis(WorkAction,RadiossAnalysisBase):
         out_file = open( RADIOSS_BASE_F_NAME+'.starter.stdout' , 'w' )
         err_file = open( RADIOSS_BASE_F_NAME+'.starter.stderr' , 'w')
 
-        subprocess.run( self.starter_cmd + ' -i ' + start_file_name, shell=True, stdout=out_file, stderr=err_file )
+        flag = subprocess.run( self.starter_cmd + ' -i ' + start_file_name, shell=True, stdout=out_file, stderr=err_file )
+        if flag.returncode != 0:
+            logger.error( f"OpenRadioss run in {os.getcwd()} failed: {self._describe_returncode(flag.returncode,self.starter_cmd)}" )
+            logger.error(f"  command: {self.starter_cmd}")
+
 
         have_error_termination = False
         with open( RADIOSS_BASE_F_NAME+'.starter.stdout',  'r' ) as outfile:
@@ -555,7 +585,11 @@ class RadiossAnalysis(WorkAction,RadiossAnalysisBase):
         out_file = open( RADIOSS_ENGINE_F_NAME+'.engine.stdout' , 'w' )
         err_file = open( RADIOSS_ENGINE_F_NAME+'.engine.stderr' , 'w')
 
-        subprocess.run( self.engine_cmd + ' -i ' + engine_file_name, shell=True, stdout=out_file, stderr=err_file )
+        flag = subprocess.run( self.engine_cmd + ' -i ' + engine_file_name, shell=True, stdout=out_file, stderr=err_file )
+        if flag.returncode != 0:
+            logger.error( f"OpenRadioss run in {os.getcwd()} failed: {self._describe_returncode(flag.returncode,self.engine_cmd)}" )
+            logger.error(f"  command: {self.engine_cmd}")
+
 
 
         have_error_termination = False

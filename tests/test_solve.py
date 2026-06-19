@@ -143,9 +143,9 @@ def test_d3p( ):
                                               create_d3plot=True, create_csv=True) )
 
     d3p = d3plot_File( 'field' )
-    d3p.MultNodalFieldData('nfield', state=2, required_part_id=3,
+    d3p.MultNodalField('nfield', state=2, required_part_id=3,
                               node_data_names=[ 'node_ids', 'node_displacement' ] )
-    d3p.MultElementFieldData('efield', state=2, required_part_id=3, element_type=FilterType.SHELL,
+    d3p.MultElementField('efield', state=2, required_part_id=3, element_type=FilterType.SHELL,
                              element_data_names=[ 'element_shell_stress', 'element_shell_internal_energy' ] )
     chain.add_action( d3p )
 
