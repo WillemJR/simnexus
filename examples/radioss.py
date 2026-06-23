@@ -40,7 +40,7 @@ def main():
     wrk_area = WorkArea( wf, copy_paths=[starter_deck,engine_deck] )
 
     # Discover variables defined in input deck and other actions
-    discovered_vars = wrk_area.variables()
+    discovered_vars = wrk_area.parameters()
     print("Discovered variables:")
     for v in discovered_vars:
         print(f"  {v}")

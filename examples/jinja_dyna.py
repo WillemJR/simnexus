@@ -41,7 +41,7 @@ def main():
     wrk_area = WorkArea( wf )
 
     # Discover variables — WorkArea copies files first so DynaAnalysis can read them.
-    discovered_vars = wrk_area.variables()
+    discovered_vars = wrk_area.parameters()
     print("Discovered variables:")
     for v in discovered_vars:
         print(f"  {v}")

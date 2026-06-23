@@ -1,11 +1,11 @@
 """
-Discover graph inputs and outputs using variables() and outputs().
+Discover graph inputs and outputs using parameters() and outputs().
 
 Before running a graph it can be useful to inspect what variables it
 expects as input and what results it will produce.  This example builds
 a small workflow with Variable-parameterised actions, then calls:
 
-  graph.variables() -> set of Variable objects (inputs)
+  graph.parameters() -> set of Variable objects (inputs)
   graph.outputs()   -> dict of {action_name: (data_type, description)}
 
 No simulation solver is required; the graph uses MathEvaluation actions
@@ -84,13 +84,13 @@ response = ScaledOffset(
 wf.add_action(response)
 
 # ---------------------------------------------------------------------------
-# Discover: variables() — what inputs does the graph need?
+# Discover: parameters() — what inputs does the graph need?
 # ---------------------------------------------------------------------------
 
 print("=" * 60)
 print("Graph inputs  (variables)")
 print("=" * 60)
-variables = wf.variables()
+variables = wf.parameters()
 for v in sorted(variables, key=lambda x: x.name):
     type_name = v.type.__name__ if (v.type and hasattr(v.type, "__name__")) else str(v.type)
     print(f"  {v.name:15s}  type={type_name:6s}  default={v._value}  — {v.description}")

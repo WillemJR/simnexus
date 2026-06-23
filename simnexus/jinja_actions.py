@@ -74,7 +74,7 @@ class JinjaReplace(WorkAction):
         """
         return self.par_names
 
-    def variables( self ):
+    def parameters( self ):
         """ Returns the variables defined in the template.
         The type and value of the variables are unknown.
 

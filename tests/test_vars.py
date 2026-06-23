@@ -36,29 +36,29 @@ def test_call():
     run_dyna = DynaAnalysis("RunSpring", input_path=str(input_path))
     wf.add_action(run_dyna)
 
-    print( 'dyna vars', run_dyna.variables() )
-    print( 'dyna vars', next(iter(run_dyna.variables())) )
+    print( 'dyna vars', run_dyna.parameters() )
+    print( 'dyna vars', next(iter(run_dyna.parameters())) )
     print( 'workflow vars' )
-    print_varlist( wf.variables() )
+    print_varlist( wf.parameters() )
 
     jj =  JinjaReplace( name='SetVars', input_file_path='tests/par_tens.k' )
     wf.add_action( jj )
 
-    print( 'JinjaReplace vars:', jj.variables() )
+    print( 'JinjaReplace vars:', jj.parameters() )
     print( 'workflow vars:' )
-    print_varlist( wf.variables() )
+    print_varlist( wf.parameters() )
 
     # Graph
     graph = DirectedGraph( 'aGraph' )
     graph.add_action( run_dyna )
     graph.add_action( jj )
     print( 'graph vars' )
-    print_varlist( graph.variables() )
+    print_varlist( graph.parameters() )
 
     # SimulationIterator
     itr = SimulationIterator( graph, copy_paths=[input_path]  )
     print( 'SimulationIterator vars' )
-    print_varlist( itr.variables() )
+    print_varlist( itr.parameters() )
 
     itr.rm_rundir() 
 

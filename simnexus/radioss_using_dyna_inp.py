@@ -45,6 +45,7 @@ class RadiossUsingDynaInput(RadiossAnalysis):
                                   create_csv=create_csv,
                                   to_csv_cmd=to_csv_cmd )
 
+        self.input_file_path = input_path
         #DynaAnalysis.__init__(self, name, cmd, input_path=input_path )
 
     def solve( self,  val_dict=None ):
@@ -102,7 +103,7 @@ class RadiossUsingDynaInput(RadiossAnalysis):
         err_file.close()
 
 
-    def variables( self ):
-        return DynaAnalysis.variables(self)
+    def parameters( self ):
+        return DynaAnalysis.parameters(self)
 
 

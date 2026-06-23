@@ -22,14 +22,14 @@ def _copy_case_to(dest):
         shutil.copytree(src, dest / src.name, dirs_exist_ok=True)
 
 
-def test_openfoam_job_variables(tmp_path):
+def test_openfoam_job_parameters(tmp_path):
     _copy_case_to(tmp_path)
 
     original_dir = os.getcwd()
     os.chdir(tmp_path)
     try:
         job = OpenFOAMAnalysis(name="test_job")
-        variables = job.variables()
+        variables = job.parameters()
     finally:
         os.chdir(original_dir)
 

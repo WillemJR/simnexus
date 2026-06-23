@@ -154,7 +154,7 @@ class DynaAnalysis(WorkAction):
         return have_normal_termination
 
 
-    def variables( self ):
+    def parameters( self ):
         """ Returns the variables defined in the template.
         The type and value of the variables are as in
         the LS-DYNA input deck.
@@ -165,7 +165,7 @@ class DynaAnalysis(WorkAction):
         file_to_open = Path( self.input_file_path )
 
         if not file_to_open.exists():
-            logger.warning( f"Cannot find input file for variables(): {self.input_file_path}" )
+            logger.warning( f"Cannot find input file for parameters(): {self.input_file_path}" )
             return set()
 
         variables = set()

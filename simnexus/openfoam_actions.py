@@ -47,7 +47,7 @@ class OpenFOAMAnalysis( WorkAction ):
             self.job_flag = job_flag
         self.description = f'OpenFOAM analysis using solver {solve_cmd}'
 
-    def variables( self ):
+    def parameters( self ):
         """
         Returns the variables defined in system/parameters file.
 

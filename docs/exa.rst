@@ -33,7 +33,7 @@ The study is parameterized using the \*PARAMETER keyword.
     wa = WorkArea(wf, "./simulation_run", copy_paths=["path/to/model.k"])
 
     # 5. Discover variables (WorkArea copies files first so DynaAnalysis can read them)
-    for v in wa.variables():
+    for v in wa.parameters():
         print(v)
 
     # 6. Execute
@@ -82,7 +82,7 @@ input deck (shown here only to demonstrate -- the use of jinja is not required).
         wrk_area = WorkArea( wf, copy_paths=[starter_deck,engine_deck] )
 
         # Discover variables defined in input deck and other actions
-        discovered_vars = wrk_area.variables()
+        discovered_vars = wrk_area.parameters()
         print("Discovered variables:")
         for v in discovered_vars:
             print(f"  {v}")
@@ -114,7 +114,7 @@ via ``copy_paths`` and are copied to the work directory before the solver runs.
     wa = WorkArea(wf, copy_paths=case_paths)
 
     # Discover variables from system/parameters (files are copied first)
-    for v in wa.variables():
+    for v in wa.parameters():
         print(v)
 
     results = wa.solve({'lidVelocity': 1.2})

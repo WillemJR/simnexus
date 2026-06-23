@@ -184,11 +184,11 @@ class WorkAction(Subject):
         """
         assert 0, 'should not be called'
 
-    def variables( self ):
+    def parameters( self ):
         """
-        These are the variabls defined for the WorkAction
+        These are the parameters defined for the WorkAction
         and used in the solve() method.
-        For a graph this would be the variables used in
+        For a graph this would be the parameters used in
         all the children.
 
         Returns:

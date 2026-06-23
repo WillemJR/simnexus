@@ -14,7 +14,6 @@ from simnexus.rare import HistoryEvaluation
 from simnexus.util.openradios_reader import OpenRadiosKeywordReader
 import simnexus.variables as simvars
 
-import simnexus.VTK.read_vtk as read_vtk
 import simnexus.args
 
 import logging
@@ -196,6 +195,9 @@ class FieldData(WorkAction):
         ndict, edict # ndict={coords,data}, edict={..., data}
     """
     def __init__( self, name, state=-1, *args, root_name=RADIOSS_ROOT_NAME, **kwargs ):
+
+        import simnexus.VTK.read_vtk as read_vtk
+
         super().__init__(name, None )
         self.state= state
         self.args= args
@@ -297,6 +299,9 @@ class ElementFieldData_VTK(FieldData):
 class FieldDataHist(WorkAction):
 
     def __init__( self, name, *args, root_name=RADIOSS_ROOT_NAME, **kwargs ):
+
+        import simnexus.VTK.read_vtk as read_vtk
+
         super().__init__(name, None )
         self.args= args
         self.kwargs= kwargs
@@ -485,7 +490,7 @@ class RadiossAnalysis(WorkAction,RadiossAnalysisBase):
         return True 
 
 
-    def variables(self):
+    def parameters(self):
         """Returns the variables defined in the Radioss input file.
 
         Returns:
@@ -494,7 +499,7 @@ class RadiossAnalysis(WorkAction,RadiossAnalysisBase):
         file_to_open = Path(self.starter_input_path)
 
         if not file_to_open.exists():
-            logger.warning(f"Cannot find input file for variables(): {self.starter_input_path}")
+            logger.warning(f"Cannot find input file for parameters(): {self.starter_input_path}")
             return set()
 
         variables = set()

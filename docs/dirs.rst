@@ -90,17 +90,17 @@ Variable discovery
 ------------------
 
 Both ``WorkArea`` and ``SimulationIterator`` support variable discovery
-via ``variables()``.  Files are copied into a temporary subdirectory
+via ``parameters()``.  Files are copied into a temporary subdirectory
 first so that solver actions can read their input files.
 
 .. code-block:: python
 
     wa = WorkArea(wf, copy_paths=['path/to/spring.k'])
-    for v in wa.variables():
+    for v in wa.parameters():
         print(v)
 
     itr = SimulationIterator(wf, copy_paths=['path/to/spring.k'])
-    for v in itr.variables():
+    for v in itr.parameters():
         print(v)
 
 See :doc:`discover` for more details on variable and output discovery.

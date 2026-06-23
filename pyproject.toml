@@ -23,7 +23,7 @@ dependencies = [
     "pandas>=1.3",
     "Jinja2>=3.0",
     "dynakw>=1.3",
-    "lasso-python>=3.0",
+    "lasso-python>=2.0",
 ]
 
 

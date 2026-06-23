@@ -1,17 +1,17 @@
 
 Discovering graph usage
 --------------------------
-The usage of a graph is described using the ``variables()`` and ``outputs()`` methods.
+The usage of a graph is described using the ``parameters()`` and ``outputs()`` methods.
 The methods will return the variables and outputs for all the actions in the graph.
 
 Retrieving the graph variables
 ==============================
-The ``variables()`` method returns the set of ``Variable`` objects that a graph
+The ``parameters()`` method returns the set of ``Variable`` objects that a graph
 or action expects as inputs.
 
 For actions that read parameterised input files (``DynaAnalysis``,
 ``RadiossAnalysis``, ``OpenFOAMAnalysis``, ``JinjaReplace``), the input file
-must be present in the current working directory when ``variables()`` is called.
+must be present in the current working directory when ``parameters()`` is called.
 ``WorkArea`` and ``SimulationIterator`` both handle this automatically: they
 copy all required files to a work directory before delegating to the graph.
 
@@ -28,7 +28,7 @@ Using ``WorkArea``:
     wf.add_action(d3plot_File(name='field'))
 
     wa = WorkArea(wf, copy_paths=['path/to/spring.k'])
-    for v in wa.variables():
+    for v in wa.parameters():
         print(v)
 
 Using ``SimulationIterator``:
@@ -42,7 +42,7 @@ Using ``SimulationIterator``:
     wf.add_action(DynaAnalysis(name='RunSpring', input_path='spring.k'))
 
     itr = SimulationIterator(wf, copy_paths=['path/to/spring.k'])
-    for v in itr.variables():
+    for v in itr.parameters():
         print(v)
 
 Both copy files into a temporary subdirectory so the source files are never

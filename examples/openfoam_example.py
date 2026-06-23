@@ -40,7 +40,7 @@ of_graph = create_openfoam_graph()
 
 # List graph variables and outputs
 print("\n\nGraph variables:")
-for v in of_graph.variables():
+for v in of_graph.parameters():
         print(f" - {v}")
 
 print("\n\nGraph outputs:")
