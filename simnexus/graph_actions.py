@@ -290,7 +290,6 @@ class SimulationIterator(WorkAction):
 
         #sim_path = Path.cwd().joinpath( self.name )
         sim_path = self.work_area_path
-        breakpoint()
         #if 0 == self.run_iter and sim_path.exists():
         if 0 == self.run_iter and self.last_job_path.exists():
             exit( f' *** Error Results directory {sim_path} already exists. Restart is not yet supported.' )
