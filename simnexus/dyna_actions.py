@@ -180,7 +180,7 @@ class DynaAnalysis(WorkAction):
                 elif isinstance(value, str):
                     variables.add( simvars.StrSetVariable(name, value, description=descr) )
                 else:
-                    variables.add( simvars.UnknownVariable(name, "", description=descr) )
+                    variables.add( simvars.UnknownVariable(name, None, description=descr) )
 
         return variables
 

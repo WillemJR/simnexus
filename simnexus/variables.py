@@ -127,3 +127,6 @@ class UnknownVariable(Variable):
     def __init__( self, name, value, description=None):
         super().__init__(name, value, None, description=description )
 
+    @property
+    def value(self):
+        return self._value

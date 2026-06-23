@@ -282,7 +282,10 @@ class SimulationIterator(WorkAction):
         
         pl = self.parameter_list if self.parameter_list is not None else self.parameters()
         for def_par in pl:
-            if def_par.name not in val_dict: val_dict[def_par.name]=def_par.value
+            if def_par.name not in val_dict:
+                if def_par.value is None:
+                   exit( f' *** Error Parameter \'{def_par.name}\' must have a value defined in SimulationIterator.solve().' )
+                val_dict[def_par.name]=def_par.value
 
         root_dir = Path.cwd()
         self.last_job_path = self.work_area_path
