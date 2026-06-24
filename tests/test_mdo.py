@@ -1,0 +1,89 @@
+
+import logging
+logging.basicConfig(level=logging.WARN)
+
+import sys, os
+dev_code_dir = "/".join(os.path.dirname(os.path.realpath(__file__)).split("/")[:-2])
+sys.path.append(dev_code_dir)
+
+
+import numpy as np
+from pathlib import Path
+
+import simnexus.actions, simnexus.radioss_actions
+from simnexus.variables import FloatVariable
+from simnexus.jinja_actions import JinjaReplace
+from simnexus.graph_actions import WorkFlow, WorkArea
+from simnexus.dyna_actions import DynaAnalysis
+from simnexus.radioss_actions import RadiossAnalysis
+from simnexus.d3plot_actions import d3plot_File
+from simnexus.graph_actions import DirectedGraph
+
+#from meta_opt.optimizer import Optimizer
+#from simnexus.curve_similarity import CurveSimilarity
+
+import logging
+logging.basicConfig(filename='eval.log', filemode='w', level=logging.INFO )
+
+from simnexus.args import OptType, DYNA_BASE_FILE_NAME
+
+def create_wa( wa_id='' ):
+    starter_deck = Path('models/cube_TYPE7_0000.rad')
+    engine_deck  = Path('models/cube_TYPE7_0001.rad')
+
+    if not starter_deck.exists() or not engine_deck.exists():
+        print(f"Error: {starter_deck} or {engine_deck}not found. Run from project root.")
+        return
+
+    # 1. Define RadiossAnalysis to run the simulation
+    run_rad = RadiossAnalysis( name='rad'+str(wa_id), 
+                  starter_cmd='openradioss_starter',
+                  starter_input_path=starter_deck,
+                  engine_cmd='openradioss_engine',
+                  engine_input_path=engine_deck,
+                  create_d3plot=True )
+
+    # 2. Create a workflow and add actions
+    wf = WorkFlow( 'Radioss_WorkFlow' + str(wa_id) )
+    wf.add_action( run_rad )
+
+    d3p = d3plot_File( name='d3plot'+str(wa_id) )
+    d3p.NodalValue(name='n5'+str(wa_id), state=1, nid=5, component= 'node_displacement'  )
+    wf.add_action( d3p )
+
+    wrk_area = WorkArea( wf, copy_paths=[starter_deck,engine_deck] )
+
+    return wrk_area
+
+def create_graph( wa1, wa2 ):
+
+    # check whether can save and load from disk
+    import pickle
+    with open("rad_cs_wa.pkl", "wb") as f:
+        pickle.dump( wa1,  f )
+
+    with open("rad_cs_wa.pkl", "rb") as f:
+        loaded_wa = pickle.load( f )
+
+    # 
+    graph = DirectedGraph( 'aGraph' )
+    graph.add_action( loaded_wa )
+    graph.add_action( wa2 )
+
+    # Execute the workflow. Provide values for the variables.
+    val_dict = { 'E': 210000.0, }
+
+    
+    print( '------------------------ GRAPH' )
+    discovered_vars = graph.parameters()
+    for v in discovered_vars:
+        print(f"  {v}")
+    ret = graph.solve( val_dict )
+
+
+if __name__ == '__main__':
+    wa = create_wa ( 1 )
+    wa2 = create_wa ( 2 )
+    create_graph( wa, wa2 )
+
+
