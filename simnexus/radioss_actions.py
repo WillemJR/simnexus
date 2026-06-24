@@ -464,18 +464,7 @@ class RadiossAnalysis(WorkAction,RadiossAnalysisBase):
         start_file_name = RADIOSS_BASE_F_NAME+'.rad'
 
         with OpenRadiosKeywordReader( self.starter_input_path ) as orkr:
-            #params = orkr.parameters()
-            #logger.info("Existing parameters:")
-            #for name, (ptype, value) in params.items():
-            #    logger.info(f"  {name} ({ptype}): {value}")
-
             orkr.set_parameters( val_dict )
-
-            #params_updated = orkr.parameters()
-            #logger.info("Updated parameters:")
-            #for name, (ptype, value) in params_updated.items():
-            #    logger.info(f"  {name} ({ptype}): {value}")
-
             orkr.write( start_file_name )
 
         shutil.copy( self.engine_input_path, RADIOSS_ENGINE_F_NAME+'.rad' )

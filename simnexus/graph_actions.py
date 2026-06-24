@@ -552,9 +552,9 @@ class DirectedGraph(WorkAction, Observer):
                     in_dict = self._parent_results( nname, val_dict )
                     if node.name not in self.started:
                         if self.asynch:
-                            node._observed_eval_async(in_dict)
+                            node._observed_eval_async(in_dict.copy())
                         else:
-                            node._observed_eval(in_dict)
+                            node._observed_eval(in_dict.copy())
                         self.started.add(node.name)
                     
         for nname in drain_names:
