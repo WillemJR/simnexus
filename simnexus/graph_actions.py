@@ -65,6 +65,8 @@ class WorkArea(WorkAction):
                     shutil.copy2(src, self.wa_path)
 
     def parameters(self):
+        if self._parameters_cache is not None:
+            return self._parameters_cache
         self._prepare_work_area()
         root_dir = Path.cwd()
         os.chdir(self.wa_path)
@@ -72,6 +74,7 @@ class WorkArea(WorkAction):
             vrs = self.graph.parameters()
         finally:
             os.chdir(root_dir)
+        self._parameters_cache = vrs
         return vrs
 
     def outputs(self):
@@ -417,6 +420,8 @@ class SimulationIterator(WorkAction):
         return par_val_dict, outcome
 
     def parameters(self):
+        if self._parameters_cache is not None:
+            return self._parameters_cache
         tmp_path = self.work_area_path / 'variables_discovery'
         tmp_path.mkdir(mode=0o777, parents=True, exist_ok=True)
 
@@ -437,6 +442,7 @@ class SimulationIterator(WorkAction):
             vrs = self.graph.parameters()
         finally:
             os.chdir(root_dir)
+        self._parameters_cache = vrs
         return vrs
 
 # -------------------
@@ -610,9 +616,12 @@ class DirectedGraph(WorkAction, Observer):
         return self.child_actions[name]
 
     def parameters(self ):
+        if self._parameters_cache is not None:
+            return self._parameters_cache
         vrs = set()
         for ch in self.child_actions.values():
             vrs = vrs | ch.parameters()
+        self._parameters_cache = vrs
         return vrs
 
     def __str__(self ):

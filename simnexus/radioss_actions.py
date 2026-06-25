@@ -458,6 +458,8 @@ class RadiossAnalysis(WorkAction,RadiossAnalysisBase):
 
         if val_dict is None: val_dict = {}
 
+        val_dict = self._reduce_to_self_parameters( val_dict )
+
         with open( 'radioss_variables.json','w' ) as vf:
             json.dump( val_dict, vf )
 
@@ -485,6 +487,9 @@ class RadiossAnalysis(WorkAction,RadiossAnalysisBase):
         Returns:
             set: Set of Variable instances.
         """
+        if self._parameters_cache is not None:
+            return self._parameters_cache
+
         file_to_open = Path(self.starter_input_path)
 
         if not file_to_open.exists():
@@ -504,6 +509,7 @@ class RadiossAnalysis(WorkAction,RadiossAnalysisBase):
                     variables.add(simvars.StrSetVariable(name, str(value)))
                 else:
                     variables.add(simvars.UnknownVariable(name, value))
+        self._parameters_cache = variables
         return variables
 
     def write_deck( self, dpath, variable_dict=None ):

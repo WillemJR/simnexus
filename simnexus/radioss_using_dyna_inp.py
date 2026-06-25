@@ -54,6 +54,8 @@ class RadiossUsingDynaInput(RadiossAnalysis):
 
         if val_dict is None: val_dict = {}
 
+        val_dict = self._reduce_to_self_parameters( val_dict )
+
         with open( 'dyna_variables.json','w' ) as vf:
             json.dump( val_dict, vf )
 

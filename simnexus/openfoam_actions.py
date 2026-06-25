@@ -54,6 +54,9 @@ class OpenFOAMAnalysis( WorkAction ):
         Returns:
             set: Set of type Variable.
         """
+        if self._parameters_cache is not None:
+            return self._parameters_cache
+
         par_file = Path.cwd() / 'system' / 'parameters'
         if not par_file.exists():
             logger.warning("Parameters (system/parameters) file not found. Have the files been copied yet?")
@@ -82,6 +85,7 @@ class OpenFOAMAnalysis( WorkAction ):
             except ValueError:
                 vars_list.add(simvars.UnknownVariable(name, val_str, description=descr ))
 
+        self._parameters_cache = vars_list
         return vars_list
 
     def _update_parameters(self, val_dict):
@@ -129,6 +133,7 @@ class OpenFOAMAnalysis( WorkAction ):
             bool: True if all commands succeeded.
         """
 
+        val_dict = self._reduce_to_self_parameters(val_dict)
         if val_dict:
             self._update_parameters(val_dict)
 

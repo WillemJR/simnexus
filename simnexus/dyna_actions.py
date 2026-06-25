@@ -67,6 +67,8 @@ class DynaAnalysis(WorkAction):
 
         if val_dict is None: val_dict = {}
 
+        val_dict = self._reduce_to_self_parameters( val_dict )
+
         with open( 'dyna_variables.json','w' ) as vf:
             json.dump( val_dict, vf )
 
@@ -162,6 +164,9 @@ class DynaAnalysis(WorkAction):
         Returns
             set : Set of Variables.
         """
+        if self._parameters_cache is not None:
+            return self._parameters_cache
+
         file_to_open = Path( self.input_file_path )
 
         if not file_to_open.exists():
@@ -182,6 +187,7 @@ class DynaAnalysis(WorkAction):
                 else:
                     variables.add( simvars.UnknownVariable(name, None, description=descr) )
 
+        self._parameters_cache = variables
         return variables
 
 

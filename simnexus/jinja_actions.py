@@ -81,8 +81,11 @@ class JinjaReplace(WorkAction):
         Returns
             set : Set of type UnknownVariable.
         """
+        if self._parameters_cache is not None:
+            return self._parameters_cache
         descr = f"From \'{self.input_file_path}\'"
-        return { simnexus.variables.UnknownVariable(pn, None, description=descr) for pn in self.par_names }
+        self._parameters_cache = { simnexus.variables.UnknownVariable(pn, None, description=descr) for pn in self.par_names }
+        return self._parameters_cache
 
     def _find_input_file( self ):
         """Locate the input file, checking self.input_file_path first,

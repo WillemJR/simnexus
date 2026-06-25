@@ -48,6 +48,7 @@ class WorkAction(Subject):
 
         self.data_type = data_type
         self._par_dict = {}
+        self._parameters_cache = None
 
     def _collect_arg_pars(self ):
         self._par_dict = {}
@@ -194,8 +195,30 @@ class WorkAction(Subject):
         Returns:
             set : Set of type Variable.
         """
+        if self._parameters_cache is not None:
+            return self._parameters_cache
         var_set = { v for k,v in self._par_dict.items() }
+        self._parameters_cache = var_set
         return var_set
+
+    def _reduce_to_self_parameters( self, val_dict ):
+        """
+        Reduce a dictionary to only the entries whose keys match the
+        names of this action's parameters.
+
+        Use this in solve() to keep only the values relevant to this
+        specific action, discarding any other values that may be
+        passed down the workflow.
+
+        Arguments:
+            val_dict (dict) : variable values and input of any type.
+        Returns:
+            dict : new dict containing only keys that are parameter names.
+        """
+        if val_dict is None:
+            return {}
+        param_names = { v.name for v in self.parameters() }
+        return { k: v for k, v in val_dict.items() if k in param_names }
 
     def results(self):
         return self._results
