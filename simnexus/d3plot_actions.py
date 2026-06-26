@@ -175,7 +175,7 @@ class _d3plot_NodalFieldData(WorkAction):
                 print( f' *** ERROR: State {self.kwargs["state"]} requested. Data has {d3p.arrays[self.kwargs["component"]].shape[0]} states. Note that first state has index 0.' )
             exit( f' *** ERROR Requested component data not available in d3plot for \'{self.name}\'')
         if 'required_part_id' in self.kwargs:
-            data = self.parent._part_only_nodal( self.kwargs['required_part_id'], dat ) 
+            data = self.parent._part_only_nodal( self.kwargs['required_part_id'], data ) 
         return data
 
 
