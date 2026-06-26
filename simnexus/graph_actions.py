@@ -618,9 +618,9 @@ class DirectedGraph(WorkAction, Observer):
     def parameters(self ):
         if self._parameters_cache is not None:
             return self._parameters_cache
-        vrs = set()
+        vrs = []
         for ch in self.child_actions.values():
-            vrs = vrs | ch.parameters()
+            self._merge_parameters( vrs, ch.parameters() )
         self._parameters_cache = vrs
         return vrs
 

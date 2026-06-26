@@ -162,7 +162,7 @@ class DynaAnalysis(WorkAction):
         the LS-DYNA input deck.
 
         Returns
-            set : Set of Variables.
+            list : List of Variables.
         """
         if self._parameters_cache is not None:
             return self._parameters_cache
@@ -171,21 +171,21 @@ class DynaAnalysis(WorkAction):
 
         if not file_to_open.exists():
             logger.warning( f"Cannot find input file for parameters(): {self.input_file_path}" )
-            return set()
+            return []
 
-        variables = set()
+        variables = []
         descr = f"From \'{self.input_file_path}\'"
         with dynakw.DynaKeywordReader( file_to_open ) as dkr:
             params = dkr.parameters()
             for name, value in params.items():
                 if isinstance(value, float):
-                    variables.add( simvars.FloatVariable(name, value, description=descr) )
+                    self._append_unique_parameter( variables, simvars.FloatVariable(name, value, description=descr) )
                 elif isinstance(value, int):
-                    variables.add( simvars.IntSetVariable(name, value, description=descr) )
+                    self._append_unique_parameter( variables, simvars.IntSetVariable(name, value, description=descr) )
                 elif isinstance(value, str):
-                    variables.add( simvars.StrSetVariable(name, value, description=descr) )
+                    self._append_unique_parameter( variables, simvars.StrSetVariable(name, value, description=descr) )
                 else:
-                    variables.add( simvars.UnknownVariable(name, None, description=descr) )
+                    self._append_unique_parameter( variables, simvars.UnknownVariable(name, None, description=descr) )
 
         self._parameters_cache = variables
         return variables

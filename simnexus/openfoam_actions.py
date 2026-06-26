@@ -52,7 +52,7 @@ class OpenFOAMAnalysis( WorkAction ):
         Returns the variables defined in system/parameters file.
 
         Returns:
-            set: Set of type Variable.
+            list: List of type Variable.
         """
         if self._parameters_cache is not None:
             return self._parameters_cache
@@ -60,9 +60,9 @@ class OpenFOAMAnalysis( WorkAction ):
         par_file = Path.cwd() / 'system' / 'parameters'
         if not par_file.exists():
             logger.warning("Parameters (system/parameters) file not found. Have the files been copied yet?")
-            return set()
+            return []
 
-        vars_list = set()
+        vars_list = []
         with open(par_file, 'r') as f:
             content = f.read()
 
@@ -81,9 +81,9 @@ class OpenFOAMAnalysis( WorkAction ):
             val_str = val_str.strip()
             try:
                 val = float(val_str)
-                vars_list.add(simvars.FloatVariable(name, val, description=descr ))
+                self._append_unique_parameter(vars_list, simvars.FloatVariable(name, val, description=descr ))
             except ValueError:
-                vars_list.add(simvars.UnknownVariable(name, val_str, description=descr ))
+                self._append_unique_parameter(vars_list, simvars.UnknownVariable(name, val_str, description=descr ))
 
         self._parameters_cache = vars_list
         return vars_list

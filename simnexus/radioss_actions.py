@@ -485,7 +485,7 @@ class RadiossAnalysis(WorkAction,RadiossAnalysisBase):
         """Returns the variables defined in the Radioss input file.
 
         Returns:
-            set: Set of Variable instances.
+            list: List of Variable instances.
         """
         if self._parameters_cache is not None:
             return self._parameters_cache
@@ -494,21 +494,21 @@ class RadiossAnalysis(WorkAction,RadiossAnalysisBase):
 
         if not file_to_open.exists():
             logger.warning(f"Cannot find input file for parameters(): {self.starter_input_path}")
-            return set()
+            return []
 
-        variables = set()
+        variables = []
         with OpenRadiosKeywordReader(file_to_open) as orkr:
             for name, (ptype, value) in orkr.parameters().items():
                 if ptype == 'REAL':
-                    variables.add(simvars.FloatVariable(name, float(value)))
+                    self._append_unique_parameter(variables, simvars.FloatVariable(name, float(value)))
                 elif ptype == 'INTEGER':
-                    variables.add(simvars.IntSetVariable(name, int(value)))
+                    self._append_unique_parameter(variables, simvars.IntSetVariable(name, int(value)))
                 elif ptype in ('REAL_EXPR', 'INT_EXPR'):
-                    variables.add(simvars.UnknownVariable(name, value))
+                    self._append_unique_parameter(variables, simvars.UnknownVariable(name, value))
                 elif ptype == 'TEXT':
-                    variables.add(simvars.StrSetVariable(name, str(value)))
+                    self._append_unique_parameter(variables, simvars.StrSetVariable(name, str(value)))
                 else:
-                    variables.add(simvars.UnknownVariable(name, value))
+                    self._append_unique_parameter(variables, simvars.UnknownVariable(name, value))
         self._parameters_cache = variables
         return variables
 

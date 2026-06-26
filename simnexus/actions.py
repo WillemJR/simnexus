@@ -11,7 +11,7 @@ from abc import ABC, abstractmethod
 
 from simnexus.util.observer import Subject, notify_observers
 
-from simnexus.variables import Variable
+from simnexus.variables import Variable, UnknownVariable
 
 
 class WorkAction(Subject):
@@ -185,6 +185,56 @@ class WorkAction(Subject):
         """
         assert 0, 'should not be called'
 
+    @staticmethod
+    def _append_unique_parameter( param_list, var ):
+        """
+        Append a Variable to param_list unless a parameter with the
+        same name is already present.
+
+        If an existing parameter has the same name and the same type,
+        the duplicate is skipped. If one of them is an UnknownVariable
+        and the other has a known type, the known type is kept. If an
+        existing parameter has the same name but a different known type,
+        an AssertionError is raised.
+
+        Arguments:
+            param_list (list) : list of Variable being built.
+            var (Variable) : variable to append.
+        """
+        for i, existing in enumerate( param_list ):
+            if existing.name == var.name:
+                if type(existing) is type(var):
+                    return
+                if isinstance(existing, UnknownVariable):
+                    # resolve the placeholder to the known type
+                    param_list[i] = var
+                    return
+                if isinstance(var, UnknownVariable):
+                    # keep the already known type
+                    return
+                assert False, (
+                    f"Parameter '{var.name}' defined with conflicting types: "
+                    f"{type(existing).__name__} and {type(var).__name__}"
+                )
+        param_list.append( var )
+
+    @staticmethod
+    def _merge_parameters( param_list, variables ):
+        """
+        Merge an iterable of Variable into param_list, skipping
+        same-name/same-type duplicates and asserting on same-name/
+        different-type conflicts.
+
+        Arguments:
+            param_list (list) : list of Variable being built.
+            variables (iterable) : variables to merge in.
+        Returns:
+            list : param_list, for convenience.
+        """
+        for var in variables:
+            WorkAction._append_unique_parameter( param_list, var )
+        return param_list
+
     def parameters( self ):
         """
         These are the parameters defined for the WorkAction
@@ -193,13 +243,15 @@ class WorkAction(Subject):
         all the children.
 
         Returns:
-            set : Set of type Variable.
+            list : List of type Variable.
         """
         if self._parameters_cache is not None:
             return self._parameters_cache
-        var_set = { v for k,v in self._par_dict.items() }
-        self._parameters_cache = var_set
-        return var_set
+        var_list = []
+        for k, v in self._par_dict.items():
+            self._append_unique_parameter( var_list, v )
+        self._parameters_cache = var_list
+        return var_list
 
     def _reduce_to_self_parameters( self, val_dict ):
         """
