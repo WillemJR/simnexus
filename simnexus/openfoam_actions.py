@@ -10,7 +10,7 @@ from typing import List, Tuple, Optional
 import logging
 logger = logging.getLogger(__name__)
 
-from simnexus.args import Location, JobType
+from simnexus.args import Location, JobType, EvalType
 from simnexus.actions import WorkAction
 import simnexus.variables as simvars
 from simnexus.util.openfoam_reader import OpenFOAMFieldReader
@@ -174,7 +174,7 @@ class OpenFOAM_Field( WorkAction ):
         self.time = time
         self.location = location
         self.field_var = field_variable
-        self.data_type = np.array
+        self.data_type = EvalType.NUMERICAL
         self.description = f'OpenFOAM field of variable {field_variable} at time {time} at location {location}'
 
     @WorkAction.assign_variables_values_to_members
@@ -204,7 +204,7 @@ class OpenFOAM_History( WorkAction ):
         super().__init__( name )
         self.point_idx = point_idx
         self.field_var = field_variable
-        self.data_type = np.array
+        self.data_type = EvalType.NUMERICAL
         self.description = f'OpenFOAM time history of variable {field_variable} at point index {point_idx}'
 
     @WorkAction.assign_variables_values_to_members
