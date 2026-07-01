@@ -62,8 +62,13 @@ class WorkArea(WorkAction):
         super().__init__( graph.name+'_WorkArea', "", copy_paths=copy_paths+graph.copy_paths )
         self.graph = graph
         if work_area_path is None:
-            work_area_path = Path.cwd().joinpath( self.graph.name )
-        
+            # Keep the default relative (./{graph.name}) so the work area is
+            # created under the *current* directory at run time. This lets a
+            # WorkArea nest inside a SimulationIterator's per-design job
+            # directory instead of being created next to it (baking in the
+            # cwd at construction time put it outside the job directory).
+            work_area_path = self.graph.name
+
         # Expand ~ and environment variables
         expanded_path = os.path.expandvars(os.path.expanduser(str(work_area_path)))
         self.work_area_path = Path(expanded_path)

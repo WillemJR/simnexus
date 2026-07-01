@@ -209,8 +209,51 @@ def test_mdo():
     area2.rm_rundir()
 
 
+def test_workarea_nested_in_iterator():
+    """A WorkArea nested inside a SimulationIterator must create its
+    directory *inside* the per-design job_N directory, not next to it.
+
+    Regression test: the work-area path used to be baked in as an absolute
+    path at construction time, so the WorkArea was created at the original
+    cwd instead of inside the iterator's job directory.
+    """
+    root = Path.cwd()
+    results_dir = root / 'IterResults'
+    stray_dir = root / 'InnerSolver'   # the old, buggy location
+
+    # Make sure a previous run cannot mask the result.
+    import shutil
+    if results_dir.exists(): shutil.rmtree(results_dir)
+    if stray_dir.exists():   shutil.rmtree(stray_dir)
+
+    inner = DirectedGraph('InnerSolver')
+    inner.add_action( ExampleNode('Inner') )
+    area = WorkArea( inner )            # default (relative) work-area path
+
+    outer = DirectedGraph('Outer')
+    outer.add_action( area )
+
+    itr = SimulationIterator( outer, work_area_path=results_dir, clean_start=True )
+
+    # Print the action graph and the predicted work-directory structure.
+    print()
+    itr.describe_workflow()
+
+    itr.solve( {"V1": 5} )
+
+    job0 = results_dir / 'job_0'
+    assert job0.is_dir()
+    # The work area lives *inside* the job directory ...
+    assert (job0 / 'InnerSolver').is_dir()
+    # ... and NOT next to the results directory (the old buggy location).
+    assert not stray_dir.exists()
+
+    itr.rm_rundir()
+
+
 if __name__ == "__main__":
-    test_mdo()
+    test_workarea_nested_in_iterator()
+    #test_mdo()
     #test_split_stream()
     #test_area()
     #test_iter()

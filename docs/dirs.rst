@@ -36,12 +36,18 @@ the run.
     wa = WorkArea(wf, copy_paths=['path/to/spring.k'])
     results = wa.solve({'K': 200.0})
 
-By default the work directory is ``{cwd}/{graph.name}``.
-A custom path can be supplied as the second argument::
+By default the work directory is ``./{graph.name}`` — created relative to
+the current directory at run time (not the directory in which the
+``WorkArea`` was constructed). This means a ``WorkArea`` can be nested
+inside a ``SimulationIterator``: it is created *inside* the current
+``job_N`` directory rather than next to it. A custom path can be supplied
+as the second argument::
 
     wa = WorkArea(wf, work_area_path='~/runs/spring', copy_paths=['path/to/spring.k'])
 
-The directory path may contain ``~`` and environment variables; both are
+An explicit relative path is likewise resolved against the current
+directory at run time, while an absolute path is used as given. The
+directory path may contain ``~`` and environment variables; both are
 expanded automatically.
 
 
