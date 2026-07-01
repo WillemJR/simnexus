@@ -156,6 +156,16 @@ class DynaAnalysis(WorkAction):
         return have_normal_termination
 
 
+    def _produced_files( self ):
+        return [
+            'dyna_variables.json',
+            self.root_name + '.k',
+            'run_file.stdout',
+            'run_file.stderr',
+            'd3plot*',
+            'd3hsp',
+        ]
+
     def parameters( self ):
         """ Returns the variables defined in the template.
         The type and value of the variables are as in

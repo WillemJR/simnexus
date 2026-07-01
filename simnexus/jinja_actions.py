@@ -66,6 +66,9 @@ class JinjaReplace(WorkAction):
             self.template = None
 
 
+    def _produced_files( self ):
+        return [ self.output_file_path ]
+
     def _parameter_names( self ):
         """ Returns the set of parameter names found in the template.
 

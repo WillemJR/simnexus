@@ -13,7 +13,7 @@ from pathlib import Path
 import simnexus.actions, simnexus.radioss_actions
 from simnexus.variables import FloatVariable
 from simnexus.jinja_actions import JinjaReplace
-from simnexus.graph_actions import WorkFlow, WorkArea
+from simnexus.graph_actions import WorkFlow, WorkArea, SimulationIterator
 from simnexus.dyna_actions import DynaAnalysis
 from simnexus.radioss_actions import RadiossAnalysis
 from simnexus.d3plot_actions import d3plot_File
@@ -28,8 +28,8 @@ logging.basicConfig(filename='eval.log', filemode='w', level=logging.INFO )
 from simnexus.args import OptType, DYNA_BASE_FILE_NAME
 
 def create_wa( wa_id='' ):
-    starter_deck = Path('models/cube_TYPE7_0000.rad')
-    engine_deck  = Path('models/cube_TYPE7_0001.rad')
+    starter_deck = Path(__file__).parent.parent / 'models' / 'cube_TYPE7_0000.rad'
+    engine_deck  = Path(__file__).parent.parent / 'models' / 'cube_TYPE7_0001.rad'
 
     if not starter_deck.exists() or not engine_deck.exists():
         print(f"Error: {starter_deck} or {engine_deck}not found. Run from project root.")
@@ -54,6 +54,14 @@ def create_wa( wa_id='' ):
     wrk_area = WorkArea( wf, copy_paths=[starter_deck,engine_deck] )
 
     return wrk_area
+
+def print_structure( action ):
+    """Print the action graph and the resulting work directory structure.
+
+    Neither requires the solvers to be installed or the workflow to be run.
+    """
+    print( f'\n==================== graph {action.name} structure ====================' )
+    action.describe_workflow()
 
 def create_graph( wa1, wa2 ):
 
@@ -118,11 +126,31 @@ def run_graph( graph ):
     ret = graph.solve( val_dict )
 
 
+def create_iterator( graph ):
+    """Build a SimulationIterator wrapping a Radioss workflow.
+
+    """
+
+    itr = SimulationIterator( graph, work_area_path='Radioss_Iter'+str(wa_id),
+                              copy_paths=[starter_deck, engine_deck] )
+
+    return itr
+
 if __name__ == '__main__':
+
+    # Print the action graph and predicted work directory structure.
+    # This works without the solvers installed and without running anything.
     wa = create_wa ( 1 )
+    if wa is not None:
+        print_structure( wa )
+
     wa2 = create_wa ( 2 )
     g = create_graph( wa, wa2 )
     #reset_vars( wa, wa2, g )
+    print_structure( g )
     run_graph( g )
 
+
+    itr = create_iterator( g )
+    print_structure( itr )
 

@@ -14,6 +14,31 @@ from simnexus.util.observer import Subject, notify_observers
 from simnexus.variables import Variable, UnknownVariable
 
 
+def render_tree( root ):
+    """
+    Render a tree as an ASCII string with ``├──``/``└──`` connectors.
+
+    Arguments:
+        root (tuple) : A ``(label, children)`` node, where ``label`` is a
+            string and ``children`` is a list of the same ``(label, children)``
+            node tuples.
+    Returns:
+        str : The rendered multi-line tree.
+    """
+    lines = [ root[0] ]
+    _render_children( root[1], '', lines )
+    return '\n'.join( lines )
+
+
+def _render_children( children, prefix, lines ):
+    for i, child in enumerate( children ):
+        last = ( i == len( children ) - 1 )
+        connector = '└── ' if last else '├── '
+        lines.append( prefix + connector + child[0] )
+        extension = '    ' if last else '│   '
+        _render_children( child[1], prefix + extension, lines )
+
+
 class WorkAction(Subject):
     """
     Base class for the nodes in the graph.
@@ -292,8 +317,112 @@ class WorkAction(Subject):
         if self.name in name_list: exit( f" *** Error Duplicate actions name \'{self.name}\'" )
         name_list.append( self.name )
 
+    # ------------------------------------------------------------------
+    # Tree / directory-structure display
+    # ------------------------------------------------------------------
+    def _tree_children( self ):
+        """
+        The child actions used when printing the action tree.
+
+        A plain action has no children. Wrappers (``WorkArea``,
+        ``SimulationIterator``) and graphs (``DirectedGraph``,
+        ``WorkFlow``) override this.
+
+        Returns:
+            list : list of child WorkAction instances.
+        """
+        return []
+
+    def _tree_label( self, describe=False ):
+        """
+        Label for this action in the action tree.
+
+        Arguments:
+            describe (bool) : Append the action's description.
+        Returns:
+            str : label string.
+        """
+        label = f"{type(self).__name__} '{self.name}'"
+        if describe and self.description:
+            # keep the tree on one line per node
+            first_line = self.description.strip().splitlines()[0]
+            label += f"  — {first_line}"
+        return label
+
+    def _action_tree( self, describe=False ):
+        """Build the ``(label, children)`` node for this action."""
+        return ( self._tree_label( describe ),
+                 [ c._action_tree( describe ) for c in self._tree_children() ] )
+
+    def format_tree( self, describe=False ):
+        """
+        Return the action graph as an ASCII tree, rooted at this action.
+
+        Call this on the top-level action (e.g. a ``SimulationIterator``)
+        to see the whole workflow.
+
+        Arguments:
+            describe (bool) : Include each action's description.
+        Returns:
+            str : the rendered tree.
+        """
+        return render_tree( self._action_tree( describe ) )
+
+    def print_tree( self, describe=False ):
+        """Print the action graph as a tree (see :meth:`format_tree`)."""
+        print( self.format_tree( describe ) )
+
+    def _produced_files( self ):
+        """
+        Names of files/directories this action writes into its run
+        directory. Best-effort prediction used for the work-directory
+        display; solver actions override this. A trailing ``/`` marks a
+        directory.
+
+        Returns:
+            list : list of names (str).
+        """
+        return []
+
+    def _work_dir_entries( self ):
+        """Directory entries this action contributes, as tree nodes."""
+        return [ ( f, [] ) for f in self._produced_files() ]
+
+    def _work_dir_tree( self ):
+        """Build the ``(label, children)`` node for the work directory."""
+        return ( './   (current working directory)', self._work_dir_entries() )
+
+    def format_work_dir( self ):
+        """
+        Return the predicted work-directory structure as an ASCII tree.
+
+        Shows the directories and files that running this action (or
+        workflow) creates on disk.
+
+        Returns:
+            str : the rendered directory tree.
+        """
+        return render_tree( self._work_dir_tree() )
+
+    def print_work_dir( self ):
+        """Print the predicted work-directory structure."""
+        print( self.format_work_dir() )
+
+    def describe_workflow( self, describe=False ):
+        """
+        Print both the action tree and the resulting work-directory
+        structure for this (top-level) action.
+
+        Arguments:
+            describe (bool) : Include each action's description in the tree.
+        """
+        print( 'Action graph:' )
+        self.print_tree( describe )
+        print( '\nWork directory structure:' )
+        self.print_work_dir()
+
     def __str__(self ):
-        r = f'WorkAction: \'{self.name}\' {type(self)}' 
+        r = f'WorkAction: \'{self.name}\' {type(self)}'
         return r
 
 

@@ -16,6 +16,20 @@ import simnexus.args
 import logging
 logger = logging.getLogger(__name__)
 
+
+def _copy_path_nodes( copy_paths ):
+    """Build work-directory tree nodes for files/dirs that get copied in."""
+    nodes = []
+    seen = set()
+    for cp in copy_paths:
+        p = Path( cp )
+        name = p.name + ( '/' if p.is_dir() else '' )
+        if name in seen:
+            continue
+        seen.add( name )
+        nodes.append( ( f'{name}   (copied in)', [] ) )
+    return nodes
+
 class WorkArea(WorkAction):
     """
     Evaluates graph in a seperate directory.
@@ -122,6 +136,13 @@ class WorkArea(WorkAction):
         name_list.append( self.name )
         self.graph._check_names( name_list )
 
+    def _tree_children( self ):
+        return [ self.graph ]
+
+    def _work_dir_tree( self ):
+        children = _copy_path_nodes( self.copy_paths ) + self.graph._work_dir_entries()
+        return ( f'{self.work_area_path}/   (work area, overwritten each run)', children )
+
 
 
 
@@ -183,6 +204,22 @@ class SimulationIterator(WorkAction):
         if self.name in name_list: exit( f" *** Error Duplicate actions name \'{self.name}\'" )
         name_list.append( self.name )
         self.graph._check_names( name_list )
+
+    def _tree_children( self ):
+        return [ self.graph ]
+
+    def _work_dir_tree( self ):
+        job_children = [
+            ( 'iter_variables.json   (this design\'s variable values)', [] ),
+            ( 'actions_output.pkl   (this design\'s action outputs)', [] ),
+        ]
+        job_children += _copy_path_nodes( self.copy_paths )
+        job_children += self.graph._work_dir_entries()
+        children = [
+            ( f'{self.JNAME}0/   (one directory per design evaluation)', job_children ),
+            ( f'{self.JNAME}1/ … {self.JNAME}N/', [] ),
+        ]
+        return ( f'{self.work_area_path}/   (results root)', children )
 
     def _in_last_run_dir( func ):
         """ decorator execute last run """
@@ -614,6 +651,27 @@ class DirectedGraph(WorkAction, Observer):
 
     def get_action(self, name ):
         return self.child_actions[name]
+
+    def _tree_children( self ):
+        return list( self.child_actions.values() )
+
+    def _work_dir_entries( self ):
+        """All child actions of a graph run in the same directory, so their
+        produced files are aggregated here."""
+        entries = []
+        seen = set()
+        for ch in self.child_actions.values():
+            for node in ch._work_dir_entries():
+                if node[0] in seen:
+                    continue
+                seen.add( node[0] )
+                entries.append( node )
+        return entries
+
+    def _work_dir_tree( self ):
+        if self.work_area is not None:
+            return self.work_area._work_dir_tree()
+        return ( './   (current working directory)', self._work_dir_entries() )
 
     def parameters(self ):
         if self._parameters_cache is not None:

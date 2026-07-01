@@ -47,6 +47,12 @@ class OpenFOAMAnalysis( WorkAction ):
             self.job_flag = job_flag
         self.description = f'OpenFOAM analysis using solver {solve_cmd}'
 
+    def _produced_files( self ):
+        files = [ 'system/parameters', 'openfoam.stdout', 'openfoam.stderr' ]
+        if self.job_flag & JobType.EXTRACT_VTK:
+            files.append( 'VTK/' )
+        return files
+
     def parameters( self ):
         """
         Returns the variables defined in system/parameters file.

@@ -23,7 +23,7 @@ from simnexus.args import RADIOSS_ROOT_NAME
 from simnexus.args import RADIOSS_BASE_F_NAME # _0000
 from simnexus.args import RADIOSS_ENGINE_F_NAME # _0001
 
-import simnexus.VTK.read_vtk as read_vtk # pulls in pyvista
+#import simnexus.VTK.read_vtk as read_vtk # pulls in pyvista
 
 #
 # utilities
@@ -478,6 +478,24 @@ class RadiossAnalysis(WorkAction,RadiossAnalysisBase):
 
         return True 
 
+
+    def _produced_files( self ):
+        files = [
+            'radioss_variables.json',
+            RADIOSS_BASE_F_NAME + '.rad',
+            RADIOSS_ENGINE_F_NAME + '.rad',
+            RADIOSS_BASE_F_NAME + '.starter.stdout',
+            RADIOSS_BASE_F_NAME + '.starter.stderr',
+            RADIOSS_ENGINE_F_NAME + '.engine.stdout',
+            RADIOSS_ENGINE_F_NAME + '.engine.stderr',
+        ]
+        if self.create_d3plot:
+            files.append( 'd3plot*' )
+        if self.create_vtk:
+            files.append( RADIOSS_ROOT_NAME + '_*.vtk' )
+        if self.create_csv:
+            files.append( RADIOSS_ROOT_NAME + 'T01.csv' )
+        return files
 
     def parameters(self):
         """Returns the variables defined in the Radioss input file.
