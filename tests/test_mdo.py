@@ -152,4 +152,5 @@ if __name__ == '__main__':
 
     itr = create_iterator( g )
     print_structure( itr )
+    ret = graph.solve( { 'E': 210000.0, } )
 

@@ -131,6 +131,37 @@ single directory it reuses.
     │   └── d3hsp
     └── job_1/ … job_N/
 
+When several sub-workflows run in their own directories — for example a
+``DirectedGraph`` whose children are ``WorkArea`` or ``SimulationIterator``
+wrappers — each child's directory appears as a nested subtree:
+
+.. code-block:: python
+
+    from simnexus.graph_actions import DirectedGraph, WorkFlow, WorkArea
+    from simnexus.dyna_actions import DynaAnalysis
+
+    def make_wa(i):
+        wf = WorkFlow(name=f'WF{i}')
+        wf.add_action(DynaAnalysis(name=f'run{i}', input_path='spring.k'))
+        return WorkArea(wf, work_area_path=f'WF{i}', copy_paths=['spring.k'])
+
+    graph = DirectedGraph('aGraph')
+    graph.add_action(make_wa(1))
+    graph.add_action(make_wa(2))
+    graph.print_work_dir()
+
+.. code-block:: text
+
+    ./   (current working directory)
+    ├── WF1/   (work area, overwritten each run)
+    │   ├── spring.k   (copied in)
+    │   ├── dyna_variables.json
+    │   ├── dyna_action_inp.k
+    │   └── ...
+    └── WF2/   (work area, overwritten each run)
+        ├── spring.k   (copied in)
+        └── ...
+
 Call ``describe_workflow()`` to print both the action tree and the work
 directory structure together. The formatting helpers ``format_tree()`` and
 ``format_work_dir()`` return the same output as strings instead of printing it.
