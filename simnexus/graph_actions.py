@@ -17,6 +17,15 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def _display_path( path ):
+    """Show a work path relative to the current directory when it lives
+    underneath it, otherwise as-is. Keeps nested directory trees readable."""
+    try:
+        return str( Path( path ).relative_to( Path.cwd() ) )
+    except ValueError:
+        return str( path )
+
+
 def _copy_path_nodes( copy_paths ):
     """Build work-directory tree nodes for files/dirs that get copied in."""
     nodes = []
@@ -141,7 +150,12 @@ class WorkArea(WorkAction):
 
     def _work_dir_tree( self ):
         children = _copy_path_nodes( self.copy_paths ) + self.graph._work_dir_entries()
-        return ( f'{self.work_area_path}/   (work area, overwritten each run)', children )
+        return ( f'{_display_path(self.work_area_path)}/   (work area, overwritten each run)', children )
+
+    def _work_dir_entries( self ):
+        # A WorkArea creates its own directory: contribute it as a subtree
+        # rather than flattening files into the parent directory.
+        return [ self._work_dir_tree() ]
 
 
 
@@ -219,7 +233,12 @@ class SimulationIterator(WorkAction):
             ( f'{self.JNAME}0/   (one directory per design evaluation)', job_children ),
             ( f'{self.JNAME}1/ … {self.JNAME}N/', [] ),
         ]
-        return ( f'{self.work_area_path}/   (results root)', children )
+        return ( f'{_display_path(self.work_area_path)}/   (results root)', children )
+
+    def _work_dir_entries( self ):
+        # A SimulationIterator creates its own results directory: contribute
+        # it as a subtree rather than flattening files into the parent.
+        return [ self._work_dir_tree() ]
 
     def _in_last_run_dir( func ):
         """ decorator execute last run """
@@ -656,8 +675,12 @@ class DirectedGraph(WorkAction, Observer):
         return list( self.child_actions.values() )
 
     def _work_dir_entries( self ):
-        """All child actions of a graph run in the same directory, so their
-        produced files are aggregated here."""
+        """Child actions of a graph run in the same directory, so their
+        produced files are aggregated here. Children that create their own
+        directory (a WorkArea, SimulationIterator, or a graph with its own
+        work area) contribute that directory as a subtree instead."""
+        if self.work_area is not None:
+            return [ self.work_area._work_dir_tree() ]
         entries = []
         seen = set()
         for ch in self.child_actions.values():

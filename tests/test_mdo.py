@@ -131,8 +131,7 @@ def create_iterator( graph ):
 
     """
 
-    itr = SimulationIterator( graph, work_area_path='Radioss_Iter'+str(wa_id),
-                              copy_paths=[starter_deck, engine_deck] )
+    itr = SimulationIterator( graph, work_area_path='Radioss_Iter' )
 
     return itr
 
