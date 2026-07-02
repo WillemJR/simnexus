@@ -1,4 +1,5 @@
 import os
+import keyword
 from abc import ABC, abstractmethod
 import numpy as np
 
@@ -12,6 +13,32 @@ from abc import ABC, abstractmethod
 from simnexus.util.observer import Subject, notify_observers
 
 from simnexus.variables import Variable, UnknownVariable
+
+
+def validate_action_name( name ):
+    """
+    Ensure an action name can be used safely as a variable in expressions.
+
+    Action names become keys in the ``val_dict`` that is passed to
+    ``MathEvaluation``, whose ``solve()`` runs ``eval(cmd, None, val_dict)``.
+    For a name to be referenceable there it must be a valid Python identifier
+    (letters, digits and underscores, not starting with a digit) and must not
+    be a Python keyword. A name such as ``'m__case_1__TE all'`` (embedded
+    space) would break the ``eval`` and is rejected here.
+
+    Arguments:
+        name (str) : the proposed action name.
+    Returns:
+        str : the validated name (returned for convenience).
+    """
+    if not isinstance( name, str ) or not name:
+        exit( f" *** Error Action name must be a non-empty string, got {name!r}." )
+    if not name.isidentifier() or keyword.iskeyword( name ):
+        exit( f" *** Error Invalid action name {name!r}. Action names must be valid "
+              f"Python identifiers (letters, digits and underscores, not starting "
+              f"with a digit, not a Python keyword) so they can be used in "
+              f"MathEvaluation expressions." )
+    return name
 
 
 def render_tree( root ):
@@ -59,7 +86,7 @@ class WorkAction(Subject):
         """
         """
         super().__init__()
-        self.name = name
+        self.name = validate_action_name( name )
         self.cmd = cmd          # backward compatible with simulation
         self.copy_paths = copy_paths
         self.upper_bound = upper_bound # backward compatible with simulation

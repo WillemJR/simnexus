@@ -53,6 +53,8 @@ Key features:
 
 Subclasses of `WorkAction` implement specific tasks, such as `MathEvaluation` (performing calculations), or `CurveSimilarity` (comparing simulation results to experimental data).
 
+**Action names** must be valid Python identifiers (letters, digits and underscores, not starting with a digit, and not a Python keyword). Names become keys in `val_dict`, and `MathEvaluation` evaluates its expression with `eval(cmd, None, val_dict)`, so a name containing a space or other punctuation (e.g. `'m__case_1__TE all'`) would break the expression. Names are validated in `WorkAction.__init__` via `validate_action_name()`; an invalid name aborts with an error.
+
 # Variables 
 Actions can accept `Variable` objects as arguments during initialization.
 

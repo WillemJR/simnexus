@@ -228,13 +228,13 @@ def test_workarea_nested_in_iterator():
 
     #inner = DirectedGraph('InnerSolver')
     inner = WorkFlow('InnerSolver')
-    inner.add_action( ExampleNode('Inner ExaNode1') )
-    inner.add_action( ExampleNode('Inner ExaNode2') )
+    inner.add_action( ExampleNode('Inner_ExaNode1') )
+    inner.add_action( ExampleNode('Inner_ExaNode2') )
     area = WorkArea( inner )            # default (relative) work-area path
 
     outer = DirectedGraph('Outer')
     outer.add_action( area )
-    outer.add_action( ExampleNode('Outer ExaNode'), parents=[area] )
+    outer.add_action( ExampleNode('Outer_ExaNode'), parents=[area] )
 
     itr = SimulationIterator( outer, work_area_path=results_dir, clean_start=True )
 
@@ -248,8 +248,8 @@ def test_workarea_nested_in_iterator():
     # The WorkArea's inner graph outputs must be flattened *before* the
     # dependent 'Outer ExaNode' runs, so they appear at the top level (not
     # nested under the WorkArea's name, which itself adds nothing -> None).
-    assert s == {'V1': 5, 'Inner ExaNode1': 1, 'Inner ExaNode2': 1,
-                 'InnerSolver_WorkArea': None, 'Outer ExaNode': 1}
+    assert s == {'V1': 5, 'Inner_ExaNode1': 1, 'Inner_ExaNode2': 1,
+                 'InnerSolver_WorkArea': None, 'Outer_ExaNode': 1}
 
     job0 = results_dir / 'job_0'
     assert job0.is_dir()
@@ -277,12 +277,12 @@ def test_workarea_nested_in_workarea():
     if stray_dir.exists(): shutil.rmtree(stray_dir)
 
     inner = DirectedGraph('InnerSolver')
-    inner.add_action( ExampleNode('Inner ExaNode') )
+    inner.add_action( ExampleNode('Inner_ExaNode') )
     inner_area = WorkArea( inner )     # default (relative) work-area path
 
     outer = DirectedGraph('OuterSolver')
     outer.add_action( inner_area )
-    outer.add_action( ExampleNode('Outer ExaNode'), parents=[inner_area] )
+    outer.add_action( ExampleNode('Outer_ExaNode'), parents=[inner_area] )
     outer_area = WorkArea( outer )     # default (relative) work-area path
 
     # Print the action graph and the predicted work-directory structure.
@@ -294,7 +294,7 @@ def test_workarea_nested_in_workarea():
 
     # The inner WorkArea's graph outputs are flattened into the result;
     # the WorkArea itself adds nothing (its own key maps to None).
-    assert s == {'V1': 5, 'InnerSolver_WorkArea': None, 'Inner ExaNode': 1, 'Outer ExaNode': 1}
+    assert s == {'V1': 5, 'InnerSolver_WorkArea': None, 'Inner_ExaNode': 1, 'Outer_ExaNode': 1}
 
     assert outer_dir.is_dir()
     # The inner work area lives *inside* the outer one ...
@@ -303,6 +303,25 @@ def test_workarea_nested_in_workarea():
     assert not stray_dir.exists()
 
     outer_area.rm_rundir()
+
+
+def test_invalid_action_names():
+    """Action names must be valid Python identifiers so they can be used
+    in MathEvaluation's eval(). Names with spaces, other punctuation, a
+    leading digit, or Python keywords are rejected at construction."""
+    import pytest
+
+    # A space breaks the eval command (the example from the request).
+    with pytest.raises(SystemExit):
+        ExampleNode('m__case_1__TE all')
+
+    for bad in ['has space', 'has-dash', '1leading', 'a.b', 'class', '']:
+        with pytest.raises(SystemExit):
+            ExampleNode(bad)
+
+    # Valid identifiers are accepted.
+    for ok in ['m__case_1__TE_all', 'Head', 'Branch_11', '_private']:
+        assert ExampleNode(ok).name == ok
 
 
 if __name__ == "__main__":
