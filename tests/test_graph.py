@@ -226,13 +226,15 @@ def test_workarea_nested_in_iterator():
     if results_dir.exists(): shutil.rmtree(results_dir)
     if stray_dir.exists():   shutil.rmtree(stray_dir)
 
-    inner = DirectedGraph('InnerSolver')
-    inner.add_action( ExampleNode('Inner ExaNode') )
+    #inner = DirectedGraph('InnerSolver')
+    inner = WorkFlow('InnerSolver')
+    inner.add_action( ExampleNode('Inner ExaNode1') )
+    inner.add_action( ExampleNode('Inner ExaNode2') )
     area = WorkArea( inner )            # default (relative) work-area path
 
     outer = DirectedGraph('Outer')
     outer.add_action( area )
-    outer.add_action( ExampleNode('Outer ExaNode') )
+    outer.add_action( ExampleNode('Outer ExaNode'), parents=[area] )
 
     itr = SimulationIterator( outer, work_area_path=results_dir, clean_start=True )
 
@@ -242,6 +244,12 @@ def test_workarea_nested_in_iterator():
 
     s = itr.solve( {"V1": 5} )
     print( 'Results:', s )
+
+    # The WorkArea's inner graph outputs must be flattened *before* the
+    # dependent 'Outer ExaNode' runs, so they appear at the top level (not
+    # nested under the WorkArea's name, which itself adds nothing -> None).
+    assert s == {'V1': 5, 'Inner ExaNode1': 1, 'Inner ExaNode2': 1,
+                 'InnerSolver_WorkArea': None, 'Outer ExaNode': 1}
 
     job0 = results_dir / 'job_0'
     assert job0.is_dir()
@@ -274,7 +282,7 @@ def test_workarea_nested_in_workarea():
 
     outer = DirectedGraph('OuterSolver')
     outer.add_action( inner_area )
-    outer.add_action( ExampleNode('Outer ExaNode') )
+    outer.add_action( ExampleNode('Outer ExaNode'), parents=[inner_area] )
     outer_area = WorkArea( outer )     # default (relative) work-area path
 
     # Print the action graph and the predicted work-directory structure.
@@ -298,8 +306,8 @@ def test_workarea_nested_in_workarea():
 
 
 if __name__ == "__main__":
-    test_workarea_nested_in_iterator()
-    #test_workarea_nested_in_workarea()
+    #test_workarea_nested_in_iterator()
+    test_workarea_nested_in_workarea()
     #test_mdo()
     #test_split_stream()
     #test_area()
