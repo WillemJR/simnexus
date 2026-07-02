@@ -18,7 +18,7 @@ input_path = Path(__file__).parent.parent / "tests" / "spring.k"
 class ExampleNode(WorkAction):
     def solve(self, val_dict=None):
         # Example solve logic
-        print( 'vd', self.name, val_dict)
+        print( 'ExampleNode.solve', self.name, val_dict)
         input_val = val_dict.get(self.name, 0) if val_dict else 0
         return input_val + 1
 import time
@@ -227,11 +227,12 @@ def test_workarea_nested_in_iterator():
     if stray_dir.exists():   shutil.rmtree(stray_dir)
 
     inner = DirectedGraph('InnerSolver')
-    inner.add_action( ExampleNode('Inner') )
+    inner.add_action( ExampleNode('Inner ExaNode') )
     area = WorkArea( inner )            # default (relative) work-area path
 
     outer = DirectedGraph('Outer')
     outer.add_action( area )
+    outer.add_action( ExampleNode('Outer ExaNode') )
 
     itr = SimulationIterator( outer, work_area_path=results_dir, clean_start=True )
 
@@ -239,7 +240,8 @@ def test_workarea_nested_in_iterator():
     print()
     itr.describe_workflow()
 
-    itr.solve( {"V1": 5} )
+    s = itr.solve( {"V1": 5} )
+    print( 'Results:', s )
 
     job0 = results_dir / 'job_0'
     assert job0.is_dir()
@@ -251,8 +253,53 @@ def test_workarea_nested_in_iterator():
     itr.rm_rundir()
 
 
+def test_workarea_nested_in_workarea():
+    """A WorkArea whose graph contains another WorkArea must nest the inner
+    work-area directory inside the outer one.
+
+    Same regression as the iterator case: with paths baked in at construction
+    time the inner WorkArea landed next to the outer one instead of inside it.
+    """
+    root = Path.cwd()
+    outer_dir = root / 'OuterSolver'
+    stray_dir = root / 'InnerSolver'   # the old, buggy location
+
+    import shutil
+    if outer_dir.exists(): shutil.rmtree(outer_dir)
+    if stray_dir.exists(): shutil.rmtree(stray_dir)
+
+    inner = DirectedGraph('InnerSolver')
+    inner.add_action( ExampleNode('Inner ExaNode') )
+    inner_area = WorkArea( inner )     # default (relative) work-area path
+
+    outer = DirectedGraph('OuterSolver')
+    outer.add_action( inner_area )
+    outer.add_action( ExampleNode('Outer ExaNode') )
+    outer_area = WorkArea( outer )     # default (relative) work-area path
+
+    # Print the action graph and the predicted work-directory structure.
+    print()
+    outer_area.describe_workflow()
+
+    s = outer_area.solve( {"V1": 5} )
+    print( 'Results:', s )
+
+    # The inner WorkArea's graph outputs are flattened into the result;
+    # the WorkArea itself adds nothing (its own key maps to None).
+    assert s == {'V1': 5, 'InnerSolver_WorkArea': None, 'Inner ExaNode': 1, 'Outer ExaNode': 1}
+
+    assert outer_dir.is_dir()
+    # The inner work area lives *inside* the outer one ...
+    assert (outer_dir / 'InnerSolver').is_dir()
+    # ... and NOT next to the outer area (the old buggy location).
+    assert not stray_dir.exists()
+
+    outer_area.rm_rundir()
+
+
 if __name__ == "__main__":
     test_workarea_nested_in_iterator()
+    #test_workarea_nested_in_workarea()
     #test_mdo()
     #test_split_stream()
     #test_area()

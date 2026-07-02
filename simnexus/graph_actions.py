@@ -629,6 +629,13 @@ class DirectedGraph(WorkAction, Observer):
             nret = node.results()
             if isinstance( node, DirectedGraph ):  # Flatten, but maybe it should be nested
                         val_dict.update( nret[node.name] )
+            elif isinstance( node, WorkArea ):
+                        # A WorkArea wraps a graph and adds nothing of its own:
+                        # flatten the wrapped graph's outputs into val_dict and
+                        # record the WorkArea's own contribution as None instead
+                        # of leaving the graph's dict nested under its name.
+                        val_dict.update( nret[node.name] )
+                        val_dict[node.name] = None
             else:
                         val_dict.update( nret )
     
