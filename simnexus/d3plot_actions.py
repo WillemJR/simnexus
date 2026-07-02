@@ -169,10 +169,10 @@ class _d3plot_NodalFieldData(WorkAction):
             data = d3p.arrays[self.kwargs['component']][self.kwargs['state']] if d3p.arrays[self.kwargs['component']].ndim > 2 else d3p.arrays[self.kwargs['component']] 
         except:
             if self.kwargs['component'] not in d3p.arrays.keys():
-                print( ' *** ERROR: Not all requested data in d3plot. Missing:', self.kwargs['component'] )
-                print( ' *** ERROR Data available in d3plot:', d3p.arrays.keys() )
+                logger.error( 'Not all requested data in d3plot. Missing:', self.kwargs['component'] )
+                logger.error( 'Data available in d3plot:', d3p.arrays.keys() )
             elif d3p.arrays[self.kwargs['component']].shape[0] < self.kwargs['state']+1 :
-                print( f' *** ERROR: State {self.kwargs["state"]} requested. Data has {d3p.arrays[self.kwargs["component"]].shape[0]} states. Note that first state has index 0.' )
+                logger.error( f'State {self.kwargs["state"]} requested. Data has {d3p.arrays[self.kwargs["component"]].shape[0]} states. Note that first state has index 0.' )
             exit( f' *** ERROR Requested component data not available in d3plot for \'{self.name}\'')
         if 'required_part_id' in self.kwargs:
             data = self.parent._part_only_nodal( self.kwargs['required_part_id'], data ) 
@@ -202,13 +202,12 @@ class _d3plot_MultNodalFieldData(WorkAction):
             data = { k:d3p.arrays[k][self.kwargs['state']] if d3p.arrays[k].ndim > 2 else d3p.arrays[k] for k in self.kwargs['node_data_names'] }
         except:
             if self.kwargs['component'] not in d3p.arrays.keys():
-                print( ' *** ERROR: Not all requested data in d3plot. Missing:', self.kwargs['component'] )
-                print( ' *** ERROR Data available in d3plot:', d3p.arrays.keys() )
+                logger.error( 'Not all requested data in d3plot. Missing:', self.kwargs['component'] )
+                logger.error( 'Data available in d3plot:', d3p.arrays.keys() )
             elif d3p.arrays[self.kwargs['component']].shape[0] < self.kwargs['state']+1 :
-                print( f' *** ERROR: State {self.kwargs["state"]} requested. Data has {d3p.arrays[self.kwargs["component"]].shape[0]} states. Note that first state has index 0.' )
+                logger.error( f'State {self.kwargs["state"]} requested. Data has {d3p.arrays[self.kwargs["component"]].shape[0]} states. Note that first state has index 0.' )
             exit( f' *** ERROR Requested component data not available in d3plot for \'{self.name}\'')
         if 'required_part_id' in self.kwargs:
-            #print( ' Data available in d3plot:', d3p.arrays.keys() )
             data = {k: self.parent._part_only_nodal( self.kwargs['required_part_id'], dat ) for k,dat in data.items()}
         return data
 
@@ -235,13 +234,12 @@ class _d3plot_MultElementNodalFieldData(WorkAction):
             data = { k:d3p.arrays[k][self.kwargs['state']] if d3p.arrays[k].ndim > 1 else d3p.arrays[k] for k in self.kwargs['element_nodal_data_names'] }
         except:
             if self.kwargs['component'] not in d3p.arrays.keys():
-                print( ' *** ERROR: Not all requested data in d3plot. Missing:', self.kwargs['component'] )
-                print( ' *** ERROR Data available in d3plot:', d3p.arrays.keys() )
+                logger.error( 'Not all requested data in d3plot. Missing:', self.kwargs['component'] )
+                logger.error( 'Data available in d3plot:', d3p.arrays.keys() )
             elif d3p.arrays[self.kwargs['component']].shape[0] < self.kwargs['state']+1 :
-                print( f' *** ERROR: State {self.kwargs["state"]} requested. Data has {d3p.arrays[self.kwargs["component"]].shape[0]} states. Note that first state has index 0.' )
+                logger.error( f'State {self.kwargs["state"]} requested. Data has {d3p.arrays[self.kwargs["component"]].shape[0]} states. Note that first state has index 0.' )
             exit( f' *** ERROR Requested component data not available in d3plot for \'{self.name}\'')
         if 'required_part_id' in self.kwargs:
-            #print( ' Data available in d3plot:', d3p.arrays.keys() )
             data = {k: self.parent._part_only_element( self.kwargs['element_type'], self.kwargs['required_part_id'], dat ) for k,dat in data.items()}
         # convert to element nodal
         assert 0, 'TODO convert to element nodal'
@@ -271,10 +269,10 @@ class _d3plot_MultElementFieldData(WorkAction):
             data = { k:d3p.arrays[k][self.kwargs['state']] if d3p.arrays[k].ndim > 1 else d3p.arrays[k] for k in self.kwargs['element_data_names'] }
         except:
             if self.kwargs['component'] not in d3p.arrays.keys():
-                print( ' *** ERROR: Not all requested data in d3plot. Missing:', self.kwargs['component'] )
-                print( ' *** ERROR Data available in d3plot:', d3p.arrays.keys() )
+                logger.error( 'Not all requested data in d3plot. Missing:', self.kwargs['component'] )
+                logger.error( 'Data available in d3plot:', d3p.arrays.keys() )
             elif d3p.arrays[self.kwargs['component']].shape[0] < self.kwargs['state']+1 :
-                print( f' *** ERROR: State {self.kwargs["state"]} requested. Data has {d3p.arrays[self.kwargs["component"]].shape[0]} states. Note that first state has index 0.' )
+                logger.error( f'State {self.kwargs["state"]} requested. Data has {d3p.arrays[self.kwargs["component"]].shape[0]} states. Note that first state has index 0.' )
             exit( f' *** ERROR Requested component data not available in d3plot for \'{self.name}\'')
         if 'required_part_id' in self.kwargs:
             data = {k: self.parent._part_only_element( self.kwargs['element_type'], self.kwargs['required_part_id'], dat ) for k,dat in data.items()}
@@ -291,7 +289,6 @@ class _d3plot_NodalValue( _d3plot_NodalFieldData):
         assert 'required_part_id' not in self.kwargs, '\'required_part_id\' is not allowed for d3plot_NodalValue.' 
 
         nids = self.parent.meta_data()['node_ids']
-        #print( 'nids nids', nids )
         w = np.where( nids == self.kwargs['nid'] )[0]
 
         if len(w) == 0:

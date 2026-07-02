@@ -459,7 +459,7 @@ class SimulationIterator(WorkAction):
             else:
                 dp_dict = {}
             pars_vals.update( dp_dict )
-            print( f'\n\tRunning evaluation {iexp+1} of {len(exp_des)} {pars_vals}' )
+            logger.info( f'\n\tRunning evaluation {iexp+1} of {len(exp_des)} {pars_vals}' )
             logger.info( f'\n\t Parameters: {pars_vals}' )
             logger.info(   f'\t Dependent parameters: {dependent_pars}' )
             evals = self.solve( pars_vals )
