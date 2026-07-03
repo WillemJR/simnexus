@@ -82,7 +82,7 @@ class WorkArea(WorkAction):
         self.wa_path.mkdir(mode=0o777, parents=True, exist_ok=True)
 
         if self.copy_paths:
-            logger.info(f'Copying paths {self.copy_paths}')
+            logger.debug(f'Copying paths {self.copy_paths}')
             for fname in self.copy_paths:
                 src = Path(fname)
                 if not src.exists():
@@ -136,7 +136,7 @@ class WorkArea(WorkAction):
 
         root_dir = Path.cwd()
         os.chdir( self.wa_path )
-        logger.info( f'Running in directory {self.wa_path}' )
+        logger.debug( f'Running in directory {self.wa_path}' )
 
         ret = self.graph.solve( val_dict )
 
@@ -364,7 +364,7 @@ class SimulationIterator(WorkAction):
         self.last_job_path.mkdir(mode=0o777, parents=True, exist_ok=True)
 
         if self.copy_paths is not None:
-            logger.info( f'Copying paths {self.copy_paths}' )
+            logger.debug( f'Copying paths {self.copy_paths}' )
             for fname in self.copy_paths:
                 src = Path(fname)
                 if not src.exists():
@@ -375,7 +375,7 @@ class SimulationIterator(WorkAction):
                     shutil.copy2(src, self.last_job_path)
 
         os.chdir( self.last_job_path )
-        logger.info( f'Running in directory {self.last_job_path}' )
+        logger.debug( f'Running in directory {self.last_job_path}' )
 
         with open( 'iter_variables.json','w' ) as vf:
             json.dump( val_dict, vf )
@@ -459,15 +459,15 @@ class SimulationIterator(WorkAction):
             else:
                 dp_dict = {}
             pars_vals.update( dp_dict )
-            logger.info( f'\n\tRunning evaluation {iexp+1} of {len(exp_des)} {pars_vals}' )
-            logger.info( f'\n\t Parameters: {pars_vals}' )
-            logger.info(   f'\t Dependent parameters: {dependent_pars}' )
+            logger.debug( f'\n\tRunning evaluation {iexp+1} of {len(exp_des)} {pars_vals}' )
+            logger.debug( f'\n\t Parameters: {pars_vals}' )
+            logger.debug(   f'\t Dependent parameters: {dependent_pars}' )
             evals = self.solve( pars_vals )
             for k,v in evals.items():
                 if isinstance(v,numbers.Number):
-                    logger.info( f'\t\t Result: {k},{v}' )
+                    logger.debug( f'\t\t Result: {k},{v}' )
                 else:
-                    logger.info( f'\t\t Result: {k},{type(v)}' )
+                    logger.debug( f'\t\t Result: {k},{type(v)}' )
 
             list_of_evals.append( evals )
 
@@ -487,7 +487,7 @@ class SimulationIterator(WorkAction):
         tmp_path.mkdir(mode=0o777, parents=True, exist_ok=True)
 
         if self.copy_paths:
-            logger.info(f'Copying paths {self.copy_paths}')
+            logger.debug(f'Copying paths {self.copy_paths}')
             for fname in self.copy_paths:
                 src = Path(fname)
                 if not src.exists():
@@ -649,7 +649,7 @@ class DirectedGraph(WorkAction, Observer):
             message (any) :
         """
         nname = message[0].name
-        logger.info( f'Observed action \'{nname}\' finished.' )
+        logger.debug( f'Observed action \'{nname}\' finished.' )
         self.finished.add(nname)
 
 

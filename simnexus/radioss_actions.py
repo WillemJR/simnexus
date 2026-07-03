@@ -23,7 +23,7 @@ from simnexus.args import RADIOSS_ROOT_NAME
 from simnexus.args import RADIOSS_BASE_F_NAME # _0000
 from simnexus.args import RADIOSS_ENGINE_F_NAME # _0001
 
-#import simnexus.VTK.read_vtk as read_vtk # pulls in pyvista
+import simnexus.VTK.read_vtk as read_vtk # pulls in pyvista
 
 #
 # utilities

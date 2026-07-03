@@ -161,8 +161,11 @@ def test_d3p( ):
     #print( 'field.data', evals['field'].keys() )
     #print( '---------------------------------------- field_hist' )
     #print( 'field_hist.coords', evals['field_hist'][0]['coords'].shape )
-    assert round( evals['nfield']['node_displacement'][0][0] , 2 ) == 66.71 
-    assert round( evals['efield']['element_shell_stress'][0][0][0] , 3 ) == 0.034 
+    print( evals.keys() )
+    # 'nfield'/'efield' are children of the 'field' d3plot_File graph, so their
+    # outputs stay nested under 'field' (structured graph output).
+    assert round( evals['field']['nfield']['node_displacement'][0][0] , 2 ) == 66.71
+    assert round( evals['field']['efield']['element_shell_stress'][0][0][0] , 3 ) == 0.034
 
     simu_iter.rm_rundir()
 
