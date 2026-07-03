@@ -567,30 +567,15 @@ class DirectedGraph(WorkAction, Observer):
         self.parent_list[to_node.name].append(from_node.name)
 
 
-    def _flatten_result( self, node ):
-        """Return the flattened result-dict contribution of a finished child.
-
-        Graphs and WorkAreas nest their outputs under their own name; unwrap
-        that so downstream actions (and the returned dict) see the child's
-        outputs flattened rather than nested. A WorkArea adds nothing of its
-        own, so its own name maps to None.
-        """
-        nret = node.results()
-        if isinstance( node, DirectedGraph ):
-            return dict( nret[node.name] )
-        if isinstance( node, WorkArea ):
-            flat = dict( nret[node.name] )
-            flat[node.name] = None
-            return flat
-        return dict( nret )
-
     def _parent_results(self, nname, val_dict ):
+        # Results are kept structured: a WorkArea or sub-graph contributes
+        # its outputs as a nested dict under its own name. Downstream actions
+        # receive them as-is; a MathEvaluation flattens this namespace itself
+        # so its expression can reference nested action outputs by name.
         if self.parent_list[nname] == []:
             return val_dict
         p_list = [ self.child_actions[p] for p in self.parent_list[nname] ]
-        in_dict = {}
-        for p in p_list:
-            in_dict.update( self._flatten_result( p ) )
+        in_dict = { k:v for p in p_list for k,v in p.results().items() }
         return in_dict
 
     def solve(self, val_dict={}):
@@ -645,7 +630,10 @@ class DirectedGraph(WorkAction, Observer):
                     
         for nname in drain_names:
             node = self.child_actions[nname]
-            val_dict.update( self._flatten_result( node ) )
+            # Merge each terminal node's results as-is. Sub-graphs and
+            # WorkAreas stay nested under their own name, preserving structure
+            # and provenance (and avoiding name collisions between branches).
+            val_dict.update( node.results() )
     
         for n,e in self.child_actions.items():
             e._dump( val_dict )

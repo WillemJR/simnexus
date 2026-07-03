@@ -453,9 +453,41 @@ class WorkAction(Subject):
         return r
 
 
+def _flatten_namespace( val_dict ):
+    """
+    Build a flat ``name -> value`` namespace from a (possibly nested)
+    ``val_dict`` for use as the local namespace of an ``eval``.
+
+    Sub-graphs and ``WorkArea`` actions keep their results structured: their
+    outputs live in a nested dict stored under their own name. To let a
+    ``MathEvaluation`` expression reference those inner action outputs by
+    name, every nested key is surfaced at the top level. Names defined at a
+    shallower level take precedence over deeper ones on a name clash, so a
+    top-level variable is never shadowed by a nested action of the same name.
+
+    Arguments:
+        val_dict (dict) : variable values and (possibly nested) results.
+    Returns:
+        dict : a new flat namespace.
+    """
+    ns = {}
+    def _collect( d ):
+        for v in d.values():
+            if isinstance( v, dict ):
+                _collect( v )
+        ns.update( d )
+    if val_dict:
+        _collect( val_dict )
+    return ns
+
+
 class MathEvaluation(WorkAction):
     """
     Mathematical operation on results.
+
+    The expression is evaluated against a flattened view of ``val_dict``:
+    outputs of actions nested inside a ``WorkArea`` or sub-graph can be
+    referenced directly by their action name.
 
     args:
         name (str) :
@@ -468,8 +500,9 @@ class MathEvaluation(WorkAction):
     #    super().__init__(name, cmd )
 
     def solve(self,  val_dict=None ):
+        namespace = _flatten_namespace( val_dict )
         try:
-            v = eval( self.cmd, None, val_dict )
+            v = eval( self.cmd, None, namespace )
         except NameError as err:
             exit( f' *** Could not evaluate action \'{self.name}\'. Error is \'{err}\'. Either a named action was not defined or have not finished.' )
         except Exception as err:

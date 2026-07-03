@@ -8,7 +8,7 @@ import simnexus.radioss_actions
 import simnexus.jinja_actions
 from simnexus.variables import FloatVariable
 from simnexus.graph_actions import DirectedGraph, WorkFlow, WorkArea, SimulationIterator
-from simnexus.actions import WorkAction
+from simnexus.actions import WorkAction, MathEvaluation
 
 
 input_path = Path(__file__).parent.parent / "tests" / "spring.k"
@@ -245,11 +245,12 @@ def test_workarea_nested_in_iterator():
     s = itr.solve( {"V1": 5} )
     print( 'Results:', s )
 
-    # The WorkArea's inner graph outputs must be flattened *before* the
-    # dependent 'Outer ExaNode' runs, so they appear at the top level (not
-    # nested under the WorkArea's name, which itself adds nothing -> None).
-    assert s == {'V1': 5, 'Inner_ExaNode1': 1, 'Inner_ExaNode2': 1,
-                 'InnerSolver_WorkArea': None, 'Outer_ExaNode': 1}
+    # Results stay structured: the WorkArea's inner graph outputs are nested
+    # under its name. (A MathEvaluation would flatten this view for its eval;
+    # a plain ExampleNode does not need the inner values.)
+    assert s == {'V1': 5,
+                 'InnerSolver_WorkArea': {'V1': 5, 'Inner_ExaNode1': 1, 'Inner_ExaNode2': 1},
+                 'Outer_ExaNode': 1}
 
     job0 = results_dir / 'job_0'
     assert job0.is_dir()
@@ -292,9 +293,11 @@ def test_workarea_nested_in_workarea():
     s = outer_area.solve( {"V1": 5} )
     print( 'Results:', s )
 
-    # The inner WorkArea's graph outputs are flattened into the result;
-    # the WorkArea itself adds nothing (its own key maps to None).
-    assert s == {'V1': 5, 'InnerSolver_WorkArea': None, 'Inner_ExaNode': 1, 'Outer_ExaNode': 1}
+    # Results stay structured: the inner WorkArea's outputs are nested under
+    # its name rather than flattened into the outer result.
+    assert s == {'V1': 5,
+                 'InnerSolver_WorkArea': {'V1': 5, 'Inner_ExaNode': 1},
+                 'Outer_ExaNode': 1}
 
     assert outer_dir.is_dir()
     # The inner work area lives *inside* the outer one ...
@@ -322,6 +325,34 @@ def test_invalid_action_names():
     # Valid identifiers are accepted.
     for ok in ['m__case_1__TE_all', 'Head', 'Branch_11', '_private']:
         assert ExampleNode(ok).name == ok
+
+
+def test_matheval_flattens_nested_workarea():
+    """A MathEvaluation can reference an action that lives inside a WorkArea
+    by its name: results stay structured (nested), but MathEvaluation
+    flattens its eval namespace so nested action outputs resolve by name."""
+    root = Path.cwd()
+    if (root / 'InnerSolver').exists():
+        import shutil; shutil.rmtree(root / 'InnerSolver')
+
+    inner = WorkFlow('InnerSolver')
+    inner.add_action( ExampleNode('Inner_ExaNode') )    # returns 1
+    area = WorkArea( inner )
+
+    outer = DirectedGraph('Outer')
+    outer.add_action( area )
+    # References 'Inner_ExaNode', which is nested under the WorkArea's result.
+    outer.add_action( MathEvaluation('metric', 'Inner_ExaNode + 10'), parents=[area] )
+
+    s = outer.solve( {"V1": 5} )
+    print( 'Results:', s )
+
+    assert s['metric'] == 11
+    # The WorkArea's outputs remain nested (not flattened into the top level).
+    assert s['InnerSolver_WorkArea'] == {'V1': 5, 'Inner_ExaNode': 1}
+    assert 'Inner_ExaNode' not in s
+
+    area.rm_rundir()
 
 
 if __name__ == "__main__":
