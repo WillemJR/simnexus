@@ -10,6 +10,7 @@ import shutil
 from pathlib import Path
 
 from simnexus.actions import WorkAction
+from simnexus.errors import SimNexusError, MissingPathError, SolverError
 from simnexus.rare import HistoryEvaluation
 from simnexus.util.openradios_reader import OpenRadiosKeywordReader
 import simnexus.variables as simvars
@@ -340,8 +341,8 @@ class RadiossAnalysisBase:
     def _create_d3plot_file( self, root_name ):
         try:
             from vortex_radioss.animtod3plot.Anim_to_D3plot import readAndConvert
-        except:
-            exit( ' *** Error Install vortex_radioss.animtod3plot from \'https://www.vortex-cae.com/vortex-radioss\'.' )
+        except ImportError as err:
+            raise SimNexusError( 'Install vortex_radioss.animtod3plot from \'https://www.vortex-cae.com/vortex-radioss\'.' ) from err
 
         try:
             readAndConvert( str( Path.cwd().joinpath( root_name) )  )
@@ -452,7 +453,7 @@ class RadiossAnalysis(WorkAction,RadiossAnalysisBase):
     def solve( self,  val_dict=None ):
 
         if not Path( self.starter_input_path ).exists():
-            exit( f' *** Error {self.starter_input_path} not in run directory. Likely not copied by Iterator.' )
+            raise MissingPathError( f'{self.starter_input_path} not in run directory. Likely not copied by Iterator.' )
 
         if val_dict is None: val_dict = {}
 
@@ -574,6 +575,10 @@ class RadiossAnalysis(WorkAction,RadiossAnalysisBase):
         err_file = open( RADIOSS_BASE_F_NAME+'.starter.stderr' , 'w')
 
         flag = subprocess.run( self.starter_cmd + ' -i ' + start_file_name, shell=True, stdout=out_file, stderr=err_file )
+
+        out_file.close()
+        err_file.close()
+
         if flag.returncode != 0:
             logger.error( f"OpenRadioss run in {os.getcwd()} failed: {self._describe_returncode(flag.returncode,self.starter_cmd)}" )
             logger.error(f"  command: {self.starter_cmd}")
@@ -585,10 +590,7 @@ class RadiossAnalysis(WorkAction,RadiossAnalysisBase):
                 if 'ERROR TERMINATION' in line:
                     have_error_termination = True
         if have_error_termination is True:
-            exit( f'ERROR OpenRadios starter run failed in \"{Path.cwd()}\"' )
-
-        out_file.close()
-        err_file.close()
+            raise SolverError( f'OpenRadios starter run failed in \"{Path.cwd()}\"' )
 
 
 
@@ -602,6 +604,10 @@ class RadiossAnalysis(WorkAction,RadiossAnalysisBase):
         err_file = open( RADIOSS_ENGINE_F_NAME+'.engine.stderr' , 'w')
 
         flag = subprocess.run( self.engine_cmd + ' -i ' + engine_file_name, shell=True, stdout=out_file, stderr=err_file )
+
+        out_file.close()
+        err_file.close()
+
         if flag.returncode != 0:
             logger.error( f"OpenRadioss run in {os.getcwd()} failed: {self._describe_returncode(flag.returncode,self.engine_cmd)}" )
             logger.error(f"  command: {self.engine_cmd}")
@@ -614,10 +620,7 @@ class RadiossAnalysis(WorkAction,RadiossAnalysisBase):
                 if 'ERROR TERMINATION' in line:
                     have_error_termination = True
         if have_error_termination is True:
-            exit( f'ERROR OpenRadios engine run failed in \"{Path.cwd()}\"' )
-
-        out_file.close()
-        err_file.close()
+            raise SolverError( f'OpenRadios engine run failed in \"{Path.cwd()}\"' )
 
 
 

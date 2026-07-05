@@ -6,6 +6,7 @@ from pathlib import Path
 
 import simnexus.args
 from simnexus.actions import WorkAction
+from simnexus.errors import MissingPathError, DataNotFoundError
 from simnexus.graph_actions import WorkFlow
 
 import logging
@@ -34,9 +35,9 @@ class d3plot_File(WorkFlow):
     def solve( self,  val_dict=None ):
         fname = self.d3plot_rootname 
         if not Path( fname ).exists():
-            msg =  f"*** Error Cannot open '{fname}'. No such file in {Path.cwd()}" 
+            msg =  f"Cannot open '{fname}'. No such file in {Path.cwd()}"
             logger.error( msg )
-            exit( msg )
+            raise MissingPathError( msg )
 
         d3plot = D3plot( fname )
         self.d3plot = d3plot
@@ -173,7 +174,7 @@ class _d3plot_NodalFieldData(WorkAction):
                 logger.error( 'Data available in d3plot:', d3p.arrays.keys() )
             elif d3p.arrays[self.kwargs['component']].shape[0] < self.kwargs['state']+1 :
                 logger.error( f'State {self.kwargs["state"]} requested. Data has {d3p.arrays[self.kwargs["component"]].shape[0]} states. Note that first state has index 0.' )
-            exit( f' *** ERROR Requested component data not available in d3plot for \'{self.name}\'')
+            raise DataNotFoundError( f'Requested component data not available in d3plot for \'{self.name}\'')
         if 'required_part_id' in self.kwargs:
             data = self.parent._part_only_nodal( self.kwargs['required_part_id'], data ) 
         return data
@@ -206,7 +207,7 @@ class _d3plot_MultNodalFieldData(WorkAction):
                 logger.error( 'Data available in d3plot:', d3p.arrays.keys() )
             elif d3p.arrays[self.kwargs['component']].shape[0] < self.kwargs['state']+1 :
                 logger.error( f'State {self.kwargs["state"]} requested. Data has {d3p.arrays[self.kwargs["component"]].shape[0]} states. Note that first state has index 0.' )
-            exit( f' *** ERROR Requested component data not available in d3plot for \'{self.name}\'')
+            raise DataNotFoundError( f'Requested component data not available in d3plot for \'{self.name}\'')
         if 'required_part_id' in self.kwargs:
             data = {k: self.parent._part_only_nodal( self.kwargs['required_part_id'], dat ) for k,dat in data.items()}
         return data
@@ -238,7 +239,7 @@ class _d3plot_MultElementNodalFieldData(WorkAction):
                 logger.error( 'Data available in d3plot:', d3p.arrays.keys() )
             elif d3p.arrays[self.kwargs['component']].shape[0] < self.kwargs['state']+1 :
                 logger.error( f'State {self.kwargs["state"]} requested. Data has {d3p.arrays[self.kwargs["component"]].shape[0]} states. Note that first state has index 0.' )
-            exit( f' *** ERROR Requested component data not available in d3plot for \'{self.name}\'')
+            raise DataNotFoundError( f'Requested component data not available in d3plot for \'{self.name}\'')
         if 'required_part_id' in self.kwargs:
             data = {k: self.parent._part_only_element( self.kwargs['element_type'], self.kwargs['required_part_id'], dat ) for k,dat in data.items()}
         # convert to element nodal
@@ -273,7 +274,7 @@ class _d3plot_MultElementFieldData(WorkAction):
                 logger.error( 'Data available in d3plot:', d3p.arrays.keys() )
             elif d3p.arrays[self.kwargs['component']].shape[0] < self.kwargs['state']+1 :
                 logger.error( f'State {self.kwargs["state"]} requested. Data has {d3p.arrays[self.kwargs["component"]].shape[0]} states. Note that first state has index 0.' )
-            exit( f' *** ERROR Requested component data not available in d3plot for \'{self.name}\'')
+            raise DataNotFoundError( f'Requested component data not available in d3plot for \'{self.name}\'')
         if 'required_part_id' in self.kwargs:
             data = {k: self.parent._part_only_element( self.kwargs['element_type'], self.kwargs['required_part_id'], dat ) for k,dat in data.items()}
         return data
@@ -292,7 +293,7 @@ class _d3plot_NodalValue( _d3plot_NodalFieldData):
         w = np.where( nids == self.kwargs['nid'] )[0]
 
         if len(w) == 0:
-            exit( f' *** ERROR Node with id {self.kwargs["nid"]} not found in d3plot.' )
+            raise DataNotFoundError( f'Node with id {self.kwargs["nid"]} not found in d3plot.' )
 
         data = data[w][0]
         #assert 'idx' in self.kwargs, '\'idx\' is an required argument for d3plot_NodalValue.' 

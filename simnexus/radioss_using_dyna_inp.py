@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import subprocess
 
+from simnexus.errors import MissingPathError, SolverError
 from simnexus.radioss_actions import RadiossAnalysis
 from simnexus.dyna_actions import DynaAnalysis
 
@@ -50,7 +51,7 @@ class RadiossUsingDynaInput(RadiossAnalysis):
 
     def solve( self,  val_dict=None ):
         if not Path( self.starter_input_path ).exists():
-            exit( f' *** Error {self.starter_input_path} not in run directory. Likely not copied by Iterator.' )
+            raise MissingPathError( f'{self.starter_input_path} not in run directory. Likely not copied by Iterator.' )
 
         if val_dict is None: val_dict = {}
 
@@ -88,6 +89,9 @@ class RadiossUsingDynaInput(RadiossAnalysis):
         #subprocess.run( self.starter_cmd + ' -i ' + start_file_name, shell=True, stdout=out_file, stderr=err_file )
         subprocess.run( self.starter_cmd + ' ' + start_file_name + ' 1', shell=True, stdout=out_file, stderr=err_file )
 
+        out_file.close()
+        err_file.close()
+
         have_error_termination = False
         with open( RADIOSS_BASE_F_NAME+'.starter.stdout',  'r' ) as outfile:
             for line in outfile.readlines():
@@ -99,10 +103,7 @@ class RadiossUsingDynaInput(RadiossAnalysis):
         #        if 'ERROR TERMINATION' in line:
         #            have_error_termination = True
         if have_error_termination is True:
-            exit( f'ERROR OpenRadios run failed in \"{Path.cwd()}\"' )
-
-        out_file.close()
-        err_file.close()
+            raise SolverError( f'OpenRadios run failed in \"{Path.cwd()}\"' )
 
 
     def parameters( self ):

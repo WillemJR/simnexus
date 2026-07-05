@@ -2,6 +2,9 @@
 API Reference
 =============
 
+.. automodule:: simnexus.errors
+   :members:
+
 .. automodule:: simnexus.actions
    :members:
 

@@ -7,6 +7,7 @@ import numpy as np
 from pathlib import Path
 
 from simnexus.args import Location
+from simnexus.errors import SimNexusError, MissingPathError
 
 import logging
 logger = logging.getLogger(__name__)
@@ -316,7 +317,7 @@ class OpenFOAMFieldReader:
             logger.error( "1. Set case_dir to your OpenFOAM case directory")
             logger.error( "2. Set time_dir to the time step you want to analyze")
             logger.error( "3. Run the script")
-            exit( f" *** ERROR Case directory '{case_dir}' not found.")
+            raise MissingPathError( f"Case directory '{case_dir}' not found.")
     
     def _read_openfoam_field(self, filepath):
         """
@@ -868,7 +869,7 @@ class OpenFOAMFieldReader:
         #elif field_name == 'ZZZZZZ':
         #    extract_location=Location.NODAL
         else:
-            exit( f' *** ERROR Unknown location in file for {field_name}. Needs implementation in openfoam_reader.py.' )
+            raise SimNexusError( f'Unknown location in file for {field_name}. Needs implementation in openfoam_reader.py.' )
 
         # Check if case exists
         if os.path.exists(self.case_dir):
@@ -919,7 +920,7 @@ class OpenFOAMFieldReader:
             logger.error("1. Set case_dir to your OpenFOAM case directory")
             logger.error("2. Set time_dir to the time step you want to analyze")
             logger.error("3. Run the script")
-            exit( f" *** ERROR Case directory '{self.case_dir}' not found.")
+            raise MissingPathError( f"Case directory '{self.case_dir}' not found.")
 
 
         return None, None

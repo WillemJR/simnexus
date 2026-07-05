@@ -10,6 +10,7 @@ import numbers
 import numpy as np
 
 from simnexus.actions import WorkAction
+from simnexus.errors import SimNexusError, ActionNameError, ParameterError, MissingPathError
 from simnexus.util.observer import Observer
 import simnexus.args
 
@@ -56,10 +57,10 @@ class WorkArea(WorkAction):
         dict: Output from graph (it adds nothing).
     """
 
-    def __init__( self, graph, work_area_path=None, copy_paths=[] ):
+    def __init__( self, graph, work_area_path=None, copy_paths=None ):
 
-        assert isinstance( graph, DirectedGraph ) 
-        super().__init__( graph.name+'_WorkArea', "", copy_paths=copy_paths+graph.copy_paths )
+        assert isinstance( graph, DirectedGraph )
+        super().__init__( graph.name+'_WorkArea', "", copy_paths=( copy_paths or [] )+graph.copy_paths )
         self.graph = graph
         if work_area_path is None:
             # Keep the default relative (./{graph.name}) so the work area is
@@ -86,7 +87,7 @@ class WorkArea(WorkAction):
             for fname in self.copy_paths:
                 src = Path(fname)
                 if not src.exists():
-                    exit(f'Path "{fname}" not found. Either the path does not exist or you must specify the full path.')
+                    raise MissingPathError(f'Path "{fname}" not found. Either the path does not exist or you must specify the full path.')
                 if src.is_dir():
                     shutil.copytree(src, self.wa_path / src.name, dirs_exist_ok=True)
                 else:
@@ -138,15 +139,17 @@ class WorkArea(WorkAction):
         os.chdir( self.wa_path )
         logger.debug( f'Running in directory {self.wa_path}' )
 
-        ret = self.graph.solve( val_dict )
-
-        os.chdir( root_dir )
+        try:
+            ret = self.graph.solve( val_dict )
+        finally:
+            os.chdir( root_dir )
 
         return ret
 
-    def _check_names( self, name_list=[] ):
+    def _check_names( self, name_list=None ):
         """ Cannot have duplicates -- create a problem with callbacks """
-        if self.name in name_list: exit( f" *** Error Duplicate actions name \'{self.name}\'" )
+        if name_list is None: name_list = []
+        if self.name in name_list: raise ActionNameError( f"Duplicate actions name \'{self.name}\'" )
         name_list.append( self.name )
         self.graph._check_names( name_list )
 
@@ -188,12 +191,12 @@ class SimulationIterator(WorkAction):
     JNAME = 'job_'
 
     def __init__( self, graph, parameter_list=None,
-                 work_area_path=None, copy_paths=[], clean_start=False):
+                 work_area_path=None, copy_paths=None, clean_start=False):
 
-        assert isinstance( graph, WorkAction ) 
+        assert isinstance( graph, WorkAction )
         #assert isinstance( graph, DirectedGraph ) # ? must be a graph
 
-        super().__init__( graph.name+'_Iter', "", copy_paths=copy_paths+graph.copy_paths )
+        super().__init__( graph.name+'_Iter', "", copy_paths=( copy_paths or [] )+graph.copy_paths )
 
         self.graph = graph
         self.parameter_list = parameter_list
@@ -218,9 +221,10 @@ class SimulationIterator(WorkAction):
         sim_path = self.work_area_path
         if sim_path.exists():  shutil.rmtree( sim_path )
 
-    def _check_names( self, name_list=[] ):
+    def _check_names( self, name_list=None ):
         """ Cannot have duplicates -- create a problem with callbacks """
-        if self.name in name_list: exit( f" *** Error Duplicate actions name \'{self.name}\'" )
+        if name_list is None: name_list = []
+        if self.name in name_list: raise ActionNameError( f"Duplicate actions name \'{self.name}\'" )
         name_list.append( self.name )
         self.graph._check_names( name_list )
 
@@ -250,8 +254,10 @@ class SimulationIterator(WorkAction):
         def wrapper( self, *args, **kwargs ):
             root_dir = Path.cwd()
             os.chdir( self.last_job_path )
-            vals = func( self, *args, **kwargs )
-            os.chdir( root_dir )
+            try:
+                vals = func( self, *args, **kwargs )
+            finally:
+                os.chdir( root_dir )
             return vals
         return wrapper
 
@@ -277,16 +283,17 @@ class SimulationIterator(WorkAction):
 
         dir_idx = 0
         root_dir = Path.cwd()
-        #wrk_dir = Path.cwd().joinpath( self.name ).joinpath( self.JNAME + str( dir_idx ) )
         wrk_dir = self.work_area_path.joinpath( self.JNAME + str( dir_idx ) )
 
         ret = []
-        while wrk_dir.exists():
-            os.chdir( wrk_dir )
-            ret.append( self.read_outputs() )
-            dir_idx += 1
-            #wrk_dir = root_dir.joinpath( self.name ).joinpath( self.JNAME + str( dir_idx ) )
-            wrk_dir = self.work_area_path.joinpath( self.JNAME + str( dir_idx ) )
+        try:
+            while wrk_dir.exists():
+                os.chdir( wrk_dir )
+                ret.append( self.read_outputs() )
+                dir_idx += 1
+                wrk_dir = self.work_area_path.joinpath( self.JNAME + str( dir_idx ) )
+                os.chdir( root_dir )
+        finally:
             os.chdir( root_dir )
 
         return ret
@@ -306,7 +313,7 @@ class SimulationIterator(WorkAction):
         for evals in list_of_evals:
             if outcome is None: outcome = {k:[] for k in evals.keys() }
             for k,val in evals.items():
-                if k not in outcome.keys(): exit( f' *** ERROR Variable \'{k}\' not set in all runs' )
+                if k not in outcome.keys(): raise ParameterError( f'Variable \'{k}\' not set in all runs' )
             for k,val in evals.items(): outcome[k].append( val )
         SimulationIterator._subdicts_as_lists( outcome ) # transforms the list of dictionaries into a dictionary of lists.
         return outcome
@@ -344,11 +351,13 @@ class SimulationIterator(WorkAction):
             dict: Output from graph (it adds nothing).
         """
         
+        if val_dict is None: val_dict = {}
+
         pl = self.parameter_list if self.parameter_list is not None else self.parameters()
         for def_par in pl:
             if def_par.name not in val_dict:
                 if def_par.value is None:
-                   exit( f' *** Error Parameter \'{def_par.name}\' must have a value defined in SimulationIterator.solve().' )
+                   raise ParameterError( f'Parameter \'{def_par.name}\' must have a value defined in SimulationIterator.solve().' )
                 val_dict[def_par.name]=def_par.value
 
         root_dir = Path.cwd()
@@ -359,7 +368,7 @@ class SimulationIterator(WorkAction):
         sim_path = self.work_area_path
         #if 0 == self.run_iter and sim_path.exists():
         if 0 == self.run_iter and self.last_job_path.exists():
-            exit( f' *** Error Results directory {sim_path} already exists. Restart is not yet supported.' )
+            raise SimNexusError( f'Results directory {sim_path} already exists. Restart is not yet supported.' )
 
         self.last_job_path.mkdir(mode=0o777, parents=True, exist_ok=True)
 
@@ -368,7 +377,7 @@ class SimulationIterator(WorkAction):
             for fname in self.copy_paths:
                 src = Path(fname)
                 if not src.exists():
-                    exit( f'Path \"{fname}\" not found. Either the path does not exist or you must specify the full path.' )
+                    raise MissingPathError( f'Path \"{fname}\" not found. Either the path does not exist or you must specify the full path.' )
                 if src.is_dir():
                     shutil.copytree(src, self.last_job_path / src.name)
                 else:
@@ -377,14 +386,15 @@ class SimulationIterator(WorkAction):
         os.chdir( self.last_job_path )
         logger.debug( f'Running in directory {self.last_job_path}' )
 
-        with open( 'iter_variables.json','w' ) as vf:
-            json.dump( val_dict, vf )
+        try:
+            with open( 'iter_variables.json','w' ) as vf:
+                json.dump( val_dict, vf )
 
-        ret = self.graph.solve( val_dict )
+            ret = self.graph.solve( val_dict )
 
-        self.write_outputs( ret )
-
-        os.chdir( root_dir )
+            self.write_outputs( ret )
+        finally:
+            os.chdir( root_dir )
         self.run_iter += 1
 
         return ret
@@ -491,7 +501,7 @@ class SimulationIterator(WorkAction):
             for fname in self.copy_paths:
                 src = Path(fname)
                 if not src.exists():
-                    exit(f'Path "{fname}" not found. Either the path does not exist or you must specify the full path.')
+                    raise MissingPathError(f'Path "{fname}" not found. Either the path does not exist or you must specify the full path.')
                 if src.is_dir():
                     shutil.copytree(src, tmp_path / src.name, dirs_exist_ok=True)
                 else:
@@ -578,10 +588,10 @@ class DirectedGraph(WorkAction, Observer):
         in_dict = { k:v for p in p_list for k,v in p.results().items() }
         return in_dict
 
-    def solve(self, val_dict={}):
+    def solve(self, val_dict=None):
         """
         A graph will append any computed results to
-        val_dict and return that. 
+        val_dict and return that.
         So A.solve( {'v1':1.2} ) may return {'v1':1.2, 'A':3.4},
         where the 'A':3.4 was added with 'A' the name of the action.
 
@@ -589,6 +599,8 @@ class DirectedGraph(WorkAction, Observer):
             dict: Dictionary containing action_name:action_result pairs
                   appended to val_dict.
         """
+
+        if val_dict is None: val_dict = {}
 
         if self.work_area:
             if not hasattr(self, '_in_work_area') or not self._in_work_area:
@@ -606,7 +618,7 @@ class DirectedGraph(WorkAction, Observer):
             else:
                 for p in self.parent_list[nname]:
                     parent_names.add(p)
-            if nname in val_dict: exit( f' *** ERROR Name \'{nname}\' used for both variables and actions.' )
+            if nname in val_dict: raise ActionNameError( f'Name \'{nname}\' used for both variables and actions.' )
         drain_names = []
         for nname, node in self.child_actions.items():
             if nname not in parent_names:
@@ -669,9 +681,10 @@ class DirectedGraph(WorkAction, Observer):
                 result[e.name] = out
         return result
 
-    def _check_names( self, name_list=[] ):
+    def _check_names( self, name_list=None ):
         """ Cannot have duplicates -- create a problem with callbacks """
-        if self.name in name_list: exit( f" *** Error Duplicate actions name \'{self.name}\'" )
+        if name_list is None: name_list = []
+        if self.name in name_list: raise ActionNameError( f"Duplicate actions name \'{self.name}\'" )
         name_list.append( self.name )
         for n,e in self.child_actions.items():
             e._check_names( name_list )

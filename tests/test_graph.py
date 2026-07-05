@@ -313,13 +313,14 @@ def test_invalid_action_names():
     in MathEvaluation's eval(). Names with spaces, other punctuation, a
     leading digit, or Python keywords are rejected at construction."""
     import pytest
+    from simnexus.errors import ActionNameError
 
     # A space breaks the eval command (the example from the request).
-    with pytest.raises(SystemExit):
+    with pytest.raises(ActionNameError):
         ExampleNode('m__case_1__TE all')
 
     for bad in ['has space', 'has-dash', '1leading', 'a.b', 'class', '']:
-        with pytest.raises(SystemExit):
+        with pytest.raises(ActionNameError):
             ExampleNode(bad)
 
     # Valid identifiers are accepted.

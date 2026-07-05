@@ -8,6 +8,7 @@ from pathlib import Path
 import simnexus.args
 import simnexus.variables as simvars
 from simnexus.actions import WorkAction
+from simnexus.errors import MissingPathError, SolverError
 from simnexus.graph_actions import WorkFlow
 
 import logging
@@ -63,7 +64,7 @@ class DynaAnalysis(WorkAction):
         """ """
 
         if not Path( self.input_file_path ).exists():
-            exit( f' *** Error {self.input_file_path} not in run directory. Likely not copied by Iterator.' )
+            raise MissingPathError( f'{self.input_file_path} not in run directory. Likely not copied by Iterator.' )
 
         if val_dict is None: val_dict = {}
 
@@ -149,7 +150,7 @@ class DynaAnalysis(WorkAction):
                              have_error = True
                  
                  if have_error:
-                      exit( f'ERROR LS-DYNA run failed in \"{os.getcwd()}\"' )
+                      raise SolverError( f'LS-DYNA run failed in \"{os.getcwd()}\"' )
                  else:
                       logger.warning( f"LS-DYNA run in {os.getcwd()} finished but 'Normal termination' not found." )
 

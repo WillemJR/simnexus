@@ -65,7 +65,7 @@ class IntSetVariable(Variable):
         allowable (set) : A set of allowable integer values.
     """
 
-    def __init__( self, name, value, allowable={}, description=None ):
+    def __init__( self, name, value, allowable=None, description=None ):
         super().__init__(name, value, int, description=description )
         if not allowable:
             allowable={value}
@@ -96,7 +96,7 @@ class StrSetVariable(Variable):
         allowable (set) : A set of allowable string values.
     """
 
-    def __init__( self, name, value, allowable={}, description=None ):
+    def __init__( self, name, value, allowable=None, description=None ):
         super().__init__(name, value, str, description=description )
         if not allowable:
             allowable={value}

@@ -3,6 +3,7 @@ import jinja2
 from pathlib import Path
 from jinja2 import meta
 from simnexus.actions import WorkAction
+from simnexus.errors import ParameterError
 import simnexus.args
 import simnexus.variables
 
@@ -40,7 +41,7 @@ class JinjaReplace(WorkAction):
 
     @WorkAction.allow_variables_as_arguments
     def __init__( self, name, input_file_path,
-                  output_file_path=simnexus.args.RADIOSS_DFLT_FNAME, val_format="%10.3g", copy_paths=[] ):
+                  output_file_path=simnexus.args.RADIOSS_DFLT_FNAME, val_format="%10.3g", copy_paths=None ):
         WorkAction.__init__(self, name, copy_paths=copy_paths)
 
         self.input_file_path = input_file_path
@@ -180,8 +181,7 @@ class JinjaReplace(WorkAction):
                 if self.par_vals is not None:
                     v = self.par_vals[i]
                 else:
-                    breakpoint()
-                    exit( f' *** Error Simulation needs parameter \'{k}\' value declared.' ) # in __init__
+                    raise ParameterError( f'Simulation needs parameter \'{k}\' value declared.' ) # in __init__
                 new_vd[k] = v
             
         if val_format is not None: # should be string of certain length in a radioss/dyna file

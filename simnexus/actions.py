@@ -13,6 +13,7 @@ from abc import ABC, abstractmethod
 from simnexus.util.observer import Subject, notify_observers
 
 from simnexus.variables import Variable, UnknownVariable
+from simnexus.errors import ActionNameError, ParameterError, EvaluationError
 
 
 def validate_action_name( name ):
@@ -32,9 +33,9 @@ def validate_action_name( name ):
         str : the validated name (returned for convenience).
     """
     if not isinstance( name, str ) or not name:
-        exit( f" *** Error Action name must be a non-empty string, got {name!r}." )
+        raise ActionNameError( f"Action name must be a non-empty string, got {name!r}." )
     if not name.isidentifier() or keyword.iskeyword( name ):
-        exit( f" *** Error Invalid action name {name!r}. Action names must be valid "
+        raise ActionNameError( f"Invalid action name {name!r}. Action names must be valid "
               f"Python identifiers (letters, digits and underscores, not starting "
               f"with a digit, not a Python keyword) so they can be used in "
               f"MathEvaluation expressions." )
@@ -81,14 +82,16 @@ class WorkAction(Subject):
         Any: outcome of operation
     """
 
-    def __init__( self, name, cmd=None, copy_paths=[], lower_bound=None, upper_bound=None,
+    def __init__( self, name, cmd=None, copy_paths=None, lower_bound=None, upper_bound=None,
                   description=None, data_type = EvalType.NOT_SPECIFIED ):
         """
         """
         super().__init__()
         self.name = validate_action_name( name )
         self.cmd = cmd          # backward compatible with simulation
-        self.copy_paths = copy_paths
+        # copy into a fresh list: graphs extend copy_paths in add_action, so a
+        # shared default (or a caller's list) must never be mutated in place
+        self.copy_paths = list( copy_paths ) if copy_paths else []
         self.upper_bound = upper_bound # backward compatible with simulation
         self.lower_bound = lower_bound # backward compatible with simulation
         self.parent = None # typically workflow
@@ -174,7 +177,7 @@ class WorkAction(Subject):
                 if subkey in self.__dict__:
                     self.__dict__[  subkey] = val_dict[variable_name]
                 else:
-                    exit( f' *** ERROR Key \'{variable_name}\' not found in action \'{self.name}\' ' )
+                    raise ParameterError( f'Key \'{variable_name}\' not found in action \'{self.name}\'' )
 
 
     #@notify_observers
@@ -339,9 +342,10 @@ class WorkAction(Subject):
         """
         return (self.data_type, self.description)
 
-    def _check_names( self, name_list=[] ):
+    def _check_names( self, name_list=None ):
         """ Cannot have duplicates -- create a problem with callbacks """
-        if self.name in name_list: exit( f" *** Error Duplicate actions name \'{self.name}\'" )
+        if name_list is None: name_list = []
+        if self.name in name_list: raise ActionNameError( f"Duplicate actions name \'{self.name}\'" )
         name_list.append( self.name )
 
     # ------------------------------------------------------------------
@@ -504,9 +508,9 @@ class MathEvaluation(WorkAction):
         try:
             v = eval( self.cmd, None, namespace )
         except NameError as err:
-            exit( f' *** Could not evaluate action \'{self.name}\'. Error is \'{err}\'. Either a named action was not defined or have not finished.' )
+            raise EvaluationError( f'Could not evaluate action \'{self.name}\'. Error is \'{err}\'. Either a named action was not defined or have not finished.' ) from err
         except Exception as err:
-            exit( f' *** Error in MathEvaluation \'{self.name}\'. {err}' )
+            raise EvaluationError( f'Error in MathEvaluation \'{self.name}\'. {err}' ) from err
         return v
 
 
