@@ -75,6 +75,7 @@ Asynchronous Execution: `_observed_eval_async` allows running the action in a se
 The `simnexus.remote_actions` module enables executing of actions on remote compute resources. It consists of the following:
 - **`ServerAction` / `NamedServerAction` (Remote)**: A gRPC server that accepts tasks, executes them in isolated temporary directories, and returns results. It supports registering named graphs via `add_graph(name, graph, description)` to enforce a secure registry-based execution model.
 - **`RemoteAction` (Client)**: A wrapper that specifies a `target_action_name` to execute a pre-registered action on the server. It retrieves the results and generated files. Discoverability of server-side actions is provided via `available_actions()`.
+- Variable values and results cross the wire as restricted JSON (`simnexus/serialization.py`), not pickle: only plain data types and numeric numpy arrays are accepted, so decoding a payload cannot execute code. Values outside the whitelist raise `SerializationError`.
 
 
 # Results directory structure for SimulationIterator

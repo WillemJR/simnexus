@@ -76,6 +76,7 @@ The client defaults to `localhost:50051`.  Set `SERVER` at the top of
 SERVER = 'hpc-node-01:50051'
 ```
 
-> **Security notice** — data is serialised with `pickle` and transmitted over
-> an unencrypted gRPC channel.  Use only within trusted networks (VPN, HPC
-> cluster internal network, etc.).
+> **Security notice** — data is serialised as restricted JSON (plain data
+> types and numeric numpy arrays only, so decoding cannot execute code) but
+> transmitted over an unencrypted, unauthenticated gRPC channel.  Use only
+> within trusted networks (VPN, HPC cluster internal network, etc.).

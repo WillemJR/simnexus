@@ -8,6 +8,7 @@ from simnexus.errors import (
     SolverError,
     MissingPathError,
     DataNotFoundError,
+    SerializationError,
 )
 
 import logging

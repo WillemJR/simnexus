@@ -97,7 +97,7 @@ The main issue is that it will be
 specified by the system adminitrator at every site.
 
 .. warning::
-    **Security Notice**: The provided feature should only be used within trusted networks (e.g., internal HPC clusters, VPNs).  The data transfer relies on Python's `pickle` module for maximum flexibility. `pickle` is **not secure** against erroneous or maliciously constructed data. Never unpickle data received from an untrusted or unauthenticated source.
+    **Security Notice**: The provided feature should only be used within trusted networks (e.g., internal HPC clusters, VPNs). Variable values and results are exchanged as restricted JSON (see ``simnexus/serialization.py``): only plain data types (dict, list, str, int, float, bool, None) and numeric numpy arrays are accepted, so decoding a payload cannot execute code. The channel itself is however unencrypted and unauthenticated: anyone who can reach the port can run the registered graphs and retrieve files matching the output patterns.
 
 
 

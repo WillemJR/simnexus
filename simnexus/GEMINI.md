@@ -12,6 +12,7 @@ The `simnexus.remote_actions` module enables executing actions on remote compute
 **Protocol:**
 - Defined in `simnexus/protos/remote_actions.proto`.
 - Supports bidirectional file transfer.
-- **Security Note**: Relies on `pickle` for result/variable serialization. Should only be used within trusted networks.
+- Variable values and results are serialized as restricted JSON (`simnexus/serialization.py`): dict/list/str/int/float/bool/None plus numeric numpy arrays (tagged, base64, dtype whitelisted on decode). Anything else raises `SerializationError`. Tuples decode as lists; numpy scalars decode as Python scalars.
+- **Security Note**: Decoding a payload cannot execute code (pickle was replaced for this reason), but the gRPC channel is unencrypted and unauthenticated — use only within trusted networks.
 
 

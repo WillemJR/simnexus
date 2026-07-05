@@ -35,3 +35,7 @@ class MissingPathError(SimNexusError, FileNotFoundError):
 
 class DataNotFoundError(SimNexusError):
     """Requested result data (e.g. a d3plot component or node id) is not available."""
+
+
+class SerializationError(SimNexusError):
+    """A value cannot be encoded for (or decoded from) the remote connection."""

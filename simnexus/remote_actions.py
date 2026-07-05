@@ -1,5 +1,4 @@
 import grpc
-import pickle
 import os
 import shutil
 import tempfile
@@ -8,6 +7,8 @@ from concurrent import futures
 import logging
 
 from simnexus.actions import WorkAction
+from simnexus.errors import SerializationError
+from simnexus import serialization
 from simnexus.protos import remote_actions_pb2
 from simnexus.protos import remote_actions_pb2_grpc
 
@@ -69,7 +70,10 @@ class RemoteAction(WorkAction):
         req.action_name = self.target_action_name
         req.target_action_name = self.target_action_name
         
-        req.pickled_val_dict = pickle.dumps(val_dict)
+        # Restricted JSON, not pickle: unpickling network data would allow
+        # arbitrary code execution on the peer. See simnexus/serialization.py
+        # for the allowed types.
+        req.pickled_val_dict = serialization.dumps(val_dict)
         if self.output_patterns:
             req.output_patterns.extend(self.output_patterns)
 
@@ -106,7 +110,7 @@ class RemoteAction(WorkAction):
             raise RuntimeError(f"Remote action failed: {resp.error_message}")
 
         # Unpack results
-        result = pickle.loads(resp.pickled_results)
+        result = serialization.loads(resp.pickled_results)
         
         # Save output files
         for f_msg in resp.output_files:
@@ -163,13 +167,18 @@ class SimNexusService(remote_actions_pb2_grpc.SimNexusRemoteServicer):
                 resp.error_message = "target_action_name not provided."
                 return resp
             
-            val_dict = pickle.loads(request.pickled_val_dict)
-            
+            try:
+                val_dict = serialization.loads(request.pickled_val_dict)
+            except SerializationError as e:
+                resp.success = False
+                resp.error_message = f"Could not decode val_dict: {e}"
+                return resp
+
             # 3. Execute
             try:
                 result = action.solve(val_dict)
+                resp.pickled_results = serialization.dumps(result)
                 resp.success = True
-                resp.pickled_results = pickle.dumps(result)
             except Exception as e:
                 import traceback
                 traceback.print_exc()
