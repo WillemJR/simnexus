@@ -24,25 +24,29 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$simnexus/protos/remote_actions.proto\x12\x08simnexus\"\x07\n\x05\x45mpty\"/\n\nActionInfo\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x13\n\x0b\x64\x65scription\x18\x02 \x01(\t\"A\n\x18\x41vailableActionsResponse\x12%\n\x07\x61\x63tions\x18\x01 \x03(\x0b\x32\x14.simnexus.ActionInfo\"%\n\x04\x46ile\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x02 \x01(\x0c\"\x98\x01\n\rActionRequest\x12\x13\n\x0b\x61\x63tion_name\x18\x01 \x01(\t\x12\x18\n\x10pickled_val_dict\x18\x03 \x01(\x0c\x12#\n\x0binput_files\x18\x04 \x03(\x0b\x32\x0e.simnexus.File\x12\x17\n\x0foutput_patterns\x18\x05 \x03(\t\x12\x1a\n\x12target_action_name\x18\x06 \x01(\t\"w\n\x0e\x41\x63tionResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x15\n\rerror_message\x18\x02 \x01(\t\x12\x17\n\x0fpickled_results\x18\x03 \x01(\x0c\x12$\n\x0coutput_files\x18\x04 \x03(\x0b\x32\x0e.simnexus.File2\xa0\x01\n\x0eSimNexusRemote\x12@\n\tRunAction\x12\x17.simnexus.ActionRequest\x1a\x18.simnexus.ActionResponse\"\x00\x12L\n\x13GetAvailableActions\x12\x0f.simnexus.Empty\x1a\".simnexus.AvailableActionsResponse\"\x00\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$simnexus/protos/remote_actions.proto\x12\x08simnexus\"!\n\x0fProgressRequest\x12\x0e\n\x06job_id\x18\x01 \x01(\t\"6\n\x10ProgressResponse\x12\r\n\x05\x66ound\x18\x01 \x01(\x08\x12\x13\n\x0bstatus_json\x18\x02 \x01(\x0c\"\x07\n\x05\x45mpty\"/\n\nActionInfo\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x13\n\x0b\x64\x65scription\x18\x02 \x01(\t\"A\n\x18\x41vailableActionsResponse\x12%\n\x07\x61\x63tions\x18\x01 \x03(\x0b\x32\x14.simnexus.ActionInfo\"%\n\x04\x46ile\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x02 \x01(\x0c\"\xa8\x01\n\rActionRequest\x12\x13\n\x0b\x61\x63tion_name\x18\x01 \x01(\t\x12\x18\n\x10pickled_val_dict\x18\x03 \x01(\x0c\x12#\n\x0binput_files\x18\x04 \x03(\x0b\x32\x0e.simnexus.File\x12\x17\n\x0foutput_patterns\x18\x05 \x03(\t\x12\x1a\n\x12target_action_name\x18\x06 \x01(\t\x12\x0e\n\x06job_id\x18\x07 \x01(\t\"w\n\x0e\x41\x63tionResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x15\n\rerror_message\x18\x02 \x01(\t\x12\x17\n\x0fpickled_results\x18\x03 \x01(\x0c\x12$\n\x0coutput_files\x18\x04 \x03(\x0b\x32\x0e.simnexus.File2\xe8\x01\n\x0eSimNexusRemote\x12@\n\tRunAction\x12\x17.simnexus.ActionRequest\x1a\x18.simnexus.ActionResponse\"\x00\x12L\n\x13GetAvailableActions\x12\x0f.simnexus.Empty\x1a\".simnexus.AvailableActionsResponse\"\x00\x12\x46\n\x0bGetProgress\x12\x19.simnexus.ProgressRequest\x1a\x1a.simnexus.ProgressResponse\"\x00\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'simnexus.protos.remote_actions_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
-  _globals['_EMPTY']._serialized_start=50
-  _globals['_EMPTY']._serialized_end=57
-  _globals['_ACTIONINFO']._serialized_start=59
-  _globals['_ACTIONINFO']._serialized_end=106
-  _globals['_AVAILABLEACTIONSRESPONSE']._serialized_start=108
-  _globals['_AVAILABLEACTIONSRESPONSE']._serialized_end=173
-  _globals['_FILE']._serialized_start=175
-  _globals['_FILE']._serialized_end=212
-  _globals['_ACTIONREQUEST']._serialized_start=215
-  _globals['_ACTIONREQUEST']._serialized_end=367
-  _globals['_ACTIONRESPONSE']._serialized_start=369
-  _globals['_ACTIONRESPONSE']._serialized_end=488
-  _globals['_SIMNEXUSREMOTE']._serialized_start=491
-  _globals['_SIMNEXUSREMOTE']._serialized_end=651
+  _globals['_PROGRESSREQUEST']._serialized_start=50
+  _globals['_PROGRESSREQUEST']._serialized_end=83
+  _globals['_PROGRESSRESPONSE']._serialized_start=85
+  _globals['_PROGRESSRESPONSE']._serialized_end=139
+  _globals['_EMPTY']._serialized_start=141
+  _globals['_EMPTY']._serialized_end=148
+  _globals['_ACTIONINFO']._serialized_start=150
+  _globals['_ACTIONINFO']._serialized_end=197
+  _globals['_AVAILABLEACTIONSRESPONSE']._serialized_start=199
+  _globals['_AVAILABLEACTIONSRESPONSE']._serialized_end=264
+  _globals['_FILE']._serialized_start=266
+  _globals['_FILE']._serialized_end=303
+  _globals['_ACTIONREQUEST']._serialized_start=306
+  _globals['_ACTIONREQUEST']._serialized_end=474
+  _globals['_ACTIONRESPONSE']._serialized_start=476
+  _globals['_ACTIONRESPONSE']._serialized_end=595
+  _globals['_SIMNEXUSREMOTE']._serialized_start=598
+  _globals['_SIMNEXUSREMOTE']._serialized_end=830
 # @@protoc_insertion_point(module_scope)

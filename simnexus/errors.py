@@ -39,3 +39,7 @@ class DataNotFoundError(SimNexusError):
 
 class SerializationError(SimNexusError):
     """A value cannot be encoded for (or decoded from) the remote connection."""
+
+
+class AsyncActionError(SimNexusError):
+    """An action running asynchronously in a child process failed."""

@@ -11,6 +11,8 @@ logger = logging.getLogger(__name__)
 
 from simnexus.args import Location, JobType, EvalType
 from simnexus.actions import WorkAction
+from simnexus.progress import FileProgressTail
+from simnexus.util import solver_progress
 import simnexus.variables as simvars
 from simnexus.util.openfoam_reader import OpenFOAMFieldReader
 
@@ -111,6 +113,21 @@ class OpenFOAMAnalysis( WorkAction ):
         with open(par_file, 'w') as f:
             f.write(content)
 
+    def _solver_progress_tail(self, run_dir):
+        """Percent-complete reporting for the solver step: 'Time = ...'
+        lines in openfoam.stdout against endTime from system/controlDict."""
+        t_end, t_start = None, 0.0
+        try:
+            control = (run_dir / 'system' / 'controlDict').read_text(errors='replace')
+            t_end = solver_progress.openfoam_end_time(control)
+            t_start = solver_progress.openfoam_start_time(control) or 0.0
+        except OSError:
+            pass
+        return FileProgressTail(self._progress_reporter, self.name,
+                                run_dir / 'openfoam.stdout',
+                                solver_progress.openfoam_run_time,
+                                t_end, t_start=t_start)
+
     def _run_command(self, cmd, run_dir):
         logger.info(f"Running command: {cmd} in {run_dir}")
         with open(run_dir / 'openfoam.stdout', 'a') as out, \
@@ -150,7 +167,12 @@ class OpenFOAMAnalysis( WorkAction ):
             success = success and self._run_command(cmd, run_dir)
 
         if success and (self.job_flag & JobType.RUN_SIMULATION):
-            success = success and self._run_command(self.solve_cmd, run_dir)
+            tail = self._solver_progress_tail(run_dir)
+            tail.start()
+            try:
+                success = success and self._run_command(self.solve_cmd, run_dir)
+            finally:
+                tail.stop()
 
         if success and (self.job_flag & JobType.POST_PRO):
             success = success and self._run_command('paraFoam -builtin -touch', run_dir)

@@ -1,6 +1,7 @@
 from pathlib import Path
 import os,shutil
 import json
+import time
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from itertools import product
@@ -10,7 +11,8 @@ import numbers
 import numpy as np
 
 from simnexus.actions import WorkAction
-from simnexus.errors import SimNexusError, ActionNameError, ParameterError, MissingPathError
+from simnexus.errors import SimNexusError, ActionNameError, ParameterError, MissingPathError, AsyncActionError
+from simnexus.progress import StatusReporter
 from simnexus.util.observer import Observer
 import simnexus.args
 
@@ -206,6 +208,8 @@ class SimulationIterator(WorkAction):
         self._check_names( [] )
 
         self.run_iter = 0
+        self.jobs_total = None          # known when collect_for_expdes runs
+        self._status_reporter = None    # created on first solve()
 
         if work_area_path is None:
             work_area_path = Path.cwd().joinpath( self.graph.name )
@@ -239,6 +243,7 @@ class SimulationIterator(WorkAction):
         job_children += _copy_path_nodes( self.copy_paths )
         job_children += self.graph._work_dir_entries()
         children = [
+            ( 'status.json   (run progress: current job, jobs done; see simnexus.progress)', [] ),
             ( f'{self.JNAME}0/   (one directory per design evaluation)', job_children ),
             ( f'{self.JNAME}1/ … {self.JNAME}N/', [] ),
         ]
@@ -372,6 +377,20 @@ class SimulationIterator(WorkAction):
 
         self.last_job_path.mkdir(mode=0o777, parents=True, exist_ok=True)
 
+        # run-level progress for external consumers (e.g. a GUI process):
+        # a status.json at the results root with job counts and current job
+        if self._status_reporter is None:
+            self._status_reporter = StatusReporter( self.name, directory=self.work_area_path )
+            self._status_reporter.start( actions=None,
+                                         jobs_total=self.jobs_total,
+                                         jobs_done=self.run_iter,
+                                         current_job=self.last_job_path.name )
+        else:
+            self._status_reporter.update( state='running',
+                                          jobs_total=self.jobs_total,
+                                          jobs_done=self.run_iter,
+                                          current_job=self.last_job_path.name )
+
         if self.copy_paths is not None:
             logger.debug( f'Copying paths {self.copy_paths}' )
             for fname in self.copy_paths:
@@ -393,9 +412,13 @@ class SimulationIterator(WorkAction):
             ret = self.graph.solve( val_dict )
 
             self.write_outputs( ret )
+        except BaseException:
+            self._status_reporter.update( state='failed' )
+            raise
         finally:
             os.chdir( root_dir )
         self.run_iter += 1
+        self._status_reporter.update( state='idle', jobs_done=self.run_iter )
 
         return ret
 
@@ -456,6 +479,8 @@ class SimulationIterator(WorkAction):
         disp = []
         more_node_data = []
 
+        self.jobs_total = len( exp_des )
+
         all_combinations = []
         list_of_evals = []
         for iexp, combination in enumerate(exp_des):
@@ -482,6 +507,9 @@ class SimulationIterator(WorkAction):
             list_of_evals.append( evals )
 
         outcome = SimulationIterator.outcomes_as_lists( list_of_evals )
+
+        if self._status_reporter is not None:
+            self._status_reporter.update( state='done' )
 
         all_combinations = np.array( all_combinations )
         par_val_dict = {key: None for key in var_names }
@@ -544,6 +572,7 @@ class DirectedGraph(WorkAction, Observer):
         super().__init__( name, copy_paths=[] )
         self.parent_list = defaultdict(list)
         self.child_actions = {}
+        self.finished, self.started, self.failed = set(), set(), set()
         self.asynch = asynch
         self.work_area_path = work_area_path
         if self.work_area_path:
@@ -624,43 +653,130 @@ class DirectedGraph(WorkAction, Observer):
             if nname not in parent_names:
                 drain_names.append(nname)
 
-        self.finished, self.started = set(), set()
+        self.finished, self.started, self.failed = set(), set(), set()
 
-        # start as parents are ready, and wait till all done
-        while len(self.finished) < len(self.child_actions):
-            for nname, node in self.child_actions.items():
-                if nname in self.finished:
-                    continue
-                if all(parent in self.finished for parent in self.parent_list[nname]):
-                    in_dict = self._parent_results( nname, val_dict )
-                    if node.name not in self.started:
-                        if self.asynch:
-                            node._observed_eval_async(in_dict.copy())
-                        else:
-                            node._observed_eval(in_dict.copy())
-                        self.started.add(node.name)
-                    
-        for nname in drain_names:
-            node = self.child_actions[nname]
-            # Merge each terminal node's results as-is. Sub-graphs and
-            # WorkAreas stay nested under their own name, preserving structure
-            # and provenance (and avoiding name collisions between branches).
-            val_dict.update( node.results() )
-    
-        for n,e in self.child_actions.items():
-            e._dump( val_dict )
+        # progress for external consumers (e.g. a GUI process): a status.json
+        # in the run directory, updated on every action state change
+        reporter = StatusReporter( self.name )
+        reporter.start( actions=list( self.child_actions.keys() ) )
 
+        # A graph nested inside an owning graph's directory has an inactive
+        # reporter; report through the owner's instead, so this graph's
+        # action states and solver fractions still reach the status file.
+        report_to = reporter if reporter.active else self._progress_reporter
+        if report_to is None:
+            report_to = reporter
+
+        reported_done = set()
+
+        def _sweep_done():
+            """Report actions that finished since the last sweep.
+            Copies self.finished: async watcher threads mutate it."""
+            newly_done = set( self.finished ) - reported_done
+            for done_name in newly_done:
+                report_to.action_state( done_name, 'done' )
+                reported_done.add( done_name )
+            return bool( newly_done )
+
+        current_name = None
+        try:
+            # start as parents are ready, and wait till all done
+            while len(self.finished) < len(self.child_actions):
+                if self.failed:
+                    # an asynchronous child failed: report, stop the other
+                    # running children, and abort the graph
+                    current_name = None
+                    self._abort_on_async_failure( report_to, _sweep_done )
+                progressed = False
+                for nname, node in self.child_actions.items():
+                    if nname in self.finished:
+                        continue
+                    if all(parent in self.finished for parent in self.parent_list[nname]):
+                        in_dict = self._parent_results( nname, val_dict )
+                        if node.name not in self.started:
+                            current_name = nname
+                            node._progress_reporter = report_to
+                            report_to.action_state( nname, 'running' )
+                            if self.asynch:
+                                node._observed_eval_async(in_dict.copy())
+                            else:
+                                node._observed_eval(in_dict.copy())
+                            self.started.add(node.name)
+                            progressed = True
+                            # a sync eval finished just now: report it done
+                            # before the next action starts
+                            _sweep_done()
+                if _sweep_done():
+                    progressed = True
+                if not progressed:
+                    # every startable action is already running (asynch mode):
+                    # pace the wait instead of spinning a core
+                    time.sleep( 0.05 )
+
+            _sweep_done()
+
+            for nname in drain_names:
+                node = self.child_actions[nname]
+                # Merge each terminal node's results as-is. Sub-graphs and
+                # WorkAreas stay nested under their own name, preserving structure
+                # and provenance (and avoiding name collisions between branches).
+                val_dict.update( node.results() )
+
+            for n,e in self.child_actions.items():
+                e._dump( val_dict )
+        except BaseException:
+            # actions that did complete before the failure still show as done
+            _sweep_done()
+            if current_name is not None and current_name not in self.finished:
+                report_to.action_state( current_name, 'failed' )
+            reporter.finish( 'failed' )
+            raise
+
+        reporter.finish( 'done' )
         return val_dict
 
 
+    def _abort_on_async_failure( self, report_to, sweep_done ):
+        """
+        An asynchronous child process failed (raised, crashed, or returned
+        no result). Report the failure, terminate the children still
+        running -- their results could not be used anyway -- and raise
+        AsyncActionError with the child's error (traceback included).
+        """
+        sweep_done()
+        failed_names = set( self.failed )   # copy: watcher threads mutate it
+        for fname in failed_names:
+            err = getattr( self.child_actions[fname], '_async_error', None )
+            first_line = str( err ).splitlines()[0] if err else None
+            report_to.action_state( fname, 'failed', message=first_line )
+
+        for sname in self.started - set( self.finished ) - failed_names:
+            proc = getattr( self.child_actions[sname], '_async_proc', None )
+            if proc is not None and proc.is_alive():
+                proc.terminate()
+                proc.join( timeout=2.0 )
+            report_to.action_state( sname, 'failed',
+                                    message='terminated: a sibling action failed' )
+
+        first = sorted( failed_names )[0]
+        err = getattr( self.child_actions[first], '_async_error', None )
+        raise AsyncActionError(
+            f"Asynchronous action '{first}' failed: {err or 'unknown error'}" )
+
     def update(self, message):
         """
-        From observer pattern. Called by actions that have finished.
+        From observer pattern. Called by actions that have finished
+        (``[action, 'Done']``) or failed asynchronously
+        (``[action, 'Failed']``).
 
         Arguments:
             message (any) :
         """
         nname = message[0].name
+        if len(message) > 1 and message[1] == 'Failed':
+            logger.debug( f'Observed action \'{nname}\' failed.' )
+            self.failed.add(nname)
+            return
         logger.debug( f'Observed action \'{nname}\' finished.' )
         self.finished.add(nname)
 
@@ -702,8 +818,8 @@ class DirectedGraph(WorkAction, Observer):
         work area) contribute that directory as a subtree instead."""
         if self.work_area is not None:
             return [ self.work_area._work_dir_tree() ]
-        entries = []
-        seen = set()
+        entries = [ ( 'status.json   (live action states; see simnexus.progress)', [] ) ]
+        seen = { entries[0][0] }
         for ch in self.child_actions.values():
             for node in ch._work_dir_entries():
                 if node[0] in seen:

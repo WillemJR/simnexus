@@ -1,12 +1,17 @@
 import grpc
+import json
 import os
 import shutil
 import tempfile
+import threading
+import uuid
 import glob
 from concurrent import futures
+from pathlib import Path
 import logging
 
 from simnexus.actions import WorkAction
+from simnexus.args import STATUS_PATH
 from simnexus.errors import SerializationError
 from simnexus import serialization
 from simnexus.protos import remote_actions_pb2
@@ -21,12 +26,94 @@ OPTIONS = [
 
 logger = logging.getLogger(__name__)
 
+
+def _mirror_remote_status(reporter, action_name, status):
+    """
+    Reduce a remote job's status dict to this RemoteAction's entry in the
+    *local* status file: the fraction of the remote action currently
+    running plus a message naming it. The GUI keeps watching one local
+    file tree and stays ignorant of remote execution.
+    """
+    actions = status.get('actions') or {}
+    running = [(n, a) for n, a in actions.items() if a.get('state') == 'running']
+
+    fraction, message = None, None
+    for n, a in running:
+        if a.get('fraction') is not None:
+            fraction = a['fraction']
+            message = f"remote {n}: {a['message']}" if a.get('message') else f"remote {n}"
+            break
+    if message is None and running:
+        message = f"remote {running[0][0]}"
+    if message is None:
+        done = sum(1 for a in actions.values() if a.get('state') == 'done')
+        if actions:
+            message = f"remote: {done} of {len(actions)} actions done"
+        else:
+            message = f"remote state '{status.get('state', '?')}'"
+    reporter.action_state(action_name, 'running', fraction=fraction, message=message)
+
+
+class _RemoteProgressPoller:
+    """
+    Daemon thread polling GetProgress on a second channel while the unary
+    RunAction call blocks, mirroring the remote status into the local
+    status file via the graph-provided reporter. Polling failures are
+    logged and ignored -- progress must never break a remote run.
+    """
+
+    def __init__(self, reporter, action_name, server_address, job_id, interval=2.0):
+        self.reporter = reporter
+        self.action_name = action_name
+        self.server_address = server_address
+        self.job_id = job_id
+        self.interval = interval
+        self._thread = None
+        self._stop = threading.Event()
+
+    def start(self):
+        if self.reporter is None or not self.reporter.active:
+            return
+        self._stop.clear()
+        self._thread = threading.Thread(target=self._loop, daemon=True)
+        self._thread.start()
+
+    def stop(self):
+        """Stop polling and wait for the thread, so no 'running' write can
+        land after the graph marks the action done."""
+        self._stop.set()
+        if self._thread is not None:
+            self._thread.join(timeout=self.interval + 5.0)
+            self._thread = None
+
+    def _loop(self):
+        try:
+            with grpc.insecure_channel(self.server_address, options=OPTIONS) as channel:
+                stub = remote_actions_pb2_grpc.SimNexusRemoteStub(channel)
+                request = remote_actions_pb2.ProgressRequest(job_id=self.job_id)
+                while not self._stop.wait(self.interval):
+                    try:
+                        resp = stub.GetProgress(request, timeout=self.interval)
+                    except grpc.RpcError:
+                        continue    # transient; RunAction reports hard failures
+                    if not resp.found:
+                        continue
+                    try:
+                        status = json.loads(resp.status_json.decode('utf-8'))
+                    except (UnicodeDecodeError, ValueError):
+                        continue
+                    _mirror_remote_status(self.reporter, self.action_name, status)
+        except Exception as err:
+            logger.warning(f'Remote progress polling stopped: {err}')
+
+
 class RemoteAction(WorkAction):
     """
     Executes a registered WorkAction on a remote server via gRPC.
     Requires a target_action_name to execute a pre-registered action on the server.
     """
-    def __init__(self, name, target_action_name=None, server_address=None, copy_paths=None, output_patterns=None):
+    def __init__(self, name, target_action_name=None, server_address=None, copy_paths=None, output_patterns=None,
+                 progress_interval=2.0):
         """
         Args:
             name (str): Name of this action.
@@ -36,12 +123,15 @@ class RemoteAction(WorkAction):
                 Files are sent using their basename. Directories are walked recursively and
                 sent preserving their internal structure relative to the directory's parent.
             output_patterns (list): List of glob patterns for files to retrieve from remote.
+            progress_interval (float): Seconds between GetProgress polls while the remote
+                job runs; the remote status is mirrored into the local status file.
         """
         super().__init__(name)
         self.target_action_name = target_action_name
         self.server_address = server_address
         self.copy_paths = copy_paths or []
         self.output_patterns = output_patterns or []
+        self.progress_interval = progress_interval
         self.description = f'Remote action executing {target_action_name} on {server_address}'
 
     def available_actions(self):
@@ -66,10 +156,13 @@ class RemoteAction(WorkAction):
 
         # 1. Prepare Request
         req = remote_actions_pb2.ActionRequest()
-        
+
         req.action_name = self.target_action_name
         req.target_action_name = self.target_action_name
-        
+        # client-chosen id lets a second channel poll GetProgress while the
+        # unary RunAction call below blocks
+        req.job_id = uuid.uuid4().hex
+
         # Restricted JSON, not pickle: unpickling network data would allow
         # arbitrary code execution on the peer. See simnexus/serialization.py
         # for the allowed types.
@@ -96,6 +189,10 @@ class RemoteAction(WorkAction):
                 logger.warning(f"Path not found: {path}")
 
         # 2. Connect and Send
+        poller = _RemoteProgressPoller(self._progress_reporter, self.name,
+                                       self.server_address, req.job_id,
+                                       interval=self.progress_interval)
+        poller.start()
         try:
             with grpc.insecure_channel(self.server_address, options=OPTIONS) as channel:
                 stub = remote_actions_pb2_grpc.SimNexusRemoteStub(channel)
@@ -104,6 +201,8 @@ class RemoteAction(WorkAction):
         except grpc.RpcError as e:
             logger.error(f"gRPC error: {e}")
             raise
+        finally:
+            poller.stop()
 
         # 3. Process Response
         if not resp.success:
@@ -126,6 +225,40 @@ class RemoteAction(WorkAction):
 class SimNexusService(remote_actions_pb2_grpc.SimNexusRemoteServicer):
     def __init__(self, actions_registry=None):
         self.actions_registry = actions_registry or {}
+        # running jobs by client-chosen id, so GetProgress can find the
+        # job's work directory while the unary RunAction call blocks
+        self._jobs = {}
+        self._jobs_lock = threading.Lock()
+
+    @staticmethod
+    def _find_status_file(tmp_dir):
+        """The job's status.json: at the work-dir root for a plain graph,
+        nested deeper for WorkArea/SimulationIterator wrappers (then the
+        shallowest one is the run-level status)."""
+        root = Path(tmp_dir)
+        direct = root / STATUS_PATH
+        if direct.exists():
+            return direct
+        candidates = sorted(root.rglob(STATUS_PATH), key=lambda p: len(p.parts))
+        return candidates[0] if candidates else None
+
+    def GetProgress(self, request, context):
+        resp = remote_actions_pb2.ProgressResponse()
+        resp.found = False
+        with self._jobs_lock:
+            tmp_dir = self._jobs.get(request.job_id)
+        if tmp_dir is None:
+            return resp
+        status_file = self._find_status_file(tmp_dir)
+        if status_file is None:
+            return resp
+        try:
+            # the file is plain JSON, written atomically by StatusReporter
+            resp.status_json = status_file.read_bytes()
+            resp.found = True
+        except OSError:
+            pass
+        return resp
 
     def GetAvailableActions(self, request, context):
         resp = remote_actions_pb2.AvailableActionsResponse()
@@ -139,7 +272,11 @@ class SimNexusService(remote_actions_pb2_grpc.SimNexusRemoteServicer):
         resp = remote_actions_pb2.ActionResponse()
         tmp_dir = tempfile.mkdtemp(prefix=f"simnexus_remote_{request.action_name}_")
         original_cwd = os.getcwd()
-        
+
+        if request.job_id:
+            with self._jobs_lock:
+                self._jobs[request.job_id] = tmp_dir
+
         try:
             logger.info(f"Received action: {request.action_name}")
             
@@ -208,9 +345,12 @@ class SimNexusService(remote_actions_pb2_grpc.SimNexusRemoteServicer):
             resp.success = False
             resp.error_message = f"Server internal error: {str(e)}"
         finally:
+            if request.job_id:
+                with self._jobs_lock:
+                    self._jobs.pop(request.job_id, None)
             os.chdir(original_cwd)
             shutil.rmtree(tmp_dir)
-            
+
         return resp
 
 

@@ -5,6 +5,19 @@ package simnexus;
 service SimNexusRemote {
   rpc RunAction (ActionRequest) returns (ActionResponse) {}
   rpc GetAvailableActions (Empty) returns (AvailableActionsResponse) {}
+  // Poll the progress of a running job (status.json of its work directory).
+  // The job_id is chosen by the client and sent in ActionRequest, so a
+  // second channel can poll while the unary RunAction call blocks.
+  rpc GetProgress (ProgressRequest) returns (ProgressResponse) {}
+}
+
+message ProgressRequest {
+  string job_id = 1;
+}
+
+message ProgressResponse {
+  bool found = 1;            // false: unknown job or no status written yet
+  bytes status_json = 2;     // raw contents of the job's status.json
 }
 
 message Empty {}
@@ -31,6 +44,7 @@ message ActionRequest {
   repeated File input_files = 4;
   repeated string output_patterns = 5;
   string target_action_name = 6; // name of action already on server
+  string job_id = 7;             // client-chosen id for GetProgress polling
 }
 
 message ActionResponse {

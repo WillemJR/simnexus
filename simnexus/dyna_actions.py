@@ -10,6 +10,8 @@ import simnexus.variables as simvars
 from simnexus.actions import WorkAction
 from simnexus.errors import MissingPathError, SolverError
 from simnexus.graph_actions import WorkFlow
+from simnexus.progress import FileProgressTail
+from simnexus.util import solver_progress
 
 import logging
 logger = logging.getLogger(__name__)
@@ -77,9 +79,17 @@ class DynaAnalysis(WorkAction):
         
         DynaAnalysis._replace_parameters( val_dict, self.input_file_path, base_file_name )
 
-        have_normal_termination = self._run_solver_in_dir( base_file_name )
+        # termination time from the written deck (parameters substituted),
+        # used to report percent-complete during the run
+        try:
+            t_end = solver_progress.dyna_termination_time(
+                Path( base_file_name ).read_text( errors='replace' ) )
+        except OSError:
+            t_end = None
 
-        return have_normal_termination 
+        have_normal_termination = self._run_solver_in_dir( base_file_name, t_end )
+
+        return have_normal_termination
 
 
     def _describe_returncode(self, returncode):
@@ -107,7 +117,7 @@ class DynaAnalysis(WorkAction):
         return f"exit code {returncode}"
 
 
-    def _run_solver_in_dir( self, base_file_name ):
+    def _run_solver_in_dir( self, base_file_name, t_end=None ):
         """
         """
 
@@ -116,8 +126,14 @@ class DynaAnalysis(WorkAction):
 
         # LS-DYNA command syntax: ls-dyna i=input.k
         run_cmd = f"{self.cmd} i={base_file_name}"
-        
-        flag = subprocess.run( run_cmd, shell=True, stdout=out_file, stderr=err_file )
+
+        tail = FileProgressTail( self._progress_reporter, self.name, 'run_file.stdout',
+                                 solver_progress.dyna_run_time, t_end )
+        tail.start()
+        try:
+            flag = subprocess.run( run_cmd, shell=True, stdout=out_file, stderr=err_file )
+        finally:
+            tail.stop()
 
         out_file.close()
         err_file.close()

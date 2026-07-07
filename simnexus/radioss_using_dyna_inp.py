@@ -7,6 +7,8 @@ from pathlib import Path
 import subprocess
 
 from simnexus.errors import MissingPathError, SolverError
+from simnexus.progress import FileProgressTail
+from simnexus.util import solver_progress
 from simnexus.radioss_actions import RadiossAnalysis
 from simnexus.dyna_actions import DynaAnalysis
 
@@ -67,9 +69,17 @@ class RadiossUsingDynaInput(RadiossAnalysis):
         #breakpoint()
         DynaAnalysis._replace_parameters( val_dict, self.starter_input_path, start_file_name )
 
+        # termination time from the written LS-DYNA deck; the OpenRadioss
+        # wrapper prints NC=/T= progress lines to the starter stdout
+        try:
+            t_end = solver_progress.dyna_termination_time(
+                Path( start_file_name ).read_text( errors='replace' ) )
+        except OSError:
+            t_end = None
+
         #shutil.copy( self.engine_input_path, RADIOSS_ENGINE_F_NAME+'.rad' )
 
-        self._run_in_dir( start_file_name )
+        self._run_in_dir( start_file_name, t_end )
 
         if self.create_d3plot : self._create_d3plot_file(RADIOSS_ROOT_NAME)
         if self.create_vtk: self. _create_vtk_file( )
@@ -78,7 +88,7 @@ class RadiossUsingDynaInput(RadiossAnalysis):
         return True 
 
 
-    def _run_in_dir( self, start_file_name ):
+    def _run_in_dir( self, start_file_name, t_end=None ):
         """
         new_input:
         """
@@ -86,8 +96,15 @@ class RadiossUsingDynaInput(RadiossAnalysis):
         out_file = open( RADIOSS_BASE_F_NAME+'.starter.stdout' , 'w' )
         err_file = open( RADIOSS_BASE_F_NAME+'.starter.stderr' , 'w')
 
-        #subprocess.run( self.starter_cmd + ' -i ' + start_file_name, shell=True, stdout=out_file, stderr=err_file )
-        subprocess.run( self.starter_cmd + ' ' + start_file_name + ' 1', shell=True, stdout=out_file, stderr=err_file )
+        tail = FileProgressTail( self._progress_reporter, self.name,
+                                 RADIOSS_BASE_F_NAME+'.starter.stdout',
+                                 solver_progress.radioss_run_time, t_end )
+        tail.start()
+        try:
+            #subprocess.run( self.starter_cmd + ' -i ' + start_file_name, shell=True, stdout=out_file, stderr=err_file )
+            subprocess.run( self.starter_cmd + ' ' + start_file_name + ' 1', shell=True, stdout=out_file, stderr=err_file )
+        finally:
+            tail.stop()
 
         out_file.close()
         err_file.close()

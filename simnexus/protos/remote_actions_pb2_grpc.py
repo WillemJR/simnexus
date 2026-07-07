@@ -44,6 +44,11 @@ class SimNexusRemoteStub(object):
                 request_serializer=simnexus_dot_protos_dot_remote__actions__pb2.Empty.SerializeToString,
                 response_deserializer=simnexus_dot_protos_dot_remote__actions__pb2.AvailableActionsResponse.FromString,
                 _registered_method=True)
+        self.GetProgress = channel.unary_unary(
+                '/simnexus.SimNexusRemote/GetProgress',
+                request_serializer=simnexus_dot_protos_dot_remote__actions__pb2.ProgressRequest.SerializeToString,
+                response_deserializer=simnexus_dot_protos_dot_remote__actions__pb2.ProgressResponse.FromString,
+                _registered_method=True)
 
 
 class SimNexusRemoteServicer(object):
@@ -61,6 +66,15 @@ class SimNexusRemoteServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GetProgress(self, request, context):
+        """Poll the progress of a running job (status.json of its work directory).
+        The job_id is chosen by the client and sent in ActionRequest, so a
+        second channel can poll while the unary RunAction call blocks.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_SimNexusRemoteServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -73,6 +87,11 @@ def add_SimNexusRemoteServicer_to_server(servicer, server):
                     servicer.GetAvailableActions,
                     request_deserializer=simnexus_dot_protos_dot_remote__actions__pb2.Empty.FromString,
                     response_serializer=simnexus_dot_protos_dot_remote__actions__pb2.AvailableActionsResponse.SerializeToString,
+            ),
+            'GetProgress': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetProgress,
+                    request_deserializer=simnexus_dot_protos_dot_remote__actions__pb2.ProgressRequest.FromString,
+                    response_serializer=simnexus_dot_protos_dot_remote__actions__pb2.ProgressResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -129,6 +148,33 @@ class SimNexusRemote(object):
             '/simnexus.SimNexusRemote/GetAvailableActions',
             simnexus_dot_protos_dot_remote__actions__pb2.Empty.SerializeToString,
             simnexus_dot_protos_dot_remote__actions__pb2.AvailableActionsResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetProgress(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/simnexus.SimNexusRemote/GetProgress',
+            simnexus_dot_protos_dot_remote__actions__pb2.ProgressRequest.SerializeToString,
+            simnexus_dot_protos_dot_remote__actions__pb2.ProgressResponse.FromString,
             options,
             channel_credentials,
             insecure,

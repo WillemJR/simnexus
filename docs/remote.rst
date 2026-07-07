@@ -83,6 +83,20 @@ Using a named action reduces network overhead as the graph structure itself is a
     # Execute
     result = remote_task.solve({'param1': 100})
 
+Progress of remote jobs
+-----------------------
+
+A remote job can take hours; the blocking ``solve()`` call gives no feedback
+by itself. While it runs, the ``RemoteAction`` polls the server's
+``GetProgress`` RPC (every ``progress_interval`` seconds, default 2) from a
+background thread and mirrors the remote job's status into the **local**
+``status.json``: the ``RemoteAction``'s entry shows the fraction of the
+remote action currently running and a message such as
+``remote rad_solver: time 12.9 of 40``. A GUI watching the local results
+tree (see :mod:`simnexus.progress`) therefore shows remote progress without
+knowing about gRPC. Polling failures are silently ignored; hard failures
+are reported by ``solve()`` itself.
+
 Implementation Details
 ----------------------
 

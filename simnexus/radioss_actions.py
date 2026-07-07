@@ -11,6 +11,8 @@ from pathlib import Path
 
 from simnexus.actions import WorkAction
 from simnexus.errors import SimNexusError, MissingPathError, SolverError
+from simnexus.progress import FileProgressTail
+from simnexus.util import solver_progress
 from simnexus.rare import HistoryEvaluation
 from simnexus.util.openradios_reader import OpenRadiosKeywordReader
 import simnexus.variables as simvars
@@ -470,8 +472,16 @@ class RadiossAnalysis(WorkAction,RadiossAnalysisBase):
 
         shutil.copy( self.engine_input_path, RADIOSS_ENGINE_F_NAME+'.rad' )
 
+        # stop time from the engine deck (/RUN card), used to report
+        # percent-complete during the engine run
+        try:
+            t_end = solver_progress.radioss_termination_time(
+                Path( RADIOSS_ENGINE_F_NAME+'.rad' ).read_text( errors='replace' ) )
+        except OSError:
+            t_end = None
+
         self._run_starter_in_dir( start_file_name )
-        self._run_engine_in_dir( RADIOSS_ENGINE_F_NAME+'.rad' )
+        self._run_engine_in_dir( RADIOSS_ENGINE_F_NAME+'.rad', t_end )
 
         if self.create_d3plot : self._create_d3plot_file(RADIOSS_ROOT_NAME)
         if self.create_vtk: self. _create_vtk_file( )
@@ -595,7 +605,7 @@ class RadiossAnalysis(WorkAction,RadiossAnalysisBase):
 
 
 
-    def _run_engine_in_dir( self, engine_file_name ):
+    def _run_engine_in_dir( self, engine_file_name, t_end=None ):
         """
         new_input:
         """
@@ -603,7 +613,14 @@ class RadiossAnalysis(WorkAction,RadiossAnalysisBase):
         out_file = open( RADIOSS_ENGINE_F_NAME+'.engine.stdout' , 'w' )
         err_file = open( RADIOSS_ENGINE_F_NAME+'.engine.stderr' , 'w')
 
-        flag = subprocess.run( self.engine_cmd + ' -i ' + engine_file_name, shell=True, stdout=out_file, stderr=err_file )
+        tail = FileProgressTail( self._progress_reporter, self.name,
+                                 RADIOSS_ENGINE_F_NAME+'.engine.stdout',
+                                 solver_progress.radioss_run_time, t_end )
+        tail.start()
+        try:
+            flag = subprocess.run( self.engine_cmd + ' -i ' + engine_file_name, shell=True, stdout=out_file, stderr=err_file )
+        finally:
+            tail.stop()
 
         out_file.close()
         err_file.close()

@@ -29,4 +29,7 @@ API Reference
 .. automodule:: simnexus.serialization
    :members:
 
+.. automodule:: simnexus.progress
+   :members:
+
 

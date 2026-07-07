@@ -101,6 +101,10 @@ class WorkAction(Subject):
 
         self._results = None
 
+        # set by the enclosing graph before solve(); solver actions report
+        # percent-complete through it (see simnexus.progress)
+        self._progress_reporter = None
+
         self.data_type = data_type
         self._par_dict = {}
         self._parameters_cache = None
@@ -200,22 +204,48 @@ class WorkAction(Subject):
 
         """
         Asynchronously run solve in a separate process.
-        Notifies observers only when the process finishes.
+        Notifies observers only when the process finishes: with 'Done' on
+        success, with 'Failed' when the child raised, crashed, or produced
+        no result. The error text (with traceback) is kept on
+        self._async_error for the enclosing graph to raise.
         """
+        ERROR_KEY = '__simnexus_async_error__'
+
         def eval_worker(val_dict, result_dict):
-            e = self.solve(val_dict)
+            try:
+                e = self.solve(val_dict)
+            except BaseException as err:
+                import traceback
+                result_dict[ERROR_KEY] = (
+                    f'{type(err).__name__}: {err}\n{traceback.format_exc()}' )
+                raise SystemExit(1)
             result_dict[self.name] = e
 
         def watcher(proc, result_dict):
             proc.join()
+            error = result_dict.get(ERROR_KEY)
+            if error is None and proc.exitcode != 0:
+                # hard death: segfault, oom-kill, terminate()
+                error = f'child process exited with code {proc.exitcode}'
+            if error is None and self.name not in result_dict:
+                error = 'child process returned no result'
+            results = dict(result_dict)
+            results.pop(ERROR_KEY, None)
             # Update self._results in the main process
-            self._results = dict(result_dict)
-            self._notify_observers([self, 'Done'])
+            self._results = results
+            if error is not None:
+                self._async_error = error
+                logger.error(f"Asynchronous action '{self.name}' failed: {error}")
+                self._notify_observers([self, 'Failed'])
+            else:
+                self._notify_observers([self, 'Done'])
 
+        self._async_error = None
         manager = multiprocessing.Manager()
         result_dict = manager.dict(val_dict.copy() if val_dict else {})
         p = multiprocessing.Process(target=eval_worker, args=(val_dict, result_dict))
         p.start()
+        self._async_proc = p
         # Start watcher thread to notify when done
         t = threading.Thread(target=watcher, args=(p, result_dict), daemon=True)
         t.start()

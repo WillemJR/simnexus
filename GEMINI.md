@@ -68,7 +68,7 @@ The decorators `@WorkAction.allow_variables_as_arguments` and `@WorkAction.assig
 # Setting up a workflow
 Actions are organized into a `DirectedGraph` or the simpler linear`WorkFlow` to define dependencies and execution order.
 
-Asynchronous Execution: `_observed_eval_async` allows running the action in a separate process, which is useful for parallelizing independent tasks in a `DirectedGraph`.
+Asynchronous Execution: `_observed_eval_async` allows running the action in a separate process, which is useful for parallelizing independent tasks in a `DirectedGraph`. If an asynchronous action raises or its process dies, the graph marks it `failed` in the status file, terminates the other running children, and raises `AsyncActionError` with the child's traceback.
 
 
 # Remote execution
@@ -76,7 +76,12 @@ The `simnexus.remote_actions` module enables executing of actions on remote comp
 - **`ServerAction` / `NamedServerAction` (Remote)**: A gRPC server that accepts tasks, executes them in isolated temporary directories, and returns results. It supports registering named graphs via `add_graph(name, graph, description)` to enforce a secure registry-based execution model.
 - **`RemoteAction` (Client)**: A wrapper that specifies a `target_action_name` to execute a pre-registered action on the server. It retrieves the results and generated files. Discoverability of server-side actions is provided via `available_actions()`.
 - Variable values and results cross the wire as restricted JSON (`simnexus/serialization.py`), not pickle: only plain data types and numeric numpy arrays are accepted, so decoding a payload cannot execute code. Values outside the whitelist raise `SerializationError`.
+- Remote progress: while a remote job runs, the client polls the server's `GetProgress` RPC and mirrors the remote status into the local `status.json` under the `RemoteAction`'s entry (fraction and a `remote <action>: ...` message). A GUI watching the local results tree sees remote progress without knowing about gRPC.
 
+
+# Progress reporting
+
+Long runs report progress through `status.json` files (`simnexus/progress.py`), written atomically into the work directories so an external consumer (e.g. a GUI in a separate process) can poll them safely at any moment. A `DirectedGraph`/`WorkFlow` writes per-action states (`pending`/`running`/`done`/`failed`) into its run directory; a `SimulationIterator` writes job counts (`jobs_total`, `jobs_done`, `current_job`, state `running`/`idle`/`done`/`failed`) at the results root. A heartbeat thread keeps `updated_at` fresh so a reader can tell a slow run from a dead one (`progress.is_alive`). Reader-side helpers: `StatusWatcher` (poll one file), `RunWatcher` (follow a results tree: root plus current job; non-blocking `poll()` for GUI timers), `watch_run` (blocking generator for scripts), `format_status` (text rendering). A graph nested inside another graph in the same directory does not write its own file; it reports its actions through the owner's reporter, so they appear in the owner's file. Solver actions (`DynaAnalysis`, `RadiossAnalysis`, `RadiossUsingDynaInput`, `OpenFOAMAnalysis`) report percent-complete while running: a background thread (`progress.FileProgressTail`) polls the solver's redirected stdout, extracts the current simulation time (parsers in `simnexus/util/solver_progress.py`), and reports `fraction` = time/termination-time plus a `message` like `time 12.9 of 40`; the termination time is read from the input deck (`*CONTROL_TERMINATION`, `/RUN` card, or `controlDict endTime`). If the deck or output cannot be parsed, the fraction simply stays `null`. Progress also works for `asynch` graphs: an action running in a forked child writes per-action sidecar files that the owning process merges into `status.json` (see `simnexus/GEMINI.md` for details).
 
 # Results directory structure for SimulationIterator
 
