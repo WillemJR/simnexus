@@ -43,10 +43,13 @@ dyna = [
 plot = [
     "matplotlib>=3.5",
 ]
+gui = [
+    "PySide6>=6.5",
+]
 dev = [
     "pytest",
 ]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["simnexus*"]
+include = ["simnexus*", "simnexus_gui*"]
