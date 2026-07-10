@@ -312,19 +312,31 @@ class FileProgressTail:
     termination time is unknown -- progress reporting must never break a
     solver run, so parse errors are swallowed too.
 
+    When the termination time is not known up front but is printed by the
+    solver into its output (e.g. Abstrao's ``# Termination time is X s``
+    header), pass ``t_end=None`` and a ``find_t_end`` callable; the thread
+    reads the *head* of the file each poll until it can extract ``t_end``,
+    then reports normally. (It reads the head, not the tail, because such a
+    header scrolls out of the tail window once the file grows.)
+
     Arguments:
         reporter (StatusReporter) : where to report; may be None.
         action_name (str) : the action entry to update.
         path (str|Path) : the solver output file to poll.
         parse_time (callable) : ``text -> float | None``, latest sim time.
-        t_end (float) : termination time from the deck; None disables.
+        t_end (float) : termination time from the deck; None disables unless
+            ``find_t_end`` is given.
         t_start (float) : start time (OpenFOAM restarts), default 0.
         interval (float) : polling period in seconds.
         tail_bytes (int) : how much of the file end to read per poll.
+        find_t_end (callable) : ``head_text -> float | None`` to discover
+            ``t_end`` from the file head when it is not known up front.
+        head_bytes (int) : how much of the file start to read for it.
     """
 
     def __init__( self, reporter, action_name, path, parse_time, t_end,
-                  t_start=0.0, interval=2.0, tail_bytes=65536 ):
+                  t_start=0.0, interval=2.0, tail_bytes=65536,
+                  find_t_end=None, head_bytes=8192 ):
         self.reporter = reporter
         self.action_name = action_name
         self.path = Path( path )
@@ -333,6 +345,8 @@ class FileProgressTail:
         self.t_start = t_start
         self.interval = interval
         self.tail_bytes = tail_bytes
+        self.find_t_end = find_t_end
+        self.head_bytes = head_bytes
         self._thread = None
         self._stop = threading.Event()
         self._last_fraction = None
@@ -340,7 +354,9 @@ class FileProgressTail:
     def start( self ):
         if self.reporter is None or not self.reporter.active:
             return
-        if self.t_end is None or self.t_end <= self.t_start:
+        if self.t_end is None and self.find_t_end is None:
+            return
+        if self.t_end is not None and self.t_end <= self.t_start:
             return
         self._stop.clear()
         self._thread = threading.Thread( target=self._loop, daemon=True )
@@ -365,7 +381,28 @@ class FileProgressTail:
             f.seek( max( 0, size - self.tail_bytes ) )
             return f.read().decode( errors='replace' )
 
+    def _read_head( self ):
+        with open( self.path, 'rb' ) as f:
+            return f.read( self.head_bytes ).decode( errors='replace' )
+
+    def _resolve_t_end( self ):
+        """Discover t_end from the file head once it is written; leave it
+        None (keep trying) until a usable value appears."""
+        try:
+            found = self.find_t_end( self._read_head() )
+        except OSError:
+            return  # file not written yet
+        except Exception as err:
+            logger.warning( f'Termination parsing failed for {self.path}: {err}' )
+            return
+        if found is not None and found > self.t_start:
+            self.t_end = found
+
     def _report_once( self ):
+        if self.t_end is None and self.find_t_end is not None:
+            self._resolve_t_end()
+            if self.t_end is None:
+                return  # termination not known yet
         try:
             t = self.parse_time( self._read_tail() )
         except OSError:
