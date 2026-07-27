@@ -17,8 +17,8 @@ from simnexus.variables import FloatVariable
 from simnexus.graph_actions import WorkFlow, SimulationIterator
 from simnexus.d3plot_actions import d3plot_File
 from simnexus.radioss_actions import RadiossAnalysis, RadiossCSVHistory, CSVNodeLocationHistory, CSVNodeLocation
-from simnexus.radioss_actions import FieldData, FieldDataHist
-from simnexus.radioss_actions import NodalFieldData_VTK, ElementNodalFieldData_VTK, MetaData_VTK
+from simnexus.vtk_actions import VTK_FieldData, VTK_FieldDataHist
+from simnexus.vtk_actions import VTK_NodalFieldData, VTK_ElementNodalFieldData, VTK_MetaData
 from simnexus.jinja_actions import JinjaReplace
 from simnexus.radioss_using_dyna_inp import RadiossUsingDynaInput
 
@@ -34,12 +34,12 @@ def test_seq( ):
     chain.add_action(  RadiossUsingDynaInput("RadiossRun", cmd="rad_dyna_inp", input_path='edited.k', create_vtk=True, create_csv=True ) )
     chain.add_action( RadiossCSVHistory('hist_eval', '{"quantity":"EXTERNAL WORK" }' ) )
 
-    chain.add_action( MetaData_VTK( 'meta', state=2, required_part_id=3 ) )
-    chain.add_action( NodalFieldData_VTK('field', state=2,
+    chain.add_action( VTK_MetaData( 'meta', state=2, required_part_id=3 ) )
+    chain.add_action( VTK_NodalFieldData('field', state=2,
                                         required_part_id=3, 
                                         node_data_names=[ 'NODE_ID', 'Displacement' ] ) )
 
-    chain.add_action( FieldDataHist('field_hist', 
+    chain.add_action( VTK_FieldDataHist('field_hist', 
                                      required_part_id=3,
                                      node_data_names=[ 'NODE_ID', 'Displacement' ],
                                      el_data_names=['2DELEM_Specific_Energy', 'ELEMENT_ID'],
@@ -103,11 +103,11 @@ def test_exp_des( ):
     chain.add_action( CSVNodeLocation('node_loc', 851 ) )
 
 
-    chain.add_action( NodalFieldData_VTK('field_eval_node',
+    chain.add_action( VTK_NodalFieldData('field_eval_node',
                                         required_part_id=3, # NYI, bug if multiple parts?
                                         node_data_names=[ 'NODE_ID', 'Displacement' ] ) )
 
-    chain.add_action( ElementNodalFieldData_VTK('field_eval_element_node',
+    chain.add_action( VTK_ElementNodalFieldData('field_eval_element_node',
                                         required_part_id=3, # NYI, bug if multiple parts?
                                         el_nodal_data_names=[ 'NODE_ID', '2DELEM_Specific_Energy' ],) )
 
