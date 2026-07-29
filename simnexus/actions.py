@@ -1,5 +1,6 @@
 import os
 import keyword
+from pathlib import Path
 from abc import ABC, abstractmethod
 import numpy as np
 
@@ -40,6 +41,29 @@ def validate_action_name( name ):
               f"with a digit, not a Python keyword) so they can be used in "
               f"MathEvaluation expressions." )
     return name
+
+
+def _display_path( path ):
+    """Show a work path relative to the current directory when it lives
+    underneath it, otherwise as-is. Keeps nested directory trees readable."""
+    try:
+        return str( Path( path ).relative_to( Path.cwd() ) )
+    except ValueError:
+        return str( path )
+
+
+def _copy_path_nodes( copy_paths ):
+    """Build work-directory tree nodes for files/dirs that get copied in."""
+    nodes = []
+    seen = set()
+    for cp in copy_paths:
+        p = Path( cp )
+        name = p.name + ( '/' if p.is_dir() else '' )
+        if name in seen:
+            continue
+        seen.add( name )
+        nodes.append( ( f'{name}   (copied in)', [] ) )
+    return nodes
 
 
 def render_tree( root ):

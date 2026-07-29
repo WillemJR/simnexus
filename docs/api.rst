@@ -32,4 +32,7 @@ API Reference
 .. automodule:: simnexus.progress
    :members:
 
+.. automodule:: simnexus.simulation_iterator
+   :members:
+
 

@@ -26,6 +26,7 @@ simnexus/
 │   ├── actions.py          # base class for all actions in the graph
 │   ├── args.py             # enums, constaints and named tuples used in input arguments
 │   ├── graph_actions.py    # graph containing sequence of actions.
+│   ├── simulation_iterator.py # design studies: a job directory per design, and the index of those jobs
 │   ├── dyna_actions.py     # execution of ls-dyna
 │   ├── d3plot_actions.py   # read ls-dyna data from a d3plot file
 │   ├── jinja_actions.py    # substition of variables in a file with jinja markup
@@ -92,6 +93,7 @@ OptimizationResults/
 ├── opt_hist.json
 
 {NAME}/
+├── jobs_index.json
 ├── job_0/             
 │   ├── iter_variables.json
 │   └── actions_output.pkl
@@ -120,3 +122,17 @@ The actions_output.pkl is a binary file written using the pickle module.
 The content of the file is a dictionary. 
 and the values can be integers, floats, a numpy float, a list of floats,
 a numpy 1D array of floats, or an image stored as an numpy array.
+
+The jobs_index.json file at the results root indexes the job directories
+(`simnexus/simulation_iterator.py`, alongside `SimulationIterator` itself): one
+record per job holding the job directory name, the
+variable values it was run with, its state (`running`/`done`/`failed`), and any group
+labels. It lets past results be retrieved by variable value and lets runs be grouped,
+without re-running the graph — `SimulationIterator.results_for(vars)`,
+`find_jobs(where=..., groups=...)`, `collect(groups=...)`, `add_groups`/`remove_groups`
+— and backs `reuse_existing=True`, which returns a completed job's stored outputs
+instead of evaluating the same design point again. Group labels are set with the
+`groups` argument of the constructor, `solve` or `collect_for_*` (most specific wins),
+or applied afterwards; a job can be in several groups. The index is a cache and is
+rebuilt from the job directories when missing (`job_index(rebuild=True)`); only the
+group labels cannot be recovered that way.

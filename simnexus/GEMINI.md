@@ -17,6 +17,19 @@ The `simnexus.remote_actions` module enables executing actions on remote compute
 - **Security Note**: Decoding a payload cannot execute code (pickle was replaced for this reason), but the gRPC channel is unencrypted and unauthenticated — use only within trusted networks.
 
 
+## Design studies (`simnexus/simulation_iterator.py`)
+
+`SimulationIterator` and `JobIndex` live in this module (re-exported from `graph_actions`, which is where workflows import it from). They are one unit: the iterator writes the results directory, the index reads it.
+
+`jobs_index.json` at a `SimulationIterator`'s results root maps job directories to the design points that produced them, so results can be retrieved by variable value and runs can be grouped without re-running anything.
+
+- **Record**: `{job, groups[], variables{}, state, created_at, updated_at}`. Written by `SimulationIterator.solve` before the job runs (state `running`, so an interrupted run still leaves its design point and labels) and updated to `done`/`failed` after. Written atomically (temp + `os.replace`) like `status.json`; write failures are logged and swallowed — indexing must never break a workflow.
+- **Cache, not authority**: `JobIndex.rebuild()` derives the whole index from the job directories (`iter_variables.json` for the variables, presence of `actions_output.pkl` for `done`), so result trees predating the index keep working; `load()` also adopts unindexed directories. Only group labels are unrecoverable — they exist nowhere else — so a rebuild preserves the labels of jobs it already knows.
+- **Matching**: `values_match` compares numbers with `np.isclose` (a value that made a JSON round trip is not always bit-identical) and everything else with `==`; bools are kept off the numeric path so `True` does not match `1`. `find(where=...)` is a *partial* match (only the named variables are compared) and drives the query API; `find_exact` requires the same variable set and is what reuse uses — a job differing in an unmentioned variable is a different design point.
+- **Directory names stay `job_N`**: encoding variable values in the name would have to invent a float format, would break when a study adds a variable, and could not express group membership at all. `JNAME` remains the (class-level) prefix.
+- **Reuse** (`SimulationIterator(reuse_existing=True)`): `_reuse` returns a completed job's unpickled outputs instead of solving, adds the current call's labels to it, and reports the job to the status reporter so a GUI still sees progress. It also switches job numbering from `run_iter` to `JobIndex.next_job_number()` (max of index and directories, +1), which is what lets jobs be added to an existing results directory; without the flag the old "Restart is not yet supported" guard is unchanged. A stale index entry (outputs deleted) falls back to running the job.
+- **Numpy values**: `as_jsonable` coerces numpy scalars/arrays to plain Python for both the index and `iter_variables.json` — variable values commonly come from `np.arange`, whose items `json.dump` cannot serialize.
+
 ## Progress reporting (`simnexus/progress.py`)
 
 Workflow progress crosses the process boundary (to a GUI) through `status.json` files in the work directories, never through in-process callbacks.

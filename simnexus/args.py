@@ -50,7 +50,9 @@ DesPar = namedtuple('DesPar', ['obj_func', 'start', 'var_bounds', ],
 
 OPT_RESULTS_DIR = 'OptimizationResults'
 ACTIONS_OUTPUT_PATH = 'actions_output.pkl'
+ITER_VARIABLES_PATH = 'iter_variables.json'
 STATUS_PATH = 'status.json'
+JOBS_INDEX_PATH = 'jobs_index.json'
 
 DYNA_DFLT_CMD  = 'ls-dyna'
 DYNA_BASE_FILE_NAME = 'dyna_action_inp'
