@@ -2,9 +2,6 @@
 import logging
 logging.basicConfig(level=logging.WARN)
 
-import sys, os
-dev_code_dir = "/".join(os.path.dirname(os.path.realpath(__file__)).split("/")[:-2])
-sys.path.append(dev_code_dir)
 
 
 import numpy as np

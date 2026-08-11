@@ -1,6 +1,4 @@
 
-import sys, os
-sys.path.append( "/".join(os.path.dirname(os.path.realpath(__file__)).split("/")[:-2]) )
 from pathlib import Path
 
 import simnexus

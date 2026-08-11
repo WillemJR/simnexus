@@ -171,10 +171,58 @@ def test_reuse_existing_skips_completed_design_points(study_path):
     assert itr2.groups_of('job_0') == ['first', 'second']
 
 
-def test_existing_results_directory_still_refused_by_default(study_path):
-    _study_iterator(study_path).solve({'K': 0.2, 'T': 75})
-    with pytest.raises(SimNexusError):
-        _study_iterator(study_path).solve({'K': 0.2, 'T': 75})
+def test_existing_results_directory_is_added_to(study_path):
+    """A later session extends the study instead of being refused, and
+    without overwriting the jobs that are already there."""
+    first = _study_iterator(study_path, groups='session_1')
+    first.solve({'K': 0.2, 'T': 75})
+
+    second = _study_iterator(study_path, groups='session_2')
+    second.solve({'K': 0.3, 'T': 75})       # same values would also be re-run
+    second.solve({'K': 0.2, 'T': 75})
+
+    recs = second.job_index().records
+    assert [r['job'] for r in recs] == ['job_0', 'job_1', 'job_2']
+    assert [r['groups'] for r in recs] == [['session_1'], ['session_2'], ['session_2']]
+    assert second.results_for({'K': 0.3, 'T': 75})['energy'] == pytest.approx(22.5)
+    # the first session's job is untouched: still there, still labelled
+    assert first.job_index(rebuild=True).find(where={'K': 0.2})[0]['job'] == 'job_0'
+
+
+def test_repeated_design_point_resolves_to_the_most_recent_job(study_path):
+    """Appending means the same values can appear twice (changed deck,
+    new solver version). The latest job describes that design point."""
+    first = _study_iterator(study_path)
+    first.solve({'K': 0.2, 'T': 75})
+
+    wf = WorkFlow("Study")
+    wf.add_action(MathEvaluation("energy", "2 * K * T"))     # 'changed deck'
+    second = SimulationIterator(wf, work_area_path=str(study_path))
+    second.solve({'K': 0.2, 'T': 75})
+
+    assert [p.name for p in second.find_jobs(where={'K': 0.2})] == ['job_0', 'job_1']
+    assert second.results_for({'K': 0.2, 'T': 75})['energy'] == pytest.approx(30.0)
+
+    # and reuse picks up the latest as well
+    third = SimulationIterator(wf, work_area_path=str(study_path), reuse_existing=True)
+    _, out = third.collect_for_varrange({'K': [0.2], 'T': [75]})
+    assert third.reused_jobs == ['job_1']
+    assert out['energy'] == pytest.approx([30.0])
+
+
+def test_jobs_are_never_overwritten_when_a_job_dir_is_missing(study_path):
+    """Numbering comes from the whole results directory, not from a per
+    instance counter, so a gap does not send a run over existing jobs."""
+    itr = _study_iterator(study_path)
+    itr.collect_for_varrange({'K': [0.2, 0.3], 'T': [75]})
+    shutil.rmtree(study_path / 'job_0')
+
+    later = _study_iterator(study_path)
+    later.solve({'K': 0.9, 'T': 1.0})
+
+    assert later.job_index(rebuild=True).find(where={'K': 0.3})[0]['job'] == 'job_1'
+    assert later.results_for({'K': 0.9, 'T': 1.0})['energy'] == pytest.approx(0.9)
+    assert later.results_for({'K': 0.3, 'T': 75})['energy'] == pytest.approx(22.5)
 
 
 def test_index_rebuilds_from_job_directories(study_path):
@@ -189,6 +237,30 @@ def test_index_rebuilds_from_job_directories(study_path):
     assert [r['job'] for r in recs] == ['job_0', 'job_1']
     assert recs[1]['variables'] == {'K': 0.3, 'T': 75}
     assert reader.results_for({'K': 0.3, 'T': 75})['energy'] == pytest.approx(22.5)
+
+
+def test_iterdir_and_gather_outputs_survive_a_gap(study_path):
+    itr = _study_iterator(study_path)
+    itr.collect_for_varrange({'K': [0.2, 0.3, 0.4], 'T': [75]})
+    shutil.rmtree(study_path / 'job_0')          # archived by hand
+
+    later = _study_iterator(study_path)
+    assert [p.name for p in later.iterdir()] == ['job_1', 'job_2']
+    assert [o['energy'] for o in later.gather_outputs()] == pytest.approx([22.5, 30.0])
+
+
+def test_gather_outputs_skips_a_failed_job(study_path):
+    wf = WorkFlow("Study")
+    wf.add_action(MathEvaluation("energy", "K * T"))
+    itr = SimulationIterator(wf, work_area_path=str(study_path))
+    itr.solve({'K': 0.2, 'T': 75})
+    with pytest.raises(SimNexusError):
+        itr.solve({'K': 0.3})                    # no T: the graph fails
+    itr.solve({'K': 0.4, 'T': 75})
+
+    # job_1 failed and has no outputs; it is skipped, not raised on
+    assert [p.name for p in itr.iterdir()] == ['job_0', 'job_1', 'job_2']
+    assert [o['energy'] for o in itr.gather_outputs()] == pytest.approx([15.0, 30.0])
 
 
 def test_failed_job_is_not_reused(study_path):

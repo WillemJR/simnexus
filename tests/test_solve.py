@@ -1,8 +1,5 @@
 
 
-import sys, os
-dev_code_dir = "/".join(os.path.dirname(os.path.realpath(__file__)).split("/")[:-1])
-sys.path.append(dev_code_dir)
 
 import numpy as np
 
