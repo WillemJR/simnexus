@@ -87,8 +87,18 @@ The resulting directory layout is::
     │   ├── iter_variables.json
     │   └── actions_output.pkl
 
-Pass ``clean_start=True`` to remove any existing results directory
-before starting::
+An existing results directory is added to.  Job numbers continue after
+whatever is already there — taken from the index and the directories on
+disk, not from a counter on the iterator — so a study can be extended in
+a later session and a finished job is never written over:
+
+.. code-block:: python
+
+    itr = SimulationIterator(wf, copy_paths=['path/to/spring.k'])
+    itr.solve({'K': 300.0})    # a later session: writes job_2, not job_0
+
+Pass ``clean_start=True`` to delete the results directory (jobs, index
+and all) before starting::
 
     itr = SimulationIterator(wf, copy_paths=['path/to/spring.k'], clean_start=True)
 
@@ -165,7 +175,7 @@ be plotted or post-processed like a fresh study:
 **Reusing completed runs.**  With ``reuse_existing=True`` a design point
 that already has a completed job is not run again — its stored outputs
 are returned and its labels extended, while new design points run as
-usual and are numbered after the existing jobs:
+usual:
 
 .. code-block:: python
 
@@ -174,9 +184,12 @@ usual and are numbered after the existing jobs:
     pars, out = itr.collect_for_varrange({'K': [100., 500.]})
     itr.reused_jobs        # ['job_0']  — K=100 came off disk
 
-Without this flag the behaviour is unchanged: an existing results
-directory is refused.  Note that reuse matches on the *complete* set of
-variable values, so a job that differs in any variable is treated as a
+The flag only decides whether computed design points are skipped; adding
+to an existing results directory needs no flag.  Without it every design
+point given is run, appended after the jobs already there — so the same
+values can appear in several jobs, which is what you want when a deck or
+a solver version changed.  Note that reuse matches on the *complete* set
+of variable values, so a job that differs in any variable is treated as a
 different design point.
 
 The index is a cache, never the authority.  ``itr.job_index(rebuild=True)``

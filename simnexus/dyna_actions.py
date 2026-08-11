@@ -153,8 +153,8 @@ class DynaAnalysis(WorkAction):
              with open( 'd3hsp', 'r' ) as f:
                  if 'Normal termination' in f.read():
                      have_normal_termination = True
-                 # below needs checking with ls-dyna. This is the way I remember it
-                 if 'N o r m a l  t e r m i n a t i o n' in f.read():
+                 # below needs checking with ls-dyna. This is the way I and google remember it
+                 if 'N o r m a l   t e r m i n a t i o n' in f.read():
                      have_normal_termination = True
              
              if not have_normal_termination:
@@ -162,7 +162,8 @@ class DynaAnalysis(WorkAction):
                  have_error = False
                  if Path('run_file.stdout').exists():
                      with open( 'run_file.stdout', 'r' ) as outfile:
-                         if 'Error termination' in outfile.read():
+                         # below needs checking with ls-dyna. This is the way I and google remember it
+                         if 'E r r o r   t e r m i n a t i o n' in outfile.read():
                              have_error = True
                  
                  if have_error:

@@ -51,7 +51,7 @@ import numpy as np
 
 from simnexus.actions import WorkAction, _display_path, _copy_path_nodes
 from simnexus.args import ACTIONS_OUTPUT_PATH, ITER_VARIABLES_PATH, JOBS_INDEX_PATH
-from simnexus.errors import ( SimNexusError, ActionNameError, ParameterError,
+from simnexus.errors import ( ActionNameError, ParameterError,
                               MissingPathError, DataNotFoundError )
 from simnexus.progress import StatusReporter
 import simnexus.args
@@ -410,11 +410,16 @@ class JobIndex:
         """The record of the job run with exactly this set of variable
         values (same names, matching values), or None.
 
+        The same design point can legitimately be run more than once (a
+        changed deck, a new solver version), so the *most recent* matching
+        job wins - it describes the current state of that design point.
+
         Used for reuse: a job that differs in a variable not mentioned in
         ``variables`` is a different design point and must not be reused.
         """
         self._ensure()
         variables = as_jsonable( variables )
+        found = None
         for rec in self.records:
             if state is not None and rec.get( 'state' ) != state:
                 continue
@@ -422,8 +427,8 @@ class JobIndex:
             if set( rvars.keys() ) != set( variables.keys() ):
                 continue
             if all( values_match( rvars[k], v, rtol, atol ) for k, v in variables.items() ):
-                return rec
-        return None
+                found = rec
+        return found
 
     def read_outputs( self, job ):
         """Unpickle the action outputs of one job (name or record)."""
@@ -451,21 +456,27 @@ class SimulationIterator(WorkAction):
     ``collect``) and ``reuse_existing``, and can be rebuilt from the job
     directories at any time.
 
+    An existing results directory is added to: jobs are numbered after the
+    ones already there, so a study can be extended in a later session and
+    a finished job is never written over. Pass ``clean_start=True`` to
+    delete the results directory first.
+
     args:
         graph (DirectedGraph) : DirectedGraph or WorkFlow
         parameter_list (list) : Only needed to provided default values to eval. Maybe not needed.
         work_area_path (str) : Default is to ./{graph.name}
         copy_paths (list) :
-        clean_start (bool) :
+        clean_start (bool) : delete the results directory (jobs, index and
+            all) before starting.
         groups (str|list) : default group label(s) for the jobs this
             iterator runs. Overridden per call by the ``groups`` argument
             of ``solve``/``collect_for_expdes``/``collect_for_varrange``,
             and settable at any time as ``iterator.groups``.
         reuse_existing (bool) : when True, a design point that already has
             a completed job in the results directory is not run again: its
-            stored outputs are returned instead, and new jobs are numbered
-            after the existing ones. Default False, which keeps the
-            previous behaviour (an existing results directory is refused).
+            stored outputs are returned instead. Default False, which runs
+            every design point given, whether or not an equivalent job is
+            already there.
 
     Returns:
         dict: Output from graph (it adds nothing).
@@ -572,24 +583,25 @@ class SimulationIterator(WorkAction):
 
     def gather_outputs( self ):
         """
-        Called in root subdirectory.
+        The action outputs of every completed job in the results directory,
+        in job order.
+
+        Taken from the job index, so a gap in the numbering (a job
+        directory deleted or archived) no longer cuts the list short, and
+        jobs that failed or are still running are skipped instead of
+        raising.
+
+        Returns:
+            list: one ``{action_name: value}`` dict per completed job.
         """
-
-        dir_idx = 0
-        root_dir = Path.cwd()
-        wrk_dir = self.work_area_path.joinpath( self.JNAME + str( dir_idx ) )
-
+        idx = self.job_index()
         ret = []
-        try:
-            while wrk_dir.exists():
-                os.chdir( wrk_dir )
-                ret.append( self.read_outputs() )
-                dir_idx += 1
-                wrk_dir = self.work_area_path.joinpath( self.JNAME + str( dir_idx ) )
-                os.chdir( root_dir )
-        finally:
-            os.chdir( root_dir )
-
+        for rec in idx.find( state='done' ):
+            if not ( idx.job_path( rec ) / simnexus.args.ACTIONS_OUTPUT_PATH ).exists():
+                # stale index entry: the directory was removed by hand
+                logger.warning( f'Skipping {rec["job"]}: no {simnexus.args.ACTIONS_OUTPUT_PATH}.' )
+                continue
+            ret.append( idx.read_outputs( rec ) )
         return ret
 
     @staticmethod
@@ -615,28 +627,17 @@ class SimulationIterator(WorkAction):
 
     def iterdir( self ):
         """
-        Iterator for the run directories. These are jobs that were previously run.
+        The run directories of jobs that were previously run, in job order.
+
+        Every job directory present in the results directory is returned,
+        including after a gap in the numbering; the former scan stopped at
+        the first missing number. Use ``find_jobs`` to select by variable
+        value, group or state.
 
         Returns:
-            Path instances.
+            list: Path instances.
         """
-
-        dirs = []
-
-        j_iter = 0
-
-        root_dir = Path.cwd()
-        #job_path = root_dir.joinpath( self.name )
-        job_path = self.work_area_path
-        job_path = job_path.joinpath( self.JNAME + str( j_iter ) )
-        while job_path.exists() :
-            dirs.append( job_path )
-            j_iter = j_iter + 1
-            #job_path = root_dir.joinpath( self.name )
-            job_path = self.work_area_path
-            job_path = job_path.joinpath( self.JNAME + str( j_iter ) )
-        
-        return dirs
+        return self.job_index().iter_job_dirs()
 
 
     def _resolve_groups( self, groups=None ):
@@ -648,19 +649,13 @@ class SimulationIterator(WorkAction):
     def _allocate_job_path( self ):
         """Path of the next job directory.
 
-        With ``reuse_existing`` the numbering continues after whatever is
-        already in the results directory; otherwise an existing directory
-        is refused, as before.
+        The number continues after whatever is already in the results
+        directory (index and directories on disk both consulted), so a
+        study can be added to across sessions and an existing job is never
+        written over. Use ``clean_start=True`` to start from an empty
+        results directory instead.
         """
-        if self.reuse_existing:
-            return self.work_area_path.joinpath( self.JNAME + str( self._index.next_job_number() ) )
-
-        job_path = self.work_area_path.joinpath( self.JNAME + str( self.run_iter ) )
-        if 0 == self.run_iter and job_path.exists():
-            raise SimNexusError( f'Results directory {self.work_area_path} already exists. '
-                                 f'Restart is not yet supported (pass reuse_existing=True to '
-                                 f'add jobs to an existing results directory).' )
-        return job_path
+        return self.work_area_path.joinpath( self.JNAME + str( self._index.next_job_number() ) )
 
     def _report_job( self, job_name ):
         """Run-level progress for external consumers (e.g. a GUI process):
@@ -825,11 +820,14 @@ class SimulationIterator(WorkAction):
         """The stored action outputs of the job run with these variable
         values - the results of a past run, without running the graph.
 
-        A job whose variables are exactly ``variables`` is preferred; a
+        A job whose variables are exactly ``variables`` is preferred - the
+        most recent one, if the design point was run more than once; a
         partial match is accepted when it is unambiguous.
 
         Raises:
-            DataNotFoundError: when no job matches, or when several do.
+            DataNotFoundError: when no job matches, or when several jobs
+                match only partially. Use ``find_jobs`` or ``collect`` to
+                get every job for a design point that was run repeatedly.
         """
         idx = self.job_index()
         rec = idx.find_exact( variables )

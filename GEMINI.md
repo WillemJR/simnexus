@@ -133,6 +133,10 @@ without re-running the graph — `SimulationIterator.results_for(vars)`,
 — and backs `reuse_existing=True`, which returns a completed job's stored outputs
 instead of evaluating the same design point again. Group labels are set with the
 `groups` argument of the constructor, `solve` or `collect_for_*` (most specific wins),
-or applied afterwards; a job can be in several groups. The index is a cache and is
-rebuilt from the job directories when missing (`job_index(rebuild=True)`); only the
+or applied afterwards; a job can be in several groups. The index also supplies the next
+job number, so an existing results directory is added to (jobs numbered after the ones
+already there, never written over) rather than refused; `clean_start=True` deletes the
+directory to start over. Because a design point can therefore appear in more than one
+job, `results_for` and reuse resolve to the *most recent* matching job. The index is a
+cache and is rebuilt from the job directories when missing (`job_index(rebuild=True)`); only the
 group labels cannot be recovered that way.
