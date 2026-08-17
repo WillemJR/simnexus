@@ -148,6 +148,8 @@ class DynaAnalysis(WorkAction):
             with open( 'run_file.stdout', 'r' ) as outfile:
                  if 'Normal termination' in outfile.read():
                      have_normal_termination = True
+                 if 'N o r m a l   t e r m i n a t i o n' in f.read():
+                     have_normal_termination = True
         
         if not have_normal_termination and Path('d3hsp').exists():
              with open( 'd3hsp', 'r' ) as f:
