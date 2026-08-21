@@ -15,7 +15,7 @@ cube_TYPE7
 #---1----|----2----|----3----|----4----|----5----|----6----|----7----|----8----|----9----|---10----|
 /PARAMETER/GLOBAL/REAL/1
 Youngs modulus
-E                         210000
+E               210000
 /MAT/PLAS_JOHNS/1
 elasto_plastic material
 #              RHO_I
