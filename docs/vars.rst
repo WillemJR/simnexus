@@ -7,6 +7,8 @@ creating ML training data, and design optimization.
 Typically the variable are read from the input decks; for example, \*PARAMETER definitions in LS-DYNA.
 You can also define a variable for use.
 
+The following types of variables are available: ``FloatVariable``, ``IntSetVariable``, and ``StrSetVariable``.
+
 
 Members of a variable
 ----------------------
