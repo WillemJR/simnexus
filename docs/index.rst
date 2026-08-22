@@ -30,7 +30,6 @@ Key Features
 - **Native Solver Support**: Specify input parameter values and the results to extract for a supported solver.  Currently implemented are LS-DYNA and OpenRadioss for structural analysis, and OpenFOAM for computational fluid dynamics
 - **Remote Execution**: Submit computational subgraphs to remote computing resources while maintaining local workflow coordination
 - **Discoverability**: Query any graph for its inputs and outputs without running it — solver actions read their parameterised input files to report variable names, types, and default values
-- **Scalability**: Designed to scale through integration with an LLM CLI for the extension and use of the module.
 
 Typical Workflow
 ----------------

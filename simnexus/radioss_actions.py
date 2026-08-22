@@ -208,6 +208,9 @@ class RadiossAnalysis(WorkAction,RadiossAnalysisBase):
             engine_input_path (str): OpenRadioss input file. 
             create_d3plot (bool): Creates a d3plot files using
                             vortex_radioss.animtod3plot.Anim_to_D3plot
+            keep (list): glob patterns of this run's files that a work
+                area's cleanup must never delete. See
+                :class:`simnexus.args.Cleanup`.
     """
 
     def __init__( self, name,
@@ -219,12 +222,13 @@ class RadiossAnalysis(WorkAction,RadiossAnalysisBase):
                   create_vtk=False,
                   to_vtk_cmd='anim_to_vtk_linux64_gf',
                   create_csv=False,
-                  to_csv_cmd='th_to_csv_linux64_gf' ):
+                  to_csv_cmd='th_to_csv_linux64_gf',
+                  keep=None ):
 
         assert starter_input_path is not None, 'No input OpenRadioss file specified. Specify the path.'
         assert engine_input_path is not None, 'No engine input OpenRadioss file specified. Specify the path.'
 
-        super().__init__(name, starter_cmd, copy_paths=[] )
+        super().__init__(name, starter_cmd, copy_paths=[], keep=keep )
         self.starter_input_path = starter_input_path
         self.starter_input_path = Path( self.starter_input_path ).name
         self.engine_input_path = engine_input_path
@@ -336,6 +340,17 @@ class RadiossAnalysis(WorkAction,RadiossAnalysisBase):
             files.append( RADIOSS_ROOT_NAME + 'T01.csv' )
         return files
 
+    def _disposable_files( self ):
+        # the animation database and whatever was converted from it. The
+        # decks, the starter/engine logs and the (small) time-history csv
+        # are kept.
+        files = [ RADIOSS_ROOT_NAME + 'A*', RADIOSS_ROOT_NAME + '*.rst' ]
+        if self.create_d3plot:
+            files.append( 'd3plot*' )
+        if self.create_vtk:
+            files.append( RADIOSS_ROOT_NAME + '_*.vtk' )
+        return files
+
     def parameters(self):
         """Returns the variables defined in the Radioss input file.
 
@@ -351,19 +366,24 @@ class RadiossAnalysis(WorkAction,RadiossAnalysisBase):
             logger.warning(f"Cannot find input file for parameters(): {self.starter_input_path}")
             return []
 
+        # Records where the variable came from, as the other solver actions
+        # do. Without it Variable falls back to its class docstring, which
+        # is what a caller printing the variables would then show.
+        descr = f"From \'{self.starter_input_path}\'"
+
         variables = []
         with OpenRadiosKeywordReader(file_to_open) as orkr:
             for name, (ptype, value) in orkr.parameters().items():
                 if ptype == 'REAL':
-                    self._append_unique_parameter(variables, simvars.FloatVariable(name, float(value)))
+                    self._append_unique_parameter(variables, simvars.FloatVariable(name, float(value), description=descr))
                 elif ptype == 'INTEGER':
-                    self._append_unique_parameter(variables, simvars.IntSetVariable(name, int(value)))
+                    self._append_unique_parameter(variables, simvars.IntSetVariable(name, int(value), description=descr))
                 elif ptype in ('REAL_EXPR', 'INT_EXPR'):
-                    self._append_unique_parameter(variables, simvars.UnknownVariable(name, value))
+                    self._append_unique_parameter(variables, simvars.UnknownVariable(name, value, description=descr))
                 elif ptype == 'TEXT':
-                    self._append_unique_parameter(variables, simvars.StrSetVariable(name, str(value)))
+                    self._append_unique_parameter(variables, simvars.StrSetVariable(name, str(value), description=descr))
                 else:
-                    self._append_unique_parameter(variables, simvars.UnknownVariable(name, value))
+                    self._append_unique_parameter(variables, simvars.UnknownVariable(name, value, description=descr))
         self._parameters_cache = variables
         return variables
 

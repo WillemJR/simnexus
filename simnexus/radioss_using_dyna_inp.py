@@ -35,7 +35,8 @@ class RadiossUsingDynaInput(RadiossAnalysis):
     def __init__( self, name, cmd, input_path,
                   create_d3plot=False,
                   create_vtk=False, to_vtk_cmd='anim_to_vtk_linux64_gf',
-                  create_csv=False, to_csv_cmd='th_to_csv_linux64_gf'):
+                  create_csv=False, to_csv_cmd='th_to_csv_linux64_gf',
+                  keep=None):
 
         RadiossAnalysis.__init__( self, name, 
                                   starter_cmd=cmd,
@@ -46,7 +47,8 @@ class RadiossUsingDynaInput(RadiossAnalysis):
                                   create_vtk=create_vtk,
                                   to_vtk_cmd=to_vtk_cmd,
                                   create_csv=create_csv,
-                                  to_csv_cmd=to_csv_cmd )
+                                  to_csv_cmd=to_csv_cmd,
+                                  keep=keep )
 
         self.input_file_path = input_path
         #DynaAnalysis.__init__(self, name, cmd, input_path=input_path )

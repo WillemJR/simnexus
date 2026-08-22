@@ -35,4 +35,10 @@ API Reference
 .. automodule:: simnexus.simulation_iterator
    :members:
 
+.. automodule:: simnexus.cleanup
+   :members:
+
+.. autoclass:: simnexus.args.Cleanup
+   :members:
+
 

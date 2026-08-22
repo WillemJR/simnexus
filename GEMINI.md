@@ -34,6 +34,7 @@ simnexus/
 │   ├── vtk_actions.py      #  read solver field/history data from VTK files
 │   ├── openfoam_actions.py #  execution of OpenFOAM
 │   ├── remote_actions.py   # remote execution
+│   ├── cleanup.py          # removing bulk solver output from run directories
 │   ├── variables.py        # variable definition
 │   └── ...
 └── tests/                  # unit tests
@@ -52,6 +53,7 @@ Key features:
 - **`print_tree(self, describe=False)` / `format_tree(...)`**: Prints (or returns) the action graph as an ASCII tree, rooted at any action. Call it on a top-level action (e.g. a `SimulationIterator` or `WorkArea`) to see the whole workflow, including wrappers, graphs and leaf actions. Pass `describe=True` to append each action's description.
 - **`print_work_dir(self)` / `format_work_dir(...)`**: Prints (or returns) the *predicted* work-directory structure that running the workflow creates on disk. It is built from the actions' metadata, so it works before anything is run and without the solvers installed. A `SimulationIterator` shows a representative `job_0/` directory (one per design evaluation); a `WorkArea` shows the single directory it reuses; a `DirectedGraph` whose children are wrappers shows each child's subdirectory as a nested subtree. Solver actions (`DynaAnalysis`, `RadiossAnalysis`, `OpenFOAMAnalysis`, `JinjaReplace`) contribute the deck/log/result files they write via a `_produced_files()` hook.
 - **`describe_workflow(self, describe=False)`**: Convenience method that prints both the action tree and the work-directory structure together.
+- **`_disposable_files(self)`**: Companion to `_produced_files()` used by cleanup. It names the *bulk* output (plot/animation databases, VTK) that may be deleted once the graph has run; decks, logs and small history files are never in it. Solver actions override it; the default declares nothing disposable.
 
 Subclasses of `WorkAction` implement specific tasks, such as `MathEvaluation` (performing calculations), or `CurveSimilarity` (comparing simulation results to experimental data).
 
@@ -80,6 +82,29 @@ The `simnexus.remote_actions` module enables executing of actions on remote comp
 - Variable values and results cross the wire as restricted JSON (`simnexus/serialization.py`), not pickle: only plain data types and numeric numpy arrays are accepted, so decoding a payload cannot execute code. Values outside the whitelist raise `SerializationError`.
 - Remote progress: while a remote job runs, the client polls the server's `GetProgress` RPC and mirrors the remote status into the local `status.json` under the `RemoteAction`'s entry (fraction and a `remote <action>: ...` message). A GUI watching the local results tree sees remote progress without knowing about gRPC.
 
+
+# Cleaning up run directories
+
+Solver field output is what fills a disk during a study, so `WorkArea` and
+`SimulationIterator` take a `cleanup` argument: a `Cleanup` policy
+(`simnexus/args.py`, re-exported from `simnexus`) applied by
+`simnexus/cleanup.py` once a run has finished. The split is deliberate — the
+*actions* declare which of their files are bulk output (`_disposable_files()`,
+with a per-action `keep=[...]` constructor argument to subtract from it), while
+the *work areas* decide when deleting is safe: only after the whole graph has
+run, so a d3plot/VTK reader downstream of the solver has already read what it
+needed, and never for a run that raised, whose deck and log are what you debug
+it with. `Cleanup(remove=...)` selects `'bulk'` (the declared set, the default),
+an explicit list of globs, or `Cleanup.ALL` (everything except protected files
+and `keep`); `keep` always wins over `remove`; `dry_run=True` reports without
+deleting. `actions_output.pkl`, `iter_variables.json`, `jobs_index.json` and
+`status.json` (`args.PROTECTED_FROM_CLEANUP`) are never deleted, so
+`results_for`, `collect` and `reuse_existing` keep working on a cleaned study.
+The plan walks the action tree tracking each action's run directory, so a
+`WorkArea` nested in a job directory is cleaned inside its own subdirectory (it
+inherits the enclosing policy unless it sets its own), and a nested
+`SimulationIterator` is left to clean its own jobs. `print_work_dir()` marks the
+entries cleanup removes.
 
 # Progress reporting
 
@@ -139,4 +164,8 @@ already there, never written over) rather than refused; `clean_start=True` delet
 directory to start over. Because a design point can therefore appear in more than one
 job, `results_for` and reuse resolve to the *most recent* matching job. The index is a
 cache and is rebuilt from the job directories when missing (`job_index(rebuild=True)`); only the
-group labels cannot be recovered that way.
+group labels cannot be recovered that way. The index recognises and numbers job
+directories by their name prefix, so it must agree with `SimulationIterator.JNAME`:
+`_index` is a property that syncs the prefix on every access, which is what lets
+`JNAME` be changed after construction (`itr.JNAME = 'design_'`) without the index
+losing sight of the directories and renumbering every job to 0.

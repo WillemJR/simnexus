@@ -10,18 +10,20 @@ half-written file, and either side can start, stop or crash independently.
 
 Writer side (used internally by ``DirectedGraph`` and
 ``SimulationIterator``):
-    ``StatusReporter`` -- owns the ``status.json`` of one directory, writes
-    it on every state change, and keeps a heartbeat timestamp fresh from a
-    daemon thread so a reader can tell a slow run from a dead one.
+
+* ``StatusReporter`` -- owns the ``status.json`` of one directory, writes
+  it on every state change, and keeps a heartbeat timestamp fresh from a
+  daemon thread so a reader can tell a slow run from a dead one.
 
 Reader side (for the GUI):
-    ``StatusWatcher``  -- cheap mtime-based polling of one status file.
-    ``RunWatcher``     -- follows a ``SimulationIterator`` results tree:
-                          the root status plus the currently running job.
-    ``watch_run()``    -- blocking generator over ``RunWatcher`` for
-                          scripts; GUIs with an event loop should call
-                          ``RunWatcher.poll()`` from a timer instead.
-    ``is_alive()``     -- heartbeat-based liveness check of a status dict.
+
+* ``StatusWatcher`` -- cheap mtime-based polling of one status file.
+* ``RunWatcher`` -- follows a ``SimulationIterator`` results tree: the root
+  status plus the currently running job.
+* ``watch_run()`` -- blocking generator over ``RunWatcher`` for scripts;
+  GUIs with an event loop should call ``RunWatcher.poll()`` from a timer
+  instead.
+* ``is_alive()`` -- heartbeat-based liveness check of a status dict.
 
 Status file schema (a graph's file; the iterator's root file has
 ``jobs_total``/``jobs_done``/``current_job`` instead of ``actions``)::

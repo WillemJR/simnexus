@@ -41,8 +41,9 @@ class JinjaReplace(WorkAction):
 
     @WorkAction.allow_variables_as_arguments
     def __init__( self, name, input_file_path,
-                  output_file_path=simnexus.args.RADIOSS_DFLT_FNAME, val_format="%10.3g", copy_paths=None ):
-        WorkAction.__init__(self, name, copy_paths=copy_paths)
+                  output_file_path=simnexus.args.RADIOSS_DFLT_FNAME, val_format="%10.3g",
+                  copy_paths=None, keep=None ):
+        WorkAction.__init__(self, name, copy_paths=copy_paths, keep=keep)
 
         self.input_file_path = input_file_path
         self.output_file_path = output_file_path

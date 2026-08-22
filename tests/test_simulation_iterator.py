@@ -279,6 +279,66 @@ def test_failed_job_is_not_reused(study_path):
         itr.results_for({'K': 0.2})
 
 
+# ----------------------------------------------------------------------
+# the job directory prefix
+
+def test_jname_changed_on_the_instance(study_path):
+    """``itr.JNAME = 'design_'`` must rename the job directories and keep
+    numbering them.
+
+    Regression test: the job index was created with the prefix as it was in
+    __init__, so a later change left it looking for 'job_'. It then
+    recognised none of the directories it wrote, handed out job number 0
+    every time, and each run silently overwrote the one before.
+    """
+    itr = _study_iterator(study_path)
+    itr.JNAME = 'design_'
+    itr.solve({'K': 0.2, 'T': 75})
+    itr.solve({'K': 0.3, 'T': 75})
+    itr.solve({'K': 0.4, 'T': 75})
+
+    assert [p.name for p in itr.iterdir()] == ['design_0', 'design_1', 'design_2']
+    assert [r['job'] for r in itr.job_index().records] == [
+        'design_0', 'design_1', 'design_2' ]
+    # every run is still there and still retrievable
+    assert itr.results_for({'K': 0.3, 'T': 75})['energy'] == pytest.approx(22.5)
+
+
+def test_jname_changed_in_a_subclass(study_path):
+    class DesignIterator(SimulationIterator):
+        JNAME = 'design_'
+
+    wf = WorkFlow("Study")
+    wf.add_action(MathEvaluation("energy", "K * T"))
+    itr = DesignIterator(wf, work_area_path=str(study_path))
+    itr.solve({'K': 0.2, 'T': 75})
+    itr.solve({'K': 0.3, 'T': 75})
+
+    assert [p.name for p in itr.iterdir()] == ['design_0', 'design_1']
+
+
+def test_jname_default_is_unchanged(study_path):
+    itr = _study_iterator(study_path)
+    itr.solve({'K': 0.2, 'T': 75})
+    itr.solve({'K': 0.3, 'T': 75})
+    assert [p.name for p in itr.iterdir()] == ['job_0', 'job_1']
+
+
+def test_renamed_jobs_are_added_to_in_a_later_session(study_path):
+    """A second session with the same prefix continues the numbering
+    rather than writing over what is already there."""
+    first = _study_iterator(study_path)
+    first.JNAME = 'design_'
+    first.solve({'K': 0.2, 'T': 75})
+
+    later = _study_iterator(study_path)
+    later.JNAME = 'design_'
+    later.solve({'K': 0.3, 'T': 75})
+
+    assert [p.name for p in later.iterdir()] == ['design_0', 'design_1']
+    assert later.results_for({'K': 0.2, 'T': 75})['energy'] == pytest.approx(15.0)
+
+
 if __name__ == "__main__":
     # If run directly, just run some examples
     pytest.main([__file__])

@@ -5,8 +5,10 @@ import simnexus.variables
 from simnexus.jinja_actions import JinjaReplace
 from simnexus.graph_actions import WorkFlow, SimulationIterator, DirectedGraph
 from simnexus.dyna_actions import DynaAnalysis
+from simnexus.radioss_actions import RadiossAnalysis
 
 input_path = Path(__file__).parent.parent / "tests" / "spring.k"
+radioss_starter = Path(__file__).parent.parent / "models" / "cube_TYPE7_0000.rad"
 
 def test_float():
     fv = simnexus.variables.FloatVariable( 'F', 1.0 )
@@ -67,3 +69,35 @@ if __name__ == "__main__":
     #test_intset()
     #test_strset()
     test_call()
+
+
+def test_discovered_variables_say_where_they_came_from():
+    """Every solver action records the file a variable was read from.
+
+    Regression test: RadiossAnalysis.parameters() built its variables
+    without a description, so Variable fell back to its class docstring and
+    anything printing the discovered variables showed that docstring
+    instead of the source file.
+    """
+    dyna = DynaAnalysis( 'RunSpring', input_path=str(input_path) )
+    for v in dyna.parameters():
+        assert v.description == f"From '{input_path}'"
+
+    if not radioss_starter.exists():          # deck not in this checkout
+        return
+    rad = RadiossAnalysis( name='rad',
+                           starter_input_path=str(radioss_starter),
+                           engine_input_path='unused_0001.rad' )
+    # parameters() reads the deck in the current directory
+    import os
+    cwd = os.getcwd()
+    os.chdir( radioss_starter.parent )
+    try:
+        variables = rad.parameters()
+    finally:
+        os.chdir( cwd )
+
+    assert variables, 'the deck defines /PARAMETER E'
+    for v in variables:
+        assert v.description == f"From '{radioss_starter.name}'"
+        assert 'Arguments:' not in v.description     # not the class docstring

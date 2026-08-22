@@ -23,7 +23,6 @@ solvers like LS-DYNA, OpenRadioss, and OpenFOAM.
 - **Native Solver Support**: Specify input parameter values and the results to extract for a supported solver.  Currently implemented are LS-DYNA and OpenRadioss for structural analysis, and OpenFOAM for computational fluid dynamics
 - **Remote Execution**: Submit computational subgraphs to remote computing resources while maintaining local workflow coordination
 - **Discoverability**: Query any graph for its inputs and outputs without running it — solver actions read their parameterised input files to report variable names, types, and default values
-- **Scalability using ML**: Designed to scale through integration with the Gemini CLI for the extension and use of the module.
 
 ## Typical Workflow
 
@@ -52,9 +51,52 @@ pip install simnexus
 
 
 ## Usage
-See the documentation and the examples directory.
+See also the documentation and the examples directory.
 
-An example for OpenFOAM is given below. The LS-DYNA and OpenRadioss workflows follows the same pattern.
+### OpenRadioss
+An example for OpenRadioss is given below. The OpenFOAM, LS-DYNA and OpenRadioss workflows follows the same pattern.
+
+```
+starter_deck = Path('models/cube_TYPE7_0000.rad')
+engine_deck  = Path('models/cube_TYPE7_0001.rad')
+
+# 1. Define RadiossAnalysis to run the simulation
+run_rad = RadiossAnalysis( name='rad', 
+                  starter_cmd='openradioss_starter',
+                  starter_input_path=starter_deck,
+                  engine_cmd='openradioss_engine',
+                  engine_input_path=engine_deck,
+                  create_d3plot=True )
+
+# 2. Create a workflow and add the d3plot extraction actions
+wf = WorkFlow( 'Radioss_WorkFlow' )
+wf.add_action( run_rad )
+
+d3p = d3plot_File( name='d3plot' )
+d3p.NodalValue(name='n5', state=1, nid=5, component= 'node_displacement'  )
+wf.add_action( d3p )
+
+wrk_area = WorkArea( wf, copy_paths=[starter_deck,engine_deck] )
+
+# Discover variables defined in input deck and other actions
+discovered_vars = wrk_area.parameters()
+print("Discovered variables:")
+for v in discovered_vars:
+        print(f"  {v}")
+
+# 3. Execute the workflow. Provide values for the variables.
+val_dict = { 'E': 210000.0, }
+
+print("Starting workflow...")
+print(f"Parameters: {val_dict}")
+    
+ret = wrk_area.solve( val_dict )
+print("Available results.", ret.keys() )
+
+```
+
+### OpenFOAM
+An example for OpenFOAM is given below. The OpenFOAM, LS-DYNA and OpenRadioss workflows follows the same pattern.
 
 ```
 import logging
@@ -115,8 +157,6 @@ outcomes = of_graph.solve({"lidVelocity": 1.2, "nCells": 6})
 print(f"Pressure field:", outcomes['pressure'] )
 ```
 
-
-
 ## Example problems
 The example problems demonstrate:
 
@@ -124,10 +164,6 @@ The example problems demonstrate:
  - An OpenRadioss workflow consisting of editing parameter values, job submission, and results extraction.
  - An OpenFOAM. workflow consisting of editing parameter values, job submission, and results extraction.
  - Remote execution examples.
-
-
-## LLM Skill files
-(To be to be added. Expected end of June)
 
 
 ## License

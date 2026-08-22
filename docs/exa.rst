@@ -25,7 +25,7 @@ The study is parameterized using the \*PARAMETER keyword.
     wf.add_action(run_dyna)
 
     # 3. Add an action to extract results from d3plot
-    d3p = d3plot_File('results_extraction')
+    d3p = d3plot_File('d3p')
     d3p.NodalValue('disp_n5', state=-1, nid=5, component='node_displacement')
     wf.add_action(d3p)
 
@@ -40,7 +40,9 @@ The study is parameterized using the \*PARAMETER keyword.
     params = {'VELOCITY': 10.0, 'THICKNESS': 2.5}
     results = wa.solve(params)
 
-    print(f"Displacement at node 5: {results['disp_n5']}")
+    # 'd3p' is itself a graph, so its extractions sit under
+    # its name rather than being merged into the workflow's results.
+    print(f"Displacement at node 5: {results['d3p']['disp_n5']}")
 
 
 OpenRadioss 
@@ -50,10 +52,10 @@ The example does an analysis, substitute parameter values, and extracts results.
 
 The study is parameterized using the /PARAMETER cards in
 the OpenRadioss input deck.
-Also shown is defining parameters using jinja double brace format in the
-input deck (shown here only to demonstrate -- the use of jinja is not required).
 
 .. code-block:: python
+
+        from pathlib import Path
 
         from simnexus.radioss_actions import RadiossAnalysis
         from simnexus.d3plot_actions import d3plot_File
@@ -90,6 +92,48 @@ input deck (shown here only to demonstrate -- the use of jinja is not required).
         # 3. Execute the workflow. Provide values for the variables.
         ret = wrk_area.solve( { 'E': 210000.0, } )
         print( 'output', ret )
+
+        # 'd3plot' is a reader graph, so its extractions sit under its name
+        print( 'node 5', ret['d3plot']['n5'] )
+
+
+Parameters with jinja markup
+----------------------------------
+
+A deck can be parameterised with jinja ``{{ }}`` markup instead of the
+solver's own parameter cards.  ``JinjaReplace`` substitutes the values and
+writes the deck the solver then runs; the two are simply chained in the
+workflow.  This works for any solver — the use of jinja is never required:
+
+.. code-block:: python
+
+    from pathlib import Path
+
+    from simnexus.jinja_actions import JinjaReplace
+    from simnexus.radioss_actions import RadiossAnalysis
+    from simnexus.graph_actions import WorkFlow, WorkArea
+
+    template    = Path('models/cube_TYPE7_tmpl.rad')   # holds '{{E}}'
+    engine_deck = Path('models/cube_TYPE7_0001.rad')
+
+    wf = WorkFlow('Radioss_Jinja')
+
+    # substitutes {{E}} and writes the starter deck
+    wf.add_action( JinjaReplace( name='prepare_deck',
+                                 input_file_path=str(template),
+                                 output_file_path='cube_TYPE7_0000.rad' ) )
+
+    # ... which is what the solver reads
+    wf.add_action( RadiossAnalysis( name='rad',
+                                    starter_input_path='cube_TYPE7_0000.rad',
+                                    engine_input_path=engine_deck ) )
+
+    wa = WorkArea( wf, copy_paths=[template, engine_deck] )
+    ret = wa.solve( {'E': 210000.0} )
+
+``parameters()`` finds the jinja names too, but a template says nothing
+about types or defaults, so they come back as ``UnknownVariable`` with a
+value of ``None`` — unlike the parameter cards of a deck, which carry both.
 
 
 OpenFOAM

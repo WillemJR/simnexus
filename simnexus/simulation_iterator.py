@@ -50,7 +50,9 @@ from itertools import product
 import numpy as np
 
 from simnexus.actions import WorkAction, _display_path, _copy_path_nodes
-from simnexus.args import ACTIONS_OUTPUT_PATH, ITER_VARIABLES_PATH, JOBS_INDEX_PATH
+from simnexus.args import ( ACTIONS_OUTPUT_PATH, ITER_VARIABLES_PATH,
+                           JOBS_INDEX_PATH, Cleanup )
+from simnexus.cleanup import clean_run_dir
 from simnexus.errors import ( ActionNameError, ParameterError,
                               MissingPathError, DataNotFoundError )
 from simnexus.progress import StatusReporter
@@ -468,6 +470,17 @@ class SimulationIterator(WorkAction):
         copy_paths (list) :
         clean_start (bool) : delete the results directory (jobs, index and
             all) before starting.
+        cleanup (Cleanup) : remove bulk solver output from each job
+            directory once that job's graph has run, so a long study does
+            not fill the disk with field output. See
+            :class:`simnexus.args.Cleanup`; ``True`` selects the default
+            policy, ``None`` (the default) keeps every file. A job that
+            failed is never cleaned -- its deck and solver log are what you
+            debug it with -- and neither are ``actions_output.pkl``,
+            ``iter_variables.json`` or the index, so ``results_for``,
+            ``collect`` and ``reuse_existing`` keep working on a cleaned
+            study. A ``WorkArea`` nested in the graph inherits this policy
+            unless it sets its own.
         groups (str|list) : default group label(s) for the jobs this
             iterator runs. Overridden per call by the ``groups`` argument
             of ``solve``/``collect_for_expdes``/``collect_for_varrange``,
@@ -484,9 +497,13 @@ class SimulationIterator(WorkAction):
 
     JNAME = 'job_'
 
+    # an enclosing work area's cleanup does not reach into the job
+    # directories: they are numbered and cleaned here, as each job finishes
+    _cleans_own_dirs = True
+
     def __init__( self, graph, parameter_list=None,
                  work_area_path=None, copy_paths=None, clean_start=False,
-                 groups=None, reuse_existing=False):
+                 groups=None, reuse_existing=False, cleanup=None):
 
         assert isinstance( graph, WorkAction )
         #assert isinstance( graph, DirectedGraph ) # ? must be a graph
@@ -513,6 +530,7 @@ class SimulationIterator(WorkAction):
 
         self.groups = groups            # default labels; str or list
         self.reuse_existing = reuse_existing
+        self.cleanup = Cleanup.coerce( cleanup )
         self._index = JobIndex( self.work_area_path, job_prefix=self.JNAME )
         self.reused_jobs = []           # jobs loaded instead of re-run
 
@@ -524,6 +542,35 @@ class SimulationIterator(WorkAction):
         if sim_path.exists():  shutil.rmtree( sim_path )
         self._index = JobIndex( self.work_area_path, job_prefix=self.JNAME )
 
+    # ------------------------------------------------------------------
+    # the job index and JNAME have to agree
+    #
+    # The index recognises and numbers job directories by their prefix, so
+    # it must use the same one as JNAME. JNAME can be changed after the
+    # iterator was built (``itr.JNAME = 'design_'``); the index created in
+    # __init__ would then still look for the old prefix, recognise none of
+    # the directories it writes, hand out job number 0 every time, and each
+    # run would overwrite the one before. Reading the index through a
+    # property keeps the two in step however and whenever JNAME is set --
+    # on the instance, on the class, or in a subclass.
+    #
+    # Change the prefix on an empty results directory. Jobs already written
+    # under the old prefix stay in the index and can still be read back by
+    # name, but they no longer take part in the numbering, so the new
+    # prefix starts its own series at 0.
+
+    @property
+    def _index( self ):
+        index = self.__index
+        if index.job_prefix != self.JNAME:
+            logger.debug( f'Job directory prefix changed to \'{self.JNAME}\'.' )
+            index.job_prefix = self.JNAME
+        return index
+
+    @_index.setter
+    def _index( self, index ):
+        self.__index = index
+
     def _check_names( self, name_list=None ):
         """ Cannot have duplicates -- create a problem with callbacks """
         if name_list is None: name_list = []
@@ -534,13 +581,20 @@ class SimulationIterator(WorkAction):
     def _tree_children( self ):
         return [ self.graph ]
 
-    def _work_dir_tree( self ):
+    def _cleanup_run_dir( self, base_dir ):
+        # the results root; the jobs underneath it are cleaned one by one
+        # as they finish (see solve), not as part of an enclosing plan
+        path = Path( self.work_area_path )
+        return path if path.is_absolute() else Path( base_dir ) / path
+
+    def _work_dir_tree( self, cleanup=None ):
+        cleanup = self.cleanup if self.cleanup is not None else cleanup
         job_children = [
             ( 'iter_variables.json   (this design\'s variable values)', [] ),
             ( 'actions_output.pkl   (this design\'s action outputs)', [] ),
         ]
         job_children += _copy_path_nodes( self.copy_paths )
-        job_children += self.graph._work_dir_entries()
+        job_children += self.graph._work_dir_entries( cleanup )
         children = [
             ( 'status.json   (run progress: current job, jobs done; see simnexus.progress)', [] ),
             ( 'jobs_index.json   (job -> variable values and group labels; see simnexus.simulation_iterator)', [] ),
@@ -549,10 +603,10 @@ class SimulationIterator(WorkAction):
         ]
         return ( f'{_display_path(self.work_area_path)}/   (results root)', children )
 
-    def _work_dir_entries( self ):
+    def _work_dir_entries( self, cleanup=None ):
         # A SimulationIterator creates its own results directory: contribute
         # it as a subtree rather than flattening files into the parent.
-        return [ self._work_dir_tree() ]
+        return [ self._work_dir_tree( cleanup ) ]
 
     def _in_last_run_dir( func ):
         """ decorator execute last run """
@@ -753,6 +807,8 @@ class SimulationIterator(WorkAction):
                 else:
                     shutil.copy2(src, self.last_job_path)
 
+        job_dir = root_dir / self.last_job_path
+
         os.chdir( self.last_job_path )
         logger.debug( f'Running in directory {self.last_job_path}' )
 
@@ -770,6 +826,10 @@ class SimulationIterator(WorkAction):
         finally:
             os.chdir( root_dir )
         self._index.set_state( job_name, 'done' )
+
+        # the graph has run to the end and its outputs are on disk, so the
+        # bulk solver files have been read by whatever needed them
+        clean_run_dir( self.graph, job_dir, self.cleanup )
         self.run_iter += 1
         self._status_reporter.update( state='idle', jobs_done=self.run_iter )
 

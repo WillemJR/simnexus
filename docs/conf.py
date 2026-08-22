@@ -9,15 +9,15 @@
 project = 'simnexus'
 copyright = '2026, Willem Roux'
 author = 'Willem Roux'
-release = '1.0.1'
+release = '1.1.2'
 
 # ---
-#import sys, os
-#from pathlib import Path
+import sys, os
 
-#sys.path.insert(0, str(Path('..', '..').resolve()))
-#sys.path.insert(0, str(Path('..').resolve()))
-#sys.path.insert(0, os.path.abspath('..'))
+# Document the simnexus next to these docs, not whatever copy happens to be
+# installed in the environment: without this, autodoc imports the installed
+# package (a different checkout) and the API pages describe the wrong code.
+sys.path.insert(0, os.path.abspath('..'))
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

@@ -29,13 +29,17 @@ class DynaAnalysis(WorkAction):
             name (str):
             cmd (str): path to ls-dyna executable or command
             input_path (str): parameterized keyword file
+            keep (list): glob patterns of this run's files that a work
+                area's cleanup must never delete, e.g. ``keep=['d3plot']``
+                to keep the first plot when the state files are removed.
+                See :class:`simnexus.args.Cleanup`.
     """
 
-    def __init__( self, name, cmd=simnexus.args.DYNA_DFLT_CMD, input_path=None ):
+    def __init__( self, name, cmd=simnexus.args.DYNA_DFLT_CMD, input_path=None, keep=None ):
 
         assert input_path is not None, 'No input LS-DYNA file specified.'
 
-        super().__init__(name, cmd, copy_paths=[] )
+        super().__init__(name, cmd, copy_paths=[], keep=keep )
         self.input_file_path = input_path
         self.description = f'LS-DYNA analysis using input file {input_path}'
         self.root_name= simnexus.args.DYNA_BASE_FILE_NAME
@@ -187,6 +191,12 @@ class DynaAnalysis(WorkAction):
             'd3plot*',
             'd3hsp',
         ]
+
+    def _disposable_files( self ):
+        # the plot and dump databases. The deck, d3hsp and the redirected
+        # stdout/stderr stay: they are small and they are what a finished
+        # run is read back with.
+        return [ 'd3plot*', 'd3thdt*', 'd3dump*', 'runrsf*', 'binout*' ]
 
     def parameters( self ):
         """ Returns the variables defined in the template.

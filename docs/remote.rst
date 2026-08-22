@@ -48,7 +48,8 @@ Arguments:
     - ``target_action_name``: The name of a pre-registered action on the server.
     - ``server_address``: The address (`host:port`) of the remote server.
     - ``copy_paths``: A list of local file or directory paths to send to the remote server. Files are sent by basename; directories are walked recursively with their internal structure preserved.
-    - ``output_patterns``: (Optional) A list of file patterns to retrieve.
+    - ``output_patterns``: (Optional) A list of glob patterns for files to retrieve from the remote run directory.
+    - ``progress_interval``: (Optional) Seconds between progress polls while the remote job runs. Default 2.
 
 
 Discovering Available Remote Graphs
@@ -58,6 +59,9 @@ If a server has pre-registered actions, you can query them from the client:
 
 .. code-block:: python
 
+    from simnexus.remote_actions import RemoteAction
+
+    # no target_action_name is needed just to ask what the server offers
     remote = RemoteAction(name="query", server_address='remote-host:50051')
     actions = remote.available_actions()
     for name, desc in actions.items():

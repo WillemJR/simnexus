@@ -6,6 +6,8 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 
 from simnexus.actions import WorkAction, _display_path, _copy_path_nodes
+from simnexus.args import Cleanup
+from simnexus.cleanup import clean_run_dir
 from simnexus.errors import ActionNameError, MissingPathError, AsyncActionError
 from simnexus.progress import StatusReporter
 from simnexus.util.observer import Observer
@@ -33,15 +35,25 @@ class WorkArea(WorkAction):
         graph (DirectedGraph) : DirectedGraph or WorkFlow  
         work_area_path (str) : Default is to ./{graph.name}
         copy_paths (list) : List of names of file to be copied to work area.
+        cleanup (Cleanup) : remove bulk solver output from the work area
+            once the graph has run. See :class:`simnexus.args.Cleanup`;
+            ``True`` selects the default policy, ``None`` (the default)
+            keeps everything. Nothing is removed if the run raises, so a
+            failed run can still be debugged. Note that the work area is
+            emptied at the *start* of every run in any case: cleanup is
+            about what the *last* run leaves behind, and about work areas
+            nested inside a ``SimulationIterator``, where it is inherited
+            from the iterator unless set here.
     Returns:
         dict: Output from graph (it adds nothing).
     """
 
-    def __init__( self, graph, work_area_path=None, copy_paths=None ):
+    def __init__( self, graph, work_area_path=None, copy_paths=None, cleanup=None ):
 
         assert isinstance( graph, DirectedGraph )
         super().__init__( graph.name+'_WorkArea', "", copy_paths=( copy_paths or [] )+graph.copy_paths )
         self.graph = graph
+        self.cleanup = Cleanup.coerce( cleanup )
         if work_area_path is None:
             # Keep the default relative (./{graph.name}) so the work area is
             # created under the *current* directory at run time. This lets a
@@ -124,6 +136,11 @@ class WorkArea(WorkAction):
         finally:
             os.chdir( root_dir )
 
+        # only once the whole graph has run (every reader of the solver's
+        # output has had it), and only if it ran to the end: the files of a
+        # failed run are what you debug it with
+        clean_run_dir( self, root_dir, self.cleanup )
+
         return ret
 
     def _check_names( self, name_list=None ):
@@ -136,14 +153,26 @@ class WorkArea(WorkAction):
     def _tree_children( self ):
         return [ self.graph ]
 
-    def _work_dir_tree( self ):
-        children = _copy_path_nodes( self.copy_paths ) + self.graph._work_dir_entries()
+    def _cleanup_run_dir( self, base_dir ):
+        # a relative work area path is resolved against the directory the
+        # parent runs in, exactly as it is at run time
+        path = Path( self.work_area_path )
+        return path if path.is_absolute() else Path( base_dir ) / path
+
+    def _effective_cleanup( self, cleanup ):
+        """This work area's own policy, or the one inherited from the
+        enclosing work area."""
+        return self.cleanup if self.cleanup is not None else cleanup
+
+    def _work_dir_tree( self, cleanup=None ):
+        cleanup = self._effective_cleanup( cleanup )
+        children = _copy_path_nodes( self.copy_paths ) + self.graph._work_dir_entries( cleanup )
         return ( f'{_display_path(self.work_area_path)}/   (work area, overwritten each run)', children )
 
-    def _work_dir_entries( self ):
+    def _work_dir_entries( self, cleanup=None ):
         # A WorkArea creates its own directory: contribute it as a subtree
         # rather than flattening files into the parent directory.
-        return [ self._work_dir_tree() ]
+        return [ self._work_dir_tree( cleanup ) ]
 
 
 
@@ -168,11 +197,13 @@ class DirectedGraph(WorkAction, Observer):
         name (str) : 
         asynch (list) : 
         work_area_path (str) : 
+        cleanup (Cleanup) : only meaningful together with
+            ``work_area_path``; passed to the work area it creates.
     Returns:
         dict: Dictionary containing action_name:action_result pairs
     """ 
 
-    def __init__(self, name, asynch=False, work_area_path=None):
+    def __init__(self, name, asynch=False, work_area_path=None, cleanup=None):
         #self.adjacency_list = defaultdict(list)
         super().__init__( name, copy_paths=[] )
         self.parent_list = defaultdict(list)
@@ -180,8 +211,10 @@ class DirectedGraph(WorkAction, Observer):
         self.finished, self.started, self.failed = set(), set(), set()
         self.asynch = asynch
         self.work_area_path = work_area_path
+        self.cleanup = Cleanup.coerce( cleanup )
         if self.work_area_path:
-            self.work_area = WorkArea( self, work_area_path=self.work_area_path )
+            self.work_area = WorkArea( self, work_area_path=self.work_area_path,
+                                       cleanup=self.cleanup )
         else:
             self.work_area = None
         self.description = f'Directed graph {name}'
@@ -416,27 +449,33 @@ class DirectedGraph(WorkAction, Observer):
     def _tree_children( self ):
         return list( self.child_actions.values() )
 
-    def _work_dir_entries( self ):
+    def _cleanup_run_dir( self, base_dir ):
+        # a graph given its own work area runs its children in there
+        if self.work_area is not None:
+            return self.work_area._cleanup_run_dir( base_dir )
+        return Path( base_dir )
+
+    def _work_dir_entries( self, cleanup=None ):
         """Child actions of a graph run in the same directory, so their
         produced files are aggregated here. Children that create their own
         directory (a WorkArea, SimulationIterator, or a graph with its own
         work area) contribute that directory as a subtree instead."""
         if self.work_area is not None:
-            return [ self.work_area._work_dir_tree() ]
+            return [ self.work_area._work_dir_tree( cleanup ) ]
         entries = [ ( 'status.json   (live action states; see simnexus.progress)', [] ) ]
         seen = { entries[0][0] }
         for ch in self.child_actions.values():
-            for node in ch._work_dir_entries():
+            for node in ch._work_dir_entries( cleanup ):
                 if node[0] in seen:
                     continue
                 seen.add( node[0] )
                 entries.append( node )
         return entries
 
-    def _work_dir_tree( self ):
+    def _work_dir_tree( self, cleanup=None ):
         if self.work_area is not None:
-            return self.work_area._work_dir_tree()
-        return ( './   (current working directory)', self._work_dir_entries() )
+            return self.work_area._work_dir_tree( cleanup )
+        return ( './   (current working directory)', self._work_dir_entries( cleanup ) )
 
     def parameters(self ):
         if self._parameters_cache is not None:
@@ -464,12 +503,13 @@ class WorkFlow(DirectedGraph):
         name (str) : 
         actions (list) : 
         work_area_path (str) : 
+        cleanup (Cleanup) : see ``DirectedGraph``.
     Returns:
         dict: Dictionary containing action_name:action_result pairs
     """
 
-    def __init__( self, name, actions=None, work_area_path=None ):
-        super().__init__( name, work_area_path=work_area_path )
+    def __init__( self, name, actions=None, work_area_path=None, cleanup=None ):
+        super().__init__( name, work_area_path=work_area_path, cleanup=cleanup )
         self.sequence = []
         if actions is not None:
             for e in actions: self.add_action(e)

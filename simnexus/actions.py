@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 from simnexus.args import EvalType
+from simnexus.cleanup import marks_removed
 
 import logging
 logger = logging.getLogger(__name__)
@@ -66,6 +67,14 @@ def _copy_path_nodes( copy_paths ):
     return nodes
 
 
+def _work_dir_label( name, cleanup, action ):
+    """Label for a produced file in the work-directory tree, marked when
+    the work area's cleanup deletes it again after the run."""
+    if marks_removed( name, cleanup, action ):
+        return f'{name}   (removed by cleanup)'
+    return name
+
+
 def render_tree( root ):
     """
     Render a tree as an ASCII string with ``├──``/``└──`` connectors.
@@ -102,12 +111,20 @@ class WorkAction(Subject):
         copy_paths (list) : List of file and directories to be copied to work area.
         lower_bound (float) : Lower bound on output value during design
         upper_bound (float) : Lower bound on output value during design
+        keep (list) : Glob patterns of files this action produces that a
+            work area's ``cleanup`` must never delete (see
+            :class:`simnexus.args.Cleanup`). E.g. ``keep=['d3plot']`` on a
+            solver action keeps the first plot when the state files go.
     Returns:
         Any: outcome of operation
     """
 
+    # A SimulationIterator numbers and cleans its own job directories; an
+    # enclosing cleanup plan does not reach into them. See simnexus.cleanup.
+    _cleans_own_dirs = False
+
     def __init__( self, name, cmd=None, copy_paths=None, lower_bound=None, upper_bound=None,
-                  description=None, data_type = EvalType.NOT_SPECIFIED ):
+                  description=None, data_type = EvalType.NOT_SPECIFIED, keep=None ):
         """
         """
         super().__init__()
@@ -116,6 +133,8 @@ class WorkAction(Subject):
         # copy into a fresh list: graphs extend copy_paths in add_action, so a
         # shared default (or a caller's list) must never be mutated in place
         self.copy_paths = list( copy_paths ) if copy_paths else []
+        # never deleted by a work area's cleanup, whatever it selects
+        self.keep_files = [ keep ] if isinstance( keep, str ) else list( keep or [] )
         self.upper_bound = upper_bound # backward compatible with simulation
         self.lower_bound = lower_bound # backward compatible with simulation
         self.parent = None # typically workflow
@@ -469,20 +488,55 @@ class WorkAction(Subject):
         """
         return []
 
-    def _work_dir_entries( self ):
-        """Directory entries this action contributes, as tree nodes."""
-        return [ ( f, [] ) for f in self._produced_files() ]
+    def _disposable_files( self ):
+        """
+        Names of the bulk output files this action writes that a work
+        area's default ``Cleanup`` may delete once the graph has run.
 
-    def _work_dir_tree( self ):
+        This is the *field* output -- the plot and animation databases that
+        fill a disk during a study -- and never the input decks, the solver
+        logs or small time-history files, which are what you need to
+        understand a finished run. Solver actions override this; the
+        default is to declare nothing disposable.
+
+        Patterns are globs relative to the action's run directory, as in
+        :meth:`_produced_files`. See :mod:`simnexus.cleanup`.
+
+        Returns:
+            list : list of glob patterns (str).
+        """
+        return []
+
+    def _cleanup_run_dir( self, base_dir ):
+        """
+        The directory this action's own files and children live in.
+
+        A plain action runs in the directory it is given; a work area moves
+        its subtree into its own directory and overrides this.
+
+        Arguments:
+            base_dir (str|Path) : directory the parent runs in.
+        Returns:
+            Path
+        """
+        return Path( base_dir )
+
+    def _work_dir_entries( self, cleanup=None ):
+        """Directory entries this action contributes, as tree nodes."""
+        return [ ( _work_dir_label( f, cleanup, self ), [] )
+                 for f in self._produced_files() ]
+
+    def _work_dir_tree( self, cleanup=None ):
         """Build the ``(label, children)`` node for the work directory."""
-        return ( './   (current working directory)', self._work_dir_entries() )
+        return ( './   (current working directory)', self._work_dir_entries( cleanup ) )
 
     def format_work_dir( self ):
         """
         Return the predicted work-directory structure as an ASCII tree.
 
         Shows the directories and files that running this action (or
-        workflow) creates on disk.
+        workflow) creates on disk. Files that the work area's ``cleanup``
+        removes again once the run has finished are marked as such.
 
         Returns:
             str : the rendered directory tree.

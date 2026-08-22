@@ -45,12 +45,20 @@ Using ``SimulationIterator``:
     for v in itr.parameters():
         print(v)
 
-Both copy files into a temporary subdirectory so the source files are never
-modified. Each variable carries its name, type, default value, and description:
+Neither reads the deck in place, so the source files are never modified:
+``WorkArea`` copies them into its work directory, and ``SimulationIterator``
+into a ``variables_discovery`` subdirectory of the results root.  Each
+variable carries its name, type, default value and a description:
 
 .. code-block:: text
 
-    Variable Name: K, Data Type: float, Value: 200.0, Description: 'Spring stiffness [N/m]'
+    Variable Name: floatpar1, Data Type: float, Value: 1.23, Description: 'From 'spring.k''
+    Variable Name: intpar2, Data Type: int, Value: 789, Description: 'From 'spring.k''
+
+The value is the default read from the deck.  The description is generated
+by the action, not taken from the deck: every solver action records the
+file the variable was found in, so it identifies the source rather than
+describing the quantity.
 
 
 Retrieving the graph outputs
@@ -72,6 +80,7 @@ For a ``WorkFlow`` or ``DirectedGraph`` it returns a dictionary
 
     for name, (eval_type, description) in wf.outputs().items():
         print(f'{name}: {eval_type} — {description}')
+
 
 
 Visualising the action graph
@@ -119,10 +128,13 @@ single directory it reuses.
 .. code-block:: text
 
     results/   (results root)
+    ├── status.json   (run progress: current job, jobs done; see simnexus.progress)
+    ├── jobs_index.json   (job -> variable values and group labels; ...)
     ├── job_0/   (one directory per design evaluation)
     │   ├── iter_variables.json   (this design's variable values)
     │   ├── actions_output.pkl   (this design's action outputs)
     │   ├── spring.k   (copied in)
+    │   ├── status.json   (live action states; see simnexus.progress)
     │   ├── dyna_variables.json
     │   ├── dyna_action_inp.k
     │   ├── run_file.stdout
@@ -153,14 +165,19 @@ wrappers — each child's directory appears as a nested subtree:
 .. code-block:: text
 
     ./   (current working directory)
+    ├── status.json   (live action states; see simnexus.progress)
     ├── WF1/   (work area, overwritten each run)
     │   ├── spring.k   (copied in)
+    │   ├── status.json   (live action states; see simnexus.progress)
     │   ├── dyna_variables.json
     │   ├── dyna_action_inp.k
-    │   └── ...
+    │   ├── run_file.stdout
+    │   ├── run_file.stderr
+    │   ├── d3plot*
+    │   └── d3hsp
     └── WF2/   (work area, overwritten each run)
         ├── spring.k   (copied in)
-        └── ...
+        └── ...   (the same files, written by run2)
 
 Call ``describe_workflow()`` to print both the action tree and the work
 directory structure together. The formatting helpers ``format_tree()`` and

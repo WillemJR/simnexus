@@ -1,6 +1,9 @@
 
+Running a graph in different directories
+========================================
+
 Creating directories and copying files
-=======================================
+---------------------------------------
 
 Solver actions such as ``DynaAnalysis``, ``RadiossAnalysis``, and
 ``OpenFOAMAnalysis`` expect their input files to be present in the
@@ -80,12 +83,20 @@ The resulting directory layout is::
 
     SpringWorkFlow/
     ├── jobs_index.json
+    ├── status.json                 # run progress; see simnexus.progress
+    ├── variables_discovery/        # copies used to read the deck's variables
     ├── job_0/
     │   ├── iter_variables.json
-    │   └── actions_output.pkl
+    │   ├── actions_output.pkl
+    │   ├── status.json             # per-action progress for this job
+    │   └── ...                     # the deck, the solver's output files
     ├── job_1/
     │   ├── iter_variables.json
     │   └── actions_output.pkl
+
+``variables_discovery`` appears when the iterator has to discover the
+variables itself: ``parameters()`` copies ``copy_paths`` there and reads
+the deck.  Passing ``parameter_list`` explicitly skips it.
 
 An existing results directory is added to.  Job numbers continue after
 whatever is already there — taken from the index and the directories on
@@ -102,11 +113,124 @@ and all) before starting::
 
     itr = SimulationIterator(wf, copy_paths=['path/to/spring.k'], clean_start=True)
 
-The job directories are always named ``job_0 … job_N``; the prefix comes
-from the class attribute ``SimulationIterator.JNAME`` and can be changed
-(``itr.JNAME = 'design_'``) if another name suits better.  Variable
-values are *not* encoded in the directory name — they are recorded in
-``jobs_index.json``, which is what the retrieval methods below use.
+The job directories are named ``job_0 … job_N``; the prefix comes from
+the class attribute ``SimulationIterator.JNAME`` and can be changed if
+another name suits better — on the instance, or in a subclass when a
+whole family of studies uses it::
+
+    itr = SimulationIterator(wf, copy_paths=['path/to/spring.k'])
+    itr.JNAME = 'design_'
+    itr.solve({'K': 100.0})    # writes to SpringWorkFlow/design_0/
+
+    class DesignIterator(SimulationIterator):
+        JNAME = 'design_'
+
+Change the prefix on an empty results directory.  Jobs already written
+under the old prefix stay in the index and can still be read back by
+variable value, but they no longer take part in the numbering, so the new
+prefix starts its own series at ``0``.
+
+Variable values are *not* encoded in the directory name — they are
+recorded in ``jobs_index.json``, which is what the retrieval methods
+below use.
+
+
+
+
+Cleaning up bulk solver output
+------------------------------
+
+It is easy to fill up a disk by keeping all the solver output in every job directory.
+The solver output being the plot databases, the OpenRadioss animation files, the converted VTK, etc.
+Pass a ``Cleanup`` policy to have them removed once a run has finished:
+
+.. code-block:: python
+
+    from simnexus import Cleanup
+
+    itr = SimulationIterator(wf, copy_paths=['path/to/spring.k'],
+                             cleanup=Cleanup(keep=['d3plot']))
+
+Each job is cleaned as soon as its graph has run to the end — not
+before, so a ``d3plot_File`` action downstream of the solver has already
+read what it needed. A job that failed is not cleaned, leaving you the deck and
+solver log to you debug it with.  ``cleanup=True`` selects the
+default policy; the default, ``None``, keeps everything as before.
+
+**What may be removed.** The actions declare their own bulk output, so a
+policy normally names no files at all:
+
+``Cleanup(remove='bulk')``
+    The default.  The field output the actions declare as disposable:
+    ``d3plot*``, ``d3thdt*``, ``d3dump*``, ``runrsf*``, ``binout*`` for
+    LS-DYNA; the animation and restart files (plus the d3plot and VTK
+    conversions, when those are enabled) for OpenRadioss; ``VTK/`` and
+    ``processor*`` for OpenFOAM.  Input decks, solver logs and small
+    time-history files are never in this set — they are what a finished
+    run is read back with.
+
+``Cleanup(remove=['*.vtk', 'd3plot0*'])``
+    Exactly those patterns, in every run directory, instead of the
+    declared set.
+
+``Cleanup(remove=Cleanup.ALL)``
+    Everything except the protected files and ``keep``.  A job directory
+    also holds files nothing declared — copied-in inputs, solver scratch —
+    so this deletes more than simnexus knows about.  Use it deliberately,
+    and once with ``dry_run=True`` first.
+
+**What you keep.** ``keep`` is a list of glob patterns that always wins
+over ``remove``, so you subtract from the declared set rather than
+enumerating what to delete::
+
+    Cleanup(keep=['d3plot'])      # drop the state files, keep the first plot
+
+The same argument exists on the solver actions themselves, next to the
+knowledge of what those files are.  The action only *declares* it; the
+work area still decides when to delete::
+
+    DynaAnalysis(name='run', input_path='spring.k', keep=['d3plot', 'binout*'])
+
+**What is never deleted.** ``actions_output.pkl``, ``iter_variables.json``,
+``jobs_index.json`` and ``status.json``, whatever the patterns match.  A
+cleaned study is still a study: ``results_for``, ``collect``,
+``find_jobs`` and ``reuse_existing`` all keep working, since they read
+the stored outputs and the index rather than the solver files.
+
+**WorkArea.** The same argument works there, and is inherited by a work
+area nested inside a ``SimulationIterator`` unless that work area sets its
+own policy::
+
+    inner = WorkArea(wf, cleanup=Cleanup(keep=['d3plot*']))   # overrides
+    itr   = SimulationIterator(outer_graph, cleanup=True)
+
+Note that a ``WorkArea`` empties its directory at the *start* of every
+run in any case; ``cleanup`` is about what the last run leaves behind,
+and about work areas nested in a study.
+
+**Checking first.** ``Cleanup(dry_run=True)`` logs what it would remove
+and removes nothing.  ``print_work_dir()`` marks the affected files, so
+the predicted directory structure stays honest about what survives::
+
+    itr.print_work_dir()
+
+    SpringWorkFlow/   (results root)
+    ├── status.json   (run progress: current job, jobs done; ...)
+    ├── jobs_index.json   (job -> variable values and group labels; ...)
+    ├── job_0/   (one directory per design evaluation)
+    │   ├── iter_variables.json   (this design's variable values)
+    │   ├── actions_output.pkl   (this design's action outputs)
+    │   ├── dyna_variables.json
+    │   ├── dyna_action_inp.k
+    │   ├── run_file.stdout
+    │   ├── run_file.stderr
+    │   ├── d3plot*   (removed by cleanup)
+    │   └── d3hsp
+    └── job_1/ … job_N/
+
+The mark is per pattern, not per file: with ``keep=['d3plot']`` the
+``d3plot*`` line is marked even though the first plot survives.
+
 
 
 Retrieving and grouping past runs
@@ -197,22 +321,3 @@ re-derives it by reading the job directories, so result trees created
 before the index existed keep working; only the group labels — which
 exist nowhere else — are lost if the file is deleted.
 
-
-Variable discovery
-------------------
-
-Both ``WorkArea`` and ``SimulationIterator`` support variable discovery
-via ``parameters()``.  Files are copied into a temporary subdirectory
-first so that solver actions can read their input files.
-
-.. code-block:: python
-
-    wa = WorkArea(wf, copy_paths=['path/to/spring.k'])
-    for v in wa.parameters():
-        print(v)
-
-    itr = SimulationIterator(wf, copy_paths=['path/to/spring.k'])
-    for v in itr.parameters():
-        print(v)
-
-See :doc:`discover` for more details on variable and output discovery.

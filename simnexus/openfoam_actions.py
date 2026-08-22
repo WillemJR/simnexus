@@ -32,11 +32,15 @@ class OpenFOAMAnalysis( WorkAction ):
             'laplacianFoam'.
         mesh_cmd (str, optional): The mesh generation command. Defaults to
             'blockMesh'.
+        keep (list, optional): glob patterns of this run's files that a
+            work area's cleanup must never delete. See
+            :class:`simnexus.args.Cleanup`.
     """
 
     @WorkAction.allow_variables_as_arguments
-    def __init__( self, name, job_flag=None, solve_cmd='laplacianFoam', mesh_cmd=None ):
-        super().__init__(name)
+    def __init__( self, name, job_flag=None, solve_cmd='laplacianFoam', mesh_cmd=None,
+                  keep=None ):
+        super().__init__(name, keep=keep)
         self.solve_cmd = solve_cmd
         self.mesh_cmd = mesh_cmd
         if job_flag is None:
@@ -50,6 +54,15 @@ class OpenFOAMAnalysis( WorkAction ):
 
     def _produced_files( self ):
         files = [ 'system/parameters', 'openfoam.stdout', 'openfoam.stderr' ]
+        if self.job_flag & JobType.EXTRACT_VTK:
+            files.append( 'VTK/' )
+        return files
+
+    def _disposable_files( self ):
+        # the converted VTK output and the per-processor decomposition. The
+        # time directories are the case itself and are left alone: name them
+        # in Cleanup( remove=[...] ) if they too should go.
+        files = [ 'processor*' ]
         if self.job_flag & JobType.EXTRACT_VTK:
             files.append( 'VTK/' )
         return files
