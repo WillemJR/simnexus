@@ -9,7 +9,7 @@ You can also define a variable for use.
 
 
 Members of a variable
-~~~~~~~~~~~~~~~~~~~~~
+----------------------
 
 Every variable carries four members, from the ``Variable`` base class:
 
