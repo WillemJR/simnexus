@@ -164,6 +164,44 @@ def test_run_watcher_follows_current_job():
         assert 'job 2 of ?' in progress.format_status(snap)
 
 
+def test_run_watcher_follows_several_jobs_at_once():
+    with _in_tmp_dir() as tmp:
+        root = Path(tmp) / 'Multi'
+        (root / 'job_0').mkdir(parents=True)
+        (root / 'job_1').mkdir(parents=True)
+        rw = progress.RunWatcher(root)
+
+        rep = progress.StatusReporter('M_Iter', directory=root)
+        rep.start(actions=None, jobs_total=4, jobs_done=0,
+                  current_job='job_1', current_jobs=['job_0', 'job_1'])
+        job0 = progress.StatusReporter('G', directory=root / 'job_0')
+        job1 = progress.StatusReporter('G', directory=root / 'job_1')
+        job0.start(actions=['a'])
+        job1.start(actions=['a'])
+        job0.action_state('a', 'running', fraction=0.5, message='time 5 of 10')
+
+        snap = rw.poll()
+        assert list(snap['jobs']) == ['job_0', 'job_1']
+        assert snap['job_name'] == 'job_0'          # first of them
+        assert snap['job'] is snap['jobs']['job_0']
+
+        text = progress.format_status(snap)
+        assert 'job 0 of 4' in text
+        assert 'job_0 - G: running' in text         # named, so they are told apart
+        assert 'job_1 - G: running' in text
+        assert '50%   time 5 of 10' in text
+
+        time.sleep(0.02)                            # ensure a new mtime
+        job0.finish('done')
+        rep.update(jobs_done=1, current_jobs=['job_1'])
+        snap = rw.poll()
+        assert list(snap['jobs']) == ['job_1']      # job_0 is no longer followed
+        assert 'job_0' not in progress.format_status(snap)
+
+        job1.finish('done')
+        rep.finish('done')
+
+
 def test_is_alive_detects_stale_heartbeat():
     now = time.time()
     assert progress.is_alive({'heartbeat_interval': 5.0, 'updated_at': now})

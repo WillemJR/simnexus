@@ -316,6 +316,37 @@ a solver version changed.  Note that reuse matches on the *complete* set
 of variable values, so a job that differs in any variable is treated as a
 different design point.
 
+**Running several jobs at once.**  ``max_workers`` evaluates that many
+design points at the same time, each in a forked process with its own job
+directory:
+
+.. code-block:: python
+
+    itr = SimulationIterator(wf, copy_paths=['path/to/spring.k'], max_workers=4)
+    pars, out = itr.collect_for_varrange({'K': [100., 200., 300., 400., 500.]})
+
+The results are the same as with the default ``max_workers=1``, and come
+back in the order the design points were given.  Only the sweep methods
+(``collect_for_varrange``, ``collect_for_expdes``) fan out; ``solve`` is a
+single design point and always runs in the calling process.
+
+Job directories are numbered by the calling process alone, so the jobs
+cannot collide over a number, and each job leaves its results in its own
+directory as usual — ``results_for``, ``collect`` and ``reuse_existing``
+see no difference.  Each job writes its own ``status.json``, and the root
+``status.json`` lists the jobs running at that moment in ``current_jobs``,
+so :func:`simnexus.progress.watch_run` shows all of them at once.
+
+A job that fails aborts the sweep, as it does when the jobs run one after
+the other: the jobs still running are terminated, marked ``failed`` in the
+index, and ``AsyncActionError`` is raised with the failing job's
+traceback.  The jobs that completed before it keep their results, so the
+sweep can be resumed with ``reuse_existing=True``.
+
+Choose ``max_workers`` for what the machine can actually run: every job is
+a full graph, a solver action may use several cores of its own, and an
+``asynch`` graph adds processes inside each job.
+
 The index is a cache, never the authority.  ``itr.job_index(rebuild=True)``
 re-derives it by reading the job directories, so result trees created
 before the index existed keep working; only the group labels — which

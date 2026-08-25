@@ -19,14 +19,18 @@ Reader side (for the GUI):
 
 * ``StatusWatcher`` -- cheap mtime-based polling of one status file.
 * ``RunWatcher`` -- follows a ``SimulationIterator`` results tree: the root
-  status plus the currently running job.
+  status plus the job(s) running now.
 * ``watch_run()`` -- blocking generator over ``RunWatcher`` for scripts;
   GUIs with an event loop should call ``RunWatcher.poll()`` from a timer
   instead.
 * ``is_alive()`` -- heartbeat-based liveness check of a status dict.
 
 Status file schema (a graph's file; the iterator's root file has
-``jobs_total``/``jobs_done``/``current_job`` instead of ``actions``)::
+``jobs_total``/``jobs_done``/``current_job``/``current_jobs`` instead of
+``actions`` -- ``current_jobs`` lists the jobs running at this moment,
+more than one when the iterator runs with ``max_workers`` > 1, while
+``current_job`` names the last job started and is kept for readers that
+follow a single job)::
 
     {
       "name": "Radioss_WorkFlow",
@@ -473,36 +477,58 @@ class StatusWatcher:
 class RunWatcher:
     """
     Follows a ``SimulationIterator`` results tree: the root ``status.json``
-    (job counts) plus the ``status.json`` of the job it points at via
-    'current_job'. ``poll()`` is non-blocking -- drive it from a GUI timer.
+    (job counts) plus the ``status.json`` of every job it points at --
+    'current_jobs' when several run at once (``max_workers`` > 1), else the
+    single 'current_job'. ``poll()`` is non-blocking -- drive it from a GUI
+    timer.
     """
 
     def __init__( self, results_root ):
         self.results_root = Path( results_root )
         self._root_watcher = StatusWatcher( self.results_root / STATUS_PATH )
-        self._job_watcher = None
-        self._job_name = None
+        self._job_watchers = {}         # job name -> StatusWatcher
+
+    @staticmethod
+    def _job_names( root ):
+        """The jobs to follow: the ones running now, or -- between jobs and
+        at the end of a run -- the last one started, so its final state
+        stays on display."""
+        if not root:
+            return []
+        names = [ n for n in ( root.get( 'current_jobs' ) or [] ) if n ]
+        if not names and root.get( 'current_job' ):
+            names = [ root['current_job'] ]
+        return names
 
     def poll( self ):
-        """Return a ``{'root':..., 'job_name':..., 'job':...}`` snapshot if
-        anything changed since the last call, else None."""
+        """Return a snapshot if anything changed since the last call, else
+        None: ``{'root':..., 'job_name':..., 'job':..., 'jobs': {name:
+        status}}``, where 'jobs' holds every job being followed and
+        'job_name'/'job' the first of them."""
         changed = self._root_watcher.poll() is not None
         root = self._root_watcher.last
 
-        job_name = root.get( 'current_job' ) if root else None
-        if job_name != self._job_name:
-            self._job_name = job_name
-            self._job_watcher = StatusWatcher(
-                self.results_root / job_name / STATUS_PATH ) if job_name else None
+        names = self._job_names( root )
+        if list( self._job_watchers ) != names:
+            # keep the watchers of jobs still being followed: a new one
+            # would re-read a file that has not changed
+            self._job_watchers = {
+                n: self._job_watchers.get( n ) or
+                   StatusWatcher( self.results_root / n / STATUS_PATH )
+                for n in names }
             changed = True
-        if self._job_watcher is not None and self._job_watcher.poll() is not None:
-            changed = True
+        for watcher in self._job_watchers.values():
+            if watcher.poll() is not None:
+                changed = True
 
         if not changed:
             return None
+        jobs = { n: w.last for n, w in self._job_watchers.items() }
+        first = names[0] if names else None
         return { 'root': root,
-                 'job_name': self._job_name,
-                 'job': self._job_watcher.last if self._job_watcher else None }
+                 'job_name': first,
+                 'job': jobs.get( first ),
+                 'jobs': jobs }
 
 
 def watch_run( results_root, interval=1.0 ):
@@ -537,9 +563,17 @@ def format_status( snapshot ):
         lines = [ f"{root.get('name','?')}: {root.get('state','?')}, "
                   f"job {root.get('jobs_done', '?')} of {total}"
                   f"{'' if is_alive(root) else '   (no heartbeat)'}" ]
-        if snapshot['job'] is not None:
-            job = format_status( snapshot['job'] )
-            lines += [ '  ' + l for l in job.splitlines() ]
+        jobs = snapshot.get( 'jobs' )
+        if jobs is None:        # snapshot from before 'jobs' existed
+            jobs = { snapshot.get( 'job_name' ): snapshot['job'] }
+        for job_name, job_status in jobs.items():
+            if job_status is None:
+                continue
+            job = format_status( job_status ).splitlines()
+            if len( jobs ) > 1 and job_name:
+                # several jobs at once: say which directory each one is
+                job[0] = f'{job_name} - {job[0]}'
+            lines += [ '  ' + l for l in job ]
         return '\n'.join( lines )
 
     lines = [ f"{snapshot.get('name','?')}: {snapshot.get('state','?')}"

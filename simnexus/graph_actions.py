@@ -194,9 +194,25 @@ class DirectedGraph(WorkAction, Observer):
     where the 'A':3.4 was added with 'A' the name of the action.
 
     Arguments:
-        name (str) : 
-        asynch (list) : 
-        work_area_path (str) : 
+        name (str) : name of the graph; must be a valid Python identifier.
+        asynch (bool) : run the children of *this* graph concurrently.
+            Every child whose parents have finished is started at once, in
+            a forked process (there is no limit on how many run together);
+            the default False evaluates them one after the other. The flag
+            belongs to this graph only: it is not inherited, so a graph
+            nested in an ``asynch`` graph runs its own children serially
+            unless it also sets ``asynch=True``, and it parallelises the
+            actions of one design point, never the jobs of a
+            ``SimulationIterator``. Three consequences of the fork: the
+            children's results travel back through a
+            ``multiprocessing.Manager`` dict and so must be picklable; the
+            children inherit this graph's working directory and therefore
+            all run in it, so branches that write files need a ``WorkArea``
+            each (or distinct file names) to avoid overwriting one another;
+            and a child that raises, dies or returns nothing terminates its
+            running siblings and raises ``AsyncActionError``.
+        work_area_path (str) : run the graph in this directory instead of
+            the current one, by wrapping it in a ``WorkArea``.
         cleanup (Cleanup) : only meaningful together with
             ``work_area_path``; passed to the work area it creates.
     Returns:

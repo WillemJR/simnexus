@@ -175,6 +175,17 @@ The merge action still waits for both, because it was added with
 ``parents=[rr, rs]``.  Leave ``asynch`` out to run the same graph
 sequentially.
 
+The flag belongs to the graph it is given to and is not inherited: a
+graph nested inside an ``asynch`` graph runs its own children one after
+the other unless it also sets ``asynch=True``.  The children are forked
+into the graph's own working directory, so branches that write files
+need a ``WorkArea`` each — as ``rr`` and ``rs`` have here — or they
+overwrite one another's decks and results.  Their results are sent back
+between processes and so must be picklable, and a branch that fails
+stops its running siblings and raises ``AsyncActionError``.  Note that
+this parallelises the actions of a single design point; the jobs of a
+``SimulationIterator`` are still evaluated one at a time.
+
 Call ``dg.describe_workflow()`` to print the action tree and the
 directory structure the run will create, without running anything or
 having the solvers installed.

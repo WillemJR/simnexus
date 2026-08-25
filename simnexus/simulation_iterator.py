@@ -53,7 +53,7 @@ from simnexus.actions import WorkAction, _display_path, _copy_path_nodes
 from simnexus.args import ( ACTIONS_OUTPUT_PATH, ITER_VARIABLES_PATH,
                            JOBS_INDEX_PATH, Cleanup )
 from simnexus.cleanup import clean_run_dir
-from simnexus.errors import ( ActionNameError, ParameterError,
+from simnexus.errors import ( ActionNameError, AsyncActionError, ParameterError,
                               MissingPathError, DataNotFoundError )
 from simnexus.progress import StatusReporter
 import simnexus.args
@@ -490,6 +490,21 @@ class SimulationIterator(WorkAction):
             stored outputs are returned instead. Default False, which runs
             every design point given, whether or not an equivalent job is
             already there.
+        max_workers (int) : how many jobs of a sweep may run at the same
+            time, each in a forked process of its own. The default 1 runs
+            them one after the other. Only the sweep methods
+            (``collect_for_expdes``, ``collect_for_varrange``) fan out;
+            ``solve`` is one design point and always runs here. This
+            process stays the only one that allocates job directories and
+            writes the index, so the numbering cannot race, and a child
+            leaves its results in its own job directory, where they are
+            read back once it exits -- so the results are structured
+            exactly as in a serial run. A job that fails aborts the sweep,
+            as it does when running serially: the jobs still running are
+            terminated and ``AsyncActionError`` is raised with the child's
+            traceback. Set it no higher than the machine can run solvers:
+            each job is a full graph, and a solver action may itself use
+            several cores (and an ``asynch`` graph several processes).
 
     Returns:
         dict: Output from graph (it adds nothing).
@@ -503,7 +518,8 @@ class SimulationIterator(WorkAction):
 
     def __init__( self, graph, parameter_list=None,
                  work_area_path=None, copy_paths=None, clean_start=False,
-                 groups=None, reuse_existing=False, cleanup=None):
+                 groups=None, reuse_existing=False, cleanup=None,
+                 max_workers=1):
 
         assert isinstance( graph, WorkAction )
         #assert isinstance( graph, DirectedGraph ) # ? must be a graph
@@ -520,6 +536,12 @@ class SimulationIterator(WorkAction):
         self.run_iter = 0
         self.jobs_total = None          # known when collect_for_expdes runs
         self._status_reporter = None    # created on first solve()
+        self._current_job = None        # last job directory started
+
+        self.max_workers = int( max_workers )
+        if self.max_workers < 1:
+            raise ParameterError(
+                f'max_workers must be at least 1, got {max_workers}.' )
 
         if work_area_path is None:
             work_area_path = Path.cwd().joinpath( self.graph.name )
@@ -712,19 +734,25 @@ class SimulationIterator(WorkAction):
         return self.work_area_path.joinpath( self.JNAME + str( self._index.next_job_number() ) )
 
     def _report_job( self, job_name ):
+        """One job has become the current one (serial run)."""
+        self._current_job = job_name
+        self._report_status( [ job_name ], state='running' )
+
+    def _report_status( self, running_jobs, state='running' ):
         """Run-level progress for external consumers (e.g. a GUI process):
-        a status.json at the results root with job counts and current job."""
+        a status.json at the results root with the job counts, the jobs
+        running right now (``current_jobs``, more than one when
+        ``max_workers`` > 1) and the last job started (``current_job``,
+        kept for readers that follow a single job)."""
+        fields = { 'jobs_total': self.jobs_total,
+                   'jobs_done': self.run_iter,
+                   'current_job': self._current_job,
+                   'current_jobs': list( running_jobs ) }
         if self._status_reporter is None:
             self._status_reporter = StatusReporter( self.name, directory=self.work_area_path )
-            self._status_reporter.start( actions=None,
-                                         jobs_total=self.jobs_total,
-                                         jobs_done=self.run_iter,
-                                         current_job=job_name )
+            self._status_reporter.start( actions=None, state=state, **fields )
         else:
-            self._status_reporter.update( state='running',
-                                          jobs_total=self.jobs_total,
-                                          jobs_done=self.run_iter,
-                                          current_job=job_name )
+            self._status_reporter.update( state=state, **fields )
 
     def _reuse( self, val_dict, job_groups ):
         """Return the stored outputs of a completed job run with exactly
@@ -754,20 +782,12 @@ class SimulationIterator(WorkAction):
 
         self._report_job( job_name )
         self.run_iter += 1
-        self._status_reporter.update( state='idle', jobs_done=self.run_iter )
+        self._report_status( [], state='idle' )
         return ret
 
-    def solve(self,  val_dict=None, groups=None ):
-        """
-        Args:
-            val_dict (dict) : variable values for this design point.
-            groups (str|list) : group label(s) for this job, overriding
-                the iterator's default.
-
-        Returns:
-            dict: Output from graph (it adds nothing).
-        """
-
+    def _with_defaults( self, val_dict ):
+        """The design point completed with the default value of every
+        parameter the caller did not give a value for."""
         if val_dict is None: val_dict = {}
 
         pl = self.parameter_list if self.parameter_list is not None else self.parameters()
@@ -776,20 +796,19 @@ class SimulationIterator(WorkAction):
                 if def_par.value is None:
                    raise ParameterError( f'Parameter \'{def_par.name}\' must have a value defined in SimulationIterator.solve().' )
                 val_dict[def_par.name]=def_par.value
+        return val_dict
 
-        job_groups = self._resolve_groups( groups )
+    def _start_job( self, val_dict, job_groups ):
+        """Create the next job directory, record it in the index and copy
+        the input files into it. Returns ``(job_name, job_dir)``.
 
-        if self.reuse_existing:
-            reused = self._reuse( val_dict, job_groups )
-            if reused is not None:
-                return reused
-
-        root_dir = Path.cwd()
+        Always called in this process, also when the jobs themselves run in
+        forked children: the job number comes from the index and the
+        directories on disk, so allocating it anywhere else would let two
+        jobs claim the same number and run in the same directory.
+        """
         self.last_job_path = self._allocate_job_path()
-
         self.last_job_path.mkdir(mode=0o777, parents=True, exist_ok=True)
-
-        self._report_job( self.last_job_path.name )
 
         # record the job before it runs, so an interrupted run still leaves
         # the design point and its group labels in the index
@@ -807,11 +826,19 @@ class SimulationIterator(WorkAction):
                 else:
                     shutil.copy2(src, self.last_job_path)
 
-        job_dir = root_dir / self.last_job_path
+        return job_name, Path.cwd() / self.last_job_path
 
-        os.chdir( self.last_job_path )
-        logger.debug( f'Running in directory {self.last_job_path}' )
+    def _run_job( self, job_dir, val_dict ):
+        """Run the graph for one design point in its job directory and
+        leave the results there.
 
+        Changing directory is process-wide, which is why running two jobs
+        at once takes a process each (see ``max_workers``) rather than a
+        thread each.
+        """
+        root_dir = Path.cwd()
+        os.chdir( job_dir )
+        logger.debug( f'Running in directory {job_dir}' )
         try:
             with open( simnexus.args.ITER_VARIABLES_PATH,'w' ) as vf:
                 json.dump( as_jsonable( val_dict ), vf )
@@ -819,21 +846,186 @@ class SimulationIterator(WorkAction):
             ret = self.graph.solve( val_dict )
 
             self.write_outputs( ret )
+        finally:
+            os.chdir( root_dir )
+        return ret
+
+    def solve(self,  val_dict=None, groups=None ):
+        """
+        Evaluate one design point, here in this process. A sweep runs
+        several at a time when ``max_workers`` > 1; this does not.
+
+        Args:
+            val_dict (dict) : variable values for this design point.
+            groups (str|list) : group label(s) for this job, overriding
+                the iterator's default.
+
+        Returns:
+            dict: Output from graph (it adds nothing).
+        """
+
+        val_dict = self._with_defaults( val_dict )
+
+        job_groups = self._resolve_groups( groups )
+
+        if self.reuse_existing:
+            reused = self._reuse( val_dict, job_groups )
+            if reused is not None:
+                return reused
+
+        job_name, job_dir = self._start_job( val_dict, job_groups )
+        self._report_job( job_name )
+
+        try:
+            ret = self._run_job( job_dir, val_dict )
         except BaseException:
             self._status_reporter.update( state='failed' )
             self._index.set_state( job_name, 'failed' )
             raise
-        finally:
-            os.chdir( root_dir )
         self._index.set_state( job_name, 'done' )
 
         # the graph has run to the end and its outputs are on disk, so the
         # bulk solver files have been read by whatever needed them
         clean_run_dir( self.graph, job_dir, self.cleanup )
         self.run_iter += 1
-        self._status_reporter.update( state='idle', jobs_done=self.run_iter )
+        self._report_status( [], state='idle' )
 
         return ret
+
+    def solve_parallel( self, design_points, groups=None ):
+        """
+        Evaluate a batch of design points ``max_workers`` at a time, one
+        forked process per job -- the plural of ``solve``, which evaluates
+        one design point here in this process.
+
+        Used by ``collect_for_expdes``, and directly when the design points
+        come from something that hands them out in batches (a generation of
+        an optimizer, say) and the outputs are wanted as they are, without
+        the design matrix ``collect_for_expdes`` builds.
+
+        A child runs the graph in the directory handed to it and leaves its
+        results there (``actions_output.pkl``); this process reads them back
+        once the child has exited, so nothing has to survive a pipe and the
+        results are structured exactly as in a serial run. Job directories
+        and the index stay the business of this process alone.
+
+        A job that fails aborts the batch, as it does when the sweep runs
+        serially: the jobs still running are terminated -- their results
+        could not be used anyway -- marked failed in the index, and
+        ``AsyncActionError`` is raised carrying the child's traceback. The
+        jobs that finished keep their results, so the batch can be resumed
+        with ``reuse_existing=True``.
+
+        Args:
+            design_points (list) : one ``{variable name: value}`` dict per
+                design point, as ``solve`` takes for a single one. Missing
+                parameters are filled in with their default values.
+            groups (str|list) : group label(s) for these jobs, overriding
+                the iterator's default.
+
+        Returns:
+            list: one ``{action name: value}`` dict per design point, in the
+            order the design points were given.
+        """
+        import multiprocessing
+        try:
+            ctx = multiprocessing.get_context( 'fork' )
+        except ValueError:      # platform without fork
+            ctx = multiprocessing.get_context()
+
+        manager = ctx.Manager()
+        errors = manager.dict()
+
+        def run_child( job_dir, val_dict, job_name ):
+            try:
+                self._run_job( job_dir, val_dict )
+                clean_run_dir( self.graph, job_dir, self.cleanup )
+            except BaseException as err:
+                import traceback
+                errors[ job_name ] = ( f'{type(err).__name__}: {err}\n'
+                                       f'{traceback.format_exc()}' )
+                raise SystemExit( 1 )
+
+        results = [ None ] * len( design_points )
+        queued = list( enumerate( design_points ) )
+        running = {}             # job name -> (process, index in results)
+        failure = None           # (job name, error text) of the first failure
+
+        try:
+            while queued or running:
+                while queued and len( running ) < self.max_workers:
+                    iexp, pars_vals = queued.pop( 0 )
+                    val_dict = self._with_defaults( pars_vals )
+                    job_groups = self._resolve_groups( groups )
+
+                    if self.reuse_existing:
+                        reused = self._reuse( val_dict, job_groups )
+                        if reused is not None:
+                            results[ iexp ] = reused
+                            continue
+
+                    job_name, job_dir = self._start_job( val_dict, job_groups )
+                    proc = ctx.Process( target=run_child,
+                                        args=( job_dir, val_dict, job_name ) )
+                    proc.start()
+                    running[ job_name ] = ( proc, iexp )
+                    self._current_job = job_name
+                    logger.debug( f'Started {job_name} ({len(running)} running)' )
+                    self._report_status( running )
+
+                finished = [ n for n, ( p, _ ) in running.items() if not p.is_alive() ]
+                if not finished:
+                    # every worker is busy: pace the wait instead of
+                    # spinning a core
+                    time.sleep( 0.05 )
+                    continue
+
+                for job_name in finished:
+                    proc, iexp = running.pop( job_name )
+                    proc.join()
+                    error = errors.get( job_name )
+                    if error is None and proc.exitcode != 0:
+                        # hard death: segfault, oom-kill, terminate()
+                        error = f'job process exited with code {proc.exitcode}'
+                    if error is None:
+                        try:
+                            results[ iexp ] = self._index.read_outputs( job_name )
+                        except DataNotFoundError as err:
+                            error = str( err )
+                    if error is not None:
+                        self._index.set_state( job_name, 'failed' )
+                        failure = ( job_name, error )
+                        break
+                    self._index.set_state( job_name, 'done' )
+                    self.run_iter += 1
+                    self._report_status(
+                        running, state='running' if running or queued else 'idle' )
+
+                if failure is not None:
+                    self._abort_running_jobs( running )
+                    break
+        finally:
+            manager.shutdown()
+
+        if failure is not None:
+            job_name, error = failure
+            if self._status_reporter is not None:
+                self._status_reporter.update( state='failed' )
+            raise AsyncActionError( f"Job '{job_name}' failed: {error}" )
+
+        return results
+
+    def _abort_running_jobs( self, running ):
+        """Stop the jobs still running after one of them failed, and mark
+        them failed in the index: they were cut short, so their directories
+        hold no usable result."""
+        for job_name, ( proc, _ ) in list( running.items() ):
+            if proc.is_alive():
+                proc.terminate()
+                proc.join( timeout=2.0 )
+            self._index.set_state( job_name, 'failed' )
+            logger.warning( f'Terminated {job_name}: another job failed.' )
+        running.clear()
 
     # ------------------------------------------------------------------
     # retrieving and grouping results already on disk
@@ -1026,6 +1218,9 @@ class SimulationIterator(WorkAction):
         """
         Creates a combination of var_range_dict. Input is not a experimental design.
 
+        The combinations are evaluated one at a time, or ``max_workers`` at
+        a time when the iterator was given that argument.
+
         Args:
             var_range_dict (dict) : variable name, values to combine.
             dependent_pars (dict) : variable name, expression.
@@ -1042,8 +1237,24 @@ class SimulationIterator(WorkAction):
         var_names = [key for key in var_range_dict.keys() ]
         return self.collect_for_expdes( exp_des, var_names, dependent_pars, groups=groups )
 
+    def _design_values( self, combination, var_names, dependent_pars ):
+        """The variable values of one design point: the combination itself
+        plus the parameters derived from it."""
+        pars_vals = {key:combination[i] for i,key in enumerate(var_names) }
+        if dependent_pars is not None:
+            dp_dict = {}
+            for key in dependent_pars:
+                dp_dict[key] = eval( dependent_pars[key], {}, pars_vals )
+            pars_vals.update( dp_dict )
+        return pars_vals
+
     def collect_for_expdes( self, exp_des, var_names, dependent_pars=None, groups=None ):
         """
+        Evaluate every design point of an experimental design, one at a
+        time or ``max_workers`` at a time (see the constructor). The
+        results are returned in the order the design points were given,
+        whichever way they ran.
+
         Args:
             exp_des
             groups (str|list) : group label(s) for the jobs of this sweep,
@@ -1059,29 +1270,30 @@ class SimulationIterator(WorkAction):
         self.jobs_total = len( exp_des )
 
         all_combinations = []
-        list_of_evals = []
-        for iexp, combination in enumerate(exp_des):
+        design_points = []
+        for combination in exp_des:
             all_combinations.append( combination )
+            design_points.append(
+                self._design_values( combination, var_names, dependent_pars ) )
 
-            pars_vals = {key:combination[i] for i,key in enumerate(var_names) }
-            if dependent_pars is not None:
-                dp_dict = {}
-                for key in dependent_pars:
-                    dp_dict[key] = eval( dependent_pars[key], {}, pars_vals )
-            else:
-                dp_dict = {}
-            pars_vals.update( dp_dict )
-            logger.debug( f'\n\tRunning evaluation {iexp+1} of {len(exp_des)} {pars_vals}' )
-            logger.debug( f'\n\t Parameters: {pars_vals}' )
-            logger.debug(   f'\t Dependent parameters: {dependent_pars}' )
-            evals = self.solve( pars_vals, groups=groups )
-            for k,v in evals.items():
-                if isinstance(v,numbers.Number):
-                    logger.debug( f'\t\t Result: {k},{v}' )
-                else:
-                    logger.debug( f'\t\t Result: {k},{type(v)}' )
+        if self.max_workers > 1 and len( design_points ) > 1:
+            logger.debug( f'\n\tRunning {len(design_points)} evaluations, '
+                          f'{self.max_workers} at a time' )
+            list_of_evals = self.solve_parallel( design_points, groups )
+        else:
+            list_of_evals = []
+            for iexp, pars_vals in enumerate( design_points ):
+                logger.debug( f'\n\tRunning evaluation {iexp+1} of {len(exp_des)} {pars_vals}' )
+                logger.debug( f'\n\t Parameters: {pars_vals}' )
+                logger.debug(   f'\t Dependent parameters: {dependent_pars}' )
+                evals = self.solve( pars_vals, groups=groups )
+                for k,v in evals.items():
+                    if isinstance(v,numbers.Number):
+                        logger.debug( f'\t\t Result: {k},{v}' )
+                    else:
+                        logger.debug( f'\t\t Result: {k},{type(v)}' )
 
-            list_of_evals.append( evals )
+                list_of_evals.append( evals )
 
         outcome = SimulationIterator.outcomes_as_lists( list_of_evals )
 
