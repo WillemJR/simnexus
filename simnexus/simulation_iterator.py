@@ -51,11 +51,11 @@ import numpy as np
 
 from simnexus.actions import WorkAction, _display_path, _copy_path_nodes
 from simnexus.args import ( ACTIONS_OUTPUT_PATH, ITER_VARIABLES_PATH,
-                           JOBS_INDEX_PATH, Cleanup )
+                           JOBS_INDEX_PATH, STATUS_PATH, Cleanup )
 from simnexus.cleanup import clean_run_dir
 from simnexus.errors import ( ActionNameError, AsyncActionError, ParameterError,
                               MissingPathError, DataNotFoundError )
-from simnexus.progress import StatusReporter
+from simnexus.progress import StatusReporter, StatusWatcher, job_fraction
 import simnexus.args
 
 import logging
@@ -69,20 +69,36 @@ MATCH_RTOL = 1.0e-9
 MATCH_ATOL = 1.0e-12
 
 
+# how often the per-job bars are refreshed from the jobs' status files
+BAR_POLL_INTERVAL = 0.3
+
+
 class _JobBar:
     """
-    The terminal-side progress of a parallel batch: a ``tqdm`` bar that
-    steps once per finished job and names the jobs running right now.
+    The terminal-side progress of a parallel batch: a ``tqdm`` bar counting
+    the jobs of the batch, and under it one bar per job running right now.
 
-    tqdm is optional (``pip install simnexus[progress]``) and a bar on a
-    redirected stream is just noise in a log file, so the bar is created
-    only when it can be seen; every method is a no-op otherwise. This is
-    the *terminal* channel and is independent of ``status.json``, which is
-    written either way and is what a GUI reads.
+    The per-job bars are fed from the ``status.json`` each job writes in its
+    own directory -- the same file a GUI reads -- so a job's bar advances
+    with its actions, and with a solver's percent-complete while one runs.
+    Job bars come and go as jobs start and finish; the batch bar stays.
+
+    tqdm is optional (``pip install simnexus[progress]``) and bars on a
+    redirected stream are just noise in a log file, so they are created only
+    when they can be seen; every method is a no-op otherwise. This is the
+    *terminal* channel and is independent of ``status.json``, which is
+    written either way.
     """
+
+    # tqdm puts ', ' in front of {postfix}, so the job's message goes in
+    # the description instead, padded to keep the bars lined up
+    JOB_BAR_FORMAT = '  {desc} {percentage:3.0f}%|{bar}|'
+    DESC_WIDTH = 34
 
     def __init__( self, total, desc, enabled=None ):
         self._bar = None
+        self._tqdm = None
+        self._jobs = {}         # job name -> [bar, StatusWatcher, position]
         if enabled is False:
             return
         try:
@@ -94,12 +110,52 @@ class _JobBar:
             return
         if enabled is None and not sys.stderr.isatty():
             return          # nobody is watching a redirected stream
-        self._bar = tqdm( total=total, desc=desc, unit='job' )
+        self._tqdm = tqdm
+        self._bar = tqdm( total=total, desc=desc, unit='job', position=0 )
 
-    def running( self, job_names ):
-        """Name the jobs running at this moment, after the bar."""
-        if self._bar is not None:
-            self._bar.set_postfix_str( ', '.join( job_names ) )
+    def running( self, job_paths ):
+        """Give every job running now a bar of its own, and take away the
+        bars of the jobs that have finished.
+
+        Arguments:
+            job_paths (dict) : job name -> its directory, where the job's
+                own ``status.json`` is.
+        """
+        if self._bar is None:
+            return
+        for stale in [ n for n in self._jobs if n not in job_paths ]:
+            self._jobs.pop( stale )[0].close()
+        for job_name, job_dir in job_paths.items():
+            if job_name in self._jobs:
+                continue
+            position = self._free_position()
+            bar = self._tqdm( total=100, desc=self._job_desc( job_name ),
+                              position=position, leave=False,
+                              bar_format=self.JOB_BAR_FORMAT )
+            self._jobs[ job_name ] = [ bar,
+                                       StatusWatcher( Path( job_dir ) / STATUS_PATH ),
+                                       position ]
+        self.poll()
+
+    def poll( self ):
+        """Refresh the job bars from the status files their jobs write."""
+        for job_name, ( bar, watcher, _ ) in self._jobs.items():
+            if watcher.poll() is None:
+                continue        # file unchanged (or not there yet)
+            fraction, message = job_fraction( watcher.last )
+            if fraction is None:
+                continue
+            bar.n = min( bar.total, int( round( fraction * bar.total ) ) )
+            bar.set_description_str( self._job_desc( job_name, message ),
+                                     refresh=False )
+            bar.refresh()
+
+    @classmethod
+    def _job_desc( cls, job_name, message=None ):
+        """'job_3  solver: time 12.9 of 40', padded to a fixed width so the
+        bars stay lined up as the message changes."""
+        text = f'{job_name}  {message}' if message else job_name
+        return f'{text:<{cls.DESC_WIDTH}.{cls.DESC_WIDTH}}'
 
     def step( self, n=1 ):
         """One more job finished."""
@@ -111,9 +167,21 @@ class _JobBar:
             self._bar.set_postfix_str( f'{job_name} failed' )
 
     def close( self ):
+        for bar, _, _ in self._jobs.values():
+            bar.close()
+        self._jobs.clear()
         if self._bar is not None:
             self._bar.close()
             self._bar = None
+
+    def _free_position( self ):
+        """The first free line under the batch bar, so a job that finishes
+        leaves its line to the job that starts next."""
+        used = { position for _, _, position in self._jobs.values() }
+        position = 1
+        while position in used:
+            position += 1
+        return position
 
 
 def as_jsonable( value ):
@@ -969,13 +1037,15 @@ class SimulationIterator(WorkAction):
                 parameters are filled in with their default values.
             groups (str|list) : group label(s) for these jobs, overriding
                 the iterator's default.
-            progress_bar (bool) : report the jobs finishing as a ``tqdm``
-                bar on stderr, with the jobs running right now named after
-                it. The default None shows one when tqdm is installed and
-                stderr is a terminal; True insists (and warns when tqdm is
-                missing), False never shows one. The bar is a convenience
-                for a terminal: ``status.json`` is written whichever way
-                this is set.
+            progress_bar (bool) : report progress as ``tqdm`` bars on
+                stderr: one counting the jobs of the batch, and under it a
+                bar per job running right now, fed from that job's
+                ``status.json`` so it follows the job's actions and a
+                solver's percent-complete. The default None shows them when
+                tqdm is installed and stderr is a terminal; True insists
+                (and warns when tqdm is missing), False never shows them.
+                The bars are a convenience for a terminal:
+                ``status.json`` is written whichever way this is set.
 
         Returns:
             list: one ``{action name: value}`` dict per design point, in the
@@ -1005,6 +1075,7 @@ class SimulationIterator(WorkAction):
         running = {}             # job name -> (process, index in results)
         failure = None           # (job name, error text) of the first failure
         bar = _JobBar( len( design_points ), desc=self.name, enabled=progress_bar )
+        last_bar_poll = 0.0
 
         try:
             while queued or running:
@@ -1028,13 +1099,17 @@ class SimulationIterator(WorkAction):
                     self._current_job = job_name
                     logger.debug( f'Started {job_name} ({len(running)} running)' )
                     self._report_status( running )
-                    bar.running( running )
+                    bar.running( { n: self._index.job_path( n ) for n in running } )
 
                 finished = [ n for n, ( p, _ ) in running.items() if not p.is_alive() ]
                 if not finished:
                     # every worker is busy: pace the wait instead of
-                    # spinning a core
+                    # spinning a core, and keep the job bars moving from
+                    # the status files the children write
                     time.sleep( 0.05 )
+                    if time.time() - last_bar_poll > BAR_POLL_INTERVAL:
+                        last_bar_poll = time.time()
+                        bar.poll()
                     continue
 
                 for job_name in finished:
@@ -1059,7 +1134,7 @@ class SimulationIterator(WorkAction):
                     self._report_status(
                         running, state='running' if running or queued else 'idle' )
                     bar.step()
-                    bar.running( running )
+                    bar.running( { n: self._index.job_path( n ) for n in running } )
 
                 if failure is not None:
                     self._abort_running_jobs( running )

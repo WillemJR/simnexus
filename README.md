@@ -157,6 +157,87 @@ outcomes = of_graph.solve({"lidVelocity": 1.2, "nCells": 6})
 print(f"Pressure field:", outcomes['pressure'] )
 ```
 
+### Inspecting a graph
+
+A graph can be examined before it is run — what it is made of, what it will
+write to disk, what values it needs and what it will produce. Nothing here
+starts a solver.
+
+```
+# using itr -- an existing graph, work area or simulation iterator
+
+itr.print_tree()                 # the actions, as a tree
+itr.print_work_dir()             # the directories and files a run will create
+itr.describe_workflow()          # both of the above, one after the other
+```
+
+```
+SimulationIterator 'Radioss_WorkFlow_Iter'
+└── WorkFlow 'Radioss_WorkFlow'
+    ├── RadiossAnalysis 'rad'
+    └── d3plot_File 'd3plot'
+        └── _d3plot_NodalValue 'n5'
+```
+
+Pass `describe=True` to add each action's description:
+
+```
+SimulationIterator 'Radioss_WorkFlow_Iter'  — Simulation iterator for graph Radioss_WorkFlow
+└── WorkFlow 'Radioss_WorkFlow'  — Workflow Radioss_WorkFlow
+    ├── RadiossAnalysis 'rad'  — OpenRadioss analysis using input file models/cube_TYPE7_0000.rad
+    └── d3plot_File 'd3plot'  — D3plot file reader for d3plot
+        └── _d3plot_NodalValue 'n5'  — D3plot nodal field node_displacement at state 1
+```
+
+`print_work_dir()` predicts the run directory from the actions themselves, so it
+works before anything has run and without the solvers installed:
+
+```
+Radioss_WorkFlow/   (results root)
+├── status.json   (run progress: current job, jobs done; see simnexus.progress)
+├── jobs_index.json   (job -> variable values and group labels; see simnexus.simulation_iterator)
+├── job_0/   (one directory per design evaluation)
+│   ├── iter_variables.json   (this design's variable values)
+│   ├── actions_output.pkl   (this design's action outputs)
+│   ├── cube_TYPE7_0000.rad   (copied in)
+│   ├── cube_TYPE7_0001.rad   (copied in)
+│   ├── status.json   (live action states; see simnexus.progress)
+│   ├── radioss_variables.json
+│   ├── rad_run_file_0000.rad
+│   ├── rad_run_file_0001.rad
+│   ├── rad_run_file_0000.starter.stdout
+│   ├── rad_run_file_0000.starter.stderr
+│   ├── rad_run_file_0001.engine.stdout
+│   ├── rad_run_file_0001.engine.stderr
+│   └── d3plot*
+└── job_1/ … job_N/
+```
+
+The inputs and the outputs are asked for in the same way. `parameters()` returns
+the variables the graph needs — solver actions read them out of their
+parameterised input files — and `outputs()` the results each action produces:
+
+```
+# Inputs: the variables the graph expects, with type, default and origin
+for v in itr.parameters():
+    print( ' -', v )
+
+# Outputs: {action name: (data type, description)}
+for name, (data_type, description) in itr.outputs().items():
+    print( f' - {name}: {data_type} — {description}' )
+```
+
+```
+ - Variable Name: E, Data Type: float, Value: 210000.0, Description: 'From 'cube_TYPE7_0000.rad''
+
+ - rad: EvalType.NOT_SPECIFIED — OpenRadioss analysis using input file models/cube_TYPE7_0000.rad
+ - n5: EvalType.NOT_SPECIFIED — D3plot nodal field node_displacement at state 1
+```
+
+Call `parameters()` on a `WorkArea` or `SimulationIterator` rather than on the
+bare graph: they copy `copy_paths` into a temporary directory first, so the
+solver actions can find the decks they have to read.
+
 ### Design studies using parallel execution
 
 A `SimulationIterator` runs the graph once per design point, each in its own
@@ -182,17 +263,22 @@ for vals, out in zip( design_points, evals ):
 ```
 
 `solve_parallel` returns one result dict per design point, in the order given —
-the same results a serial run produces, only faster. In a terminal the batch
-reports itself as a progress bar, one step per finished job, with the jobs
-running at that moment named after it:
+the same results a serial run produces, only faster. In a terminal it reports
+itself as a bar counting the jobs of the batch, and under it one bar per job
+running right now:
 
 ```
-Study_Iter:  50% 3/6 [00:42<00:41, 13.9s/job, job_3, job_4, job_5]
-Study_Iter:  83% 5/6 [01:09<00:13, 13.7s/job, job_5]
-Study_Iter: 100% 6/6 [01:22<00:00, 13.8s/job]
+Study_Iter:  50%|█████████████            | 3/6 [00:42<00:41, 13.9s/job]
+  job_3  rad: time 12.9 of 40         32%|█████████                          |
+  job_4  rad: time 11.4 of 40         28%|████████                           |
+  job_5  rad: time  2.1 of 40          5%|█▌                                 |
 ```
 
-The progress bar uses tqdm and is shown only when stderr is a terminal.
+Each job's bar is fed from the `status.json` that job writes, so it follows the
+job through its actions, and follows the solver's percent-complete while one
+runs. The bars use tqdm and are shown only when stderr is a terminal. A
+hand-written action can report its own progress the same way, with
+`self.report_progress(fraction, message)`.
 
 Independently of the bar, every run writes `status.json` files into its work
 directories, which another process can follow at any time.
@@ -213,6 +299,9 @@ the workflow. Run them from the project root.
    (`blockMesh`, `icoFoam`), then extraction of a pressure field.
  - `discover_graph.py` — inspecting a graph before running it, with
    `parameters()` and `outputs()`. No solver needed.
+ - `parallel_jobs.py` — a design study run with `solve_parallel`: the same six
+   design points one at a time and then three at a time, with the timings, the
+   job bar, and the `job_N` directories it leaves behind. No solver needed.
  - `remote/` — remote execution over gRPC: a self-contained client and server in
    one script (`remote_execution.py`), and an OpenFOAM server in a container
    (`openfoam_remote_server.py`, `openfoam_remote_example.py`,

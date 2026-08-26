@@ -53,6 +53,7 @@ Key features:
 - **`print_tree(self, describe=False)` / `format_tree(...)`**: Prints (or returns) the action graph as an ASCII tree, rooted at any action. Call it on a top-level action (e.g. a `SimulationIterator` or `WorkArea`) to see the whole workflow, including wrappers, graphs and leaf actions. Pass `describe=True` to append each action's description.
 - **`print_work_dir(self)` / `format_work_dir(...)`**: Prints (or returns) the *predicted* work-directory structure that running the workflow creates on disk. It is built from the actions' metadata, so it works before anything is run and without the solvers installed. A `SimulationIterator` shows a representative `job_0/` directory (one per design evaluation); a `WorkArea` shows the single directory it reuses; a `DirectedGraph` whose children are wrappers shows each child's subdirectory as a nested subtree. Solver actions (`DynaAnalysis`, `RadiossAnalysis`, `OpenFOAMAnalysis`, `JinjaReplace`) contribute the deck/log/result files they write via a `_produced_files()` hook.
 - **`describe_workflow(self, describe=False)`**: Convenience method that prints both the action tree and the work-directory structure together.
+- **`report_progress(self, fraction=None, message=None)`**: called from inside `solve` by a long-running action to say where it is. The value reaches the graph's `status.json` (and from there a GUI, `watch_run`, or the per-job bars of a parallel study). Solver actions do this for you by tailing the solver output; a hand-written action calls it itself. A no-op outside a graph.
 - **`_disposable_files(self)`**: Companion to `_produced_files()` used by cleanup. It names the *bulk* output (plot/animation databases, VTK) that may be deleted once the graph has run; decks, logs and small history files are never in it. Solver actions override it; the default declares nothing disposable.
 
 Subclasses of `WorkAction` implement specific tasks, such as `MathEvaluation` (performing calculations), or `CurveSimilarity` (comparing simulation results to experimental data).
@@ -169,8 +170,8 @@ group labels cannot be recovered that way. A sweep runs one design point at a ti
 each in a forked process with its own job directory (`solve` is a single design point
 and always runs in the calling process). Only the parent allocates job numbers and
 writes the index, so the numbering cannot race; in a terminal the batch also reports itself
-as an optional `tqdm` bar (`solve_parallel(..., progress_bar=...)`), one step per finished
-job, alongside the `status.json` files; a job that fails terminates the jobs
+as optional `tqdm` bars (`solve_parallel(..., progress_bar=...)`): one counting the jobs and one
+per running job, fed from that job's own `status.json`; a job that fails terminates the jobs
 still running and raises `AsyncActionError`, as a failing design point aborts a serial
 sweep. The index recognises and numbers job
 directories by their name prefix, so it must agree with `SimulationIterator.JNAME`:

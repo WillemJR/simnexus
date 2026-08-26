@@ -123,9 +123,10 @@ def test_progress_bar_reports_the_jobs(tmp_path, monkeypatch, capsys):
     itr.solve_parallel([{'x': 1}, {'x': 2}, {'x': 3}], progress_bar=True)
 
     err = capsys.readouterr().err
-    assert 'Bar_Iter' in err        # the bar is labelled with the iterator
+    assert 'Bar_Iter' in err        # the batch bar is labelled with the iterator
     assert '3/3' in err             # and ends on the last job
-    assert 'job_' in err            # jobs running are named after the bar
+    assert '  job_0' in err         # each running job gets a bar of its own
+    assert '  job_2' in err
 
 
 def test_progress_bar_can_be_switched_off(tmp_path, monkeypatch, capsys):

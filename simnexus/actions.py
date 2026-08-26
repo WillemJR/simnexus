@@ -227,6 +227,26 @@ class WorkAction(Subject):
                     raise ParameterError( f'Key \'{variable_name}\' not found in action \'{self.name}\'' )
 
 
+    def report_progress( self, fraction=None, message=None ):
+        """
+        Report how far this action has got, from inside ``solve``.
+
+        The enclosing graph gives every action a reporter before running
+        it, so a long action can say where it is: ``fraction`` (0..1) and a
+        short ``message`` reach the graph's ``status.json``, and from there
+        a GUI, ``watch_run`` or the per-job bars of a parallel study. The
+        solver actions do this for you by tailing the solver's output; a
+        hand-written action calls this itself. It is a no-op when the
+        action runs outside a graph.
+
+        Arguments:
+            fraction (float) : work done, 0..1. None leaves it unknown.
+            message (str) : short status line, e.g. 'step 3 of 10'.
+        """
+        if self._progress_reporter is not None:
+            self._progress_reporter.action_state( self.name, 'running',
+                                                  fraction=fraction, message=message )
+
     #@notify_observers
     def _observed_eval(self,  val_dict=None ):
         """

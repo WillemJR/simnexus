@@ -202,6 +202,25 @@ def test_run_watcher_follows_several_jobs_at_once():
         rep.finish('done')
 
 
+def test_job_fraction_averages_over_the_actions():
+    assert progress.job_fraction(None) == (None, None)
+    assert progress.job_fraction({'actions': {}}) == (None, None)
+
+    status = {'actions': {
+        'prep':   {'state': 'done'},
+        'solver': {'state': 'running', 'fraction': 0.5, 'message': 'time 5 of 10'},
+        'read':   {'state': 'pending'}}}
+    fraction, message = progress.job_fraction(status)
+    assert fraction == pytest.approx(1.5 / 3)      # one done, one half done
+    assert message == 'solver: time 5 of 10'       # what it is busy with
+
+    # a running action without a fraction still names itself
+    status['actions']['solver'] = {'state': 'running'}
+    fraction, message = progress.job_fraction(status)
+    assert fraction == pytest.approx(1 / 3)
+    assert message == 'solver'
+
+
 def test_is_alive_detects_stale_heartbeat():
     now = time.time()
     assert progress.is_alive({'heartbeat_interval': 5.0, 'updated_at': now})

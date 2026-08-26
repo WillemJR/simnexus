@@ -24,6 +24,8 @@ Reader side (for the GUI):
   GUIs with an event loop should call ``RunWatcher.poll()`` from a timer
   instead.
 * ``is_alive()`` -- heartbeat-based liveness check of a status dict.
+* ``job_fraction()`` -- one job's overall progress, averaged over its
+  actions, for a caller that wants a single number (a progress bar).
 
 Status file schema (a graph's file; the iterator's root file has
 ``jobs_total``/``jobs_done``/``current_job``/``current_jobs`` instead of
@@ -547,6 +549,35 @@ def watch_run( results_root, interval=1.0 ):
         if snap is not None:
             yield snap
         time.sleep( interval )
+
+
+def job_fraction( status ):
+    """
+    How far one job's graph has got, as ``(fraction, message)``.
+
+    A graph's status file holds per-action states, and for solver actions a
+    fraction of that action. Averaging over the actions -- finished ones
+    count as 1, the running one adds its own fraction when it has one --
+    makes that a single number for the job, which is what a per-job
+    progress bar needs. Returns ``(None, None)`` when the file says nothing
+    yet.
+    """
+    actions = ( status or {} ).get( 'actions' ) or {}
+    if not actions:
+        return None, None
+
+    done = 0.0
+    message = None
+    for name, entry in actions.items():
+        state = entry.get( 'state' )
+        if state in ( 'done', 'failed' ):
+            done += 1.0
+        elif state == 'running':
+            fraction = entry.get( 'fraction' )
+            if fraction:
+                done += fraction
+            message = f"{name}: {entry['message']}" if entry.get( 'message' ) else name
+    return done / len( actions ), message
 
 
 def format_status( snapshot ):
