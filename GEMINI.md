@@ -168,7 +168,9 @@ group labels cannot be recovered that way. A sweep runs one design point at a ti
 `SimulationIterator(max_workers=N)` is given, which evaluates up to N jobs at once,
 each in a forked process with its own job directory (`solve` is a single design point
 and always runs in the calling process). Only the parent allocates job numbers and
-writes the index, so the numbering cannot race; a job that fails terminates the jobs
+writes the index, so the numbering cannot race; in a terminal the batch also reports itself
+as an optional `tqdm` bar (`solve_parallel(..., progress_bar=...)`), one step per finished
+job, alongside the `status.json` files; a job that fails terminates the jobs
 still running and raises `AsyncActionError`, as a failing design point aborts a serial
 sweep. The index recognises and numbers job
 directories by their name prefix, so it must agree with `SimulationIterator.JNAME`:

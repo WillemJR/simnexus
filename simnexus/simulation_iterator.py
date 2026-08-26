@@ -40,7 +40,7 @@ variable, and could not express group membership at all.
 """
 
 from pathlib import Path
-import os, shutil
+import os, shutil, sys
 import json
 import time
 import pickle
@@ -67,6 +67,53 @@ logger = logging.getLogger(__name__)
 # still match, but distinct design points must not be merged.
 MATCH_RTOL = 1.0e-9
 MATCH_ATOL = 1.0e-12
+
+
+class _JobBar:
+    """
+    The terminal-side progress of a parallel batch: a ``tqdm`` bar that
+    steps once per finished job and names the jobs running right now.
+
+    tqdm is optional (``pip install simnexus[progress]``) and a bar on a
+    redirected stream is just noise in a log file, so the bar is created
+    only when it can be seen; every method is a no-op otherwise. This is
+    the *terminal* channel and is independent of ``status.json``, which is
+    written either way and is what a GUI reads.
+    """
+
+    def __init__( self, total, desc, enabled=None ):
+        self._bar = None
+        if enabled is False:
+            return
+        try:
+            from tqdm.auto import tqdm
+        except ImportError:
+            if enabled:
+                logger.warning( 'progress_bar=True but tqdm is not installed; '
+                                'install it with "pip install simnexus[progress]".' )
+            return
+        if enabled is None and not sys.stderr.isatty():
+            return          # nobody is watching a redirected stream
+        self._bar = tqdm( total=total, desc=desc, unit='job' )
+
+    def running( self, job_names ):
+        """Name the jobs running at this moment, after the bar."""
+        if self._bar is not None:
+            self._bar.set_postfix_str( ', '.join( job_names ) )
+
+    def step( self, n=1 ):
+        """One more job finished."""
+        if self._bar is not None:
+            self._bar.update( n )
+
+    def failed( self, job_name ):
+        if self._bar is not None:
+            self._bar.set_postfix_str( f'{job_name} failed' )
+
+    def close( self ):
+        if self._bar is not None:
+            self._bar.close()
+            self._bar = None
 
 
 def as_jsonable( value ):
@@ -892,7 +939,7 @@ class SimulationIterator(WorkAction):
 
         return ret
 
-    def solve_parallel( self, design_points, groups=None ):
+    def solve_parallel( self, design_points, groups=None, progress_bar=None ):
         """
         Evaluate a batch of design points ``max_workers`` at a time, one
         forked process per job -- the plural of ``solve``, which evaluates
@@ -922,6 +969,13 @@ class SimulationIterator(WorkAction):
                 parameters are filled in with their default values.
             groups (str|list) : group label(s) for these jobs, overriding
                 the iterator's default.
+            progress_bar (bool) : report the jobs finishing as a ``tqdm``
+                bar on stderr, with the jobs running right now named after
+                it. The default None shows one when tqdm is installed and
+                stderr is a terminal; True insists (and warns when tqdm is
+                missing), False never shows one. The bar is a convenience
+                for a terminal: ``status.json`` is written whichever way
+                this is set.
 
         Returns:
             list: one ``{action name: value}`` dict per design point, in the
@@ -950,6 +1004,7 @@ class SimulationIterator(WorkAction):
         queued = list( enumerate( design_points ) )
         running = {}             # job name -> (process, index in results)
         failure = None           # (job name, error text) of the first failure
+        bar = _JobBar( len( design_points ), desc=self.name, enabled=progress_bar )
 
         try:
             while queued or running:
@@ -962,6 +1017,7 @@ class SimulationIterator(WorkAction):
                         reused = self._reuse( val_dict, job_groups )
                         if reused is not None:
                             results[ iexp ] = reused
+                            bar.step()
                             continue
 
                     job_name, job_dir = self._start_job( val_dict, job_groups )
@@ -972,6 +1028,7 @@ class SimulationIterator(WorkAction):
                     self._current_job = job_name
                     logger.debug( f'Started {job_name} ({len(running)} running)' )
                     self._report_status( running )
+                    bar.running( running )
 
                 finished = [ n for n, ( p, _ ) in running.items() if not p.is_alive() ]
                 if not finished:
@@ -995,16 +1052,20 @@ class SimulationIterator(WorkAction):
                     if error is not None:
                         self._index.set_state( job_name, 'failed' )
                         failure = ( job_name, error )
+                        bar.failed( job_name )
                         break
                     self._index.set_state( job_name, 'done' )
                     self.run_iter += 1
                     self._report_status(
                         running, state='running' if running or queued else 'idle' )
+                    bar.step()
+                    bar.running( running )
 
                 if failure is not None:
                     self._abort_running_jobs( running )
                     break
         finally:
+            bar.close()
             manager.shutdown()
 
         if failure is not None:

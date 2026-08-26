@@ -46,6 +46,9 @@ plot = [
 gui = [
     "PySide6>=6.5",
 ]
+progress = [
+    "tqdm>=4.60",
+]
 dev = [
     "pytest",
 ]

@@ -157,13 +157,71 @@ outcomes = of_graph.solve({"lidVelocity": 1.2, "nCells": 6})
 print(f"Pressure field:", outcomes['pressure'] )
 ```
 
-## Example problems
-The example problems demonstrate:
+### Design studies using parallel execution
 
- - An LS-DYNA workflow consisting of editing parameter values, job submission, and results extraction.
- - An OpenRadioss workflow consisting of editing parameter values, job submission, and results extraction.
- - An OpenFOAM. workflow consisting of editing parameter values, job submission, and results extraction.
- - Remote execution examples.
+A `SimulationIterator` runs the graph once per design point, each in its own
+job directory. Give it `max_workers` and `solve_parallel` evaluates a batch of
+design points that many at a time, one process per job:
+
+```
+# using wf -- an existing workflow 
+
+# Create a simulation iteration that runs four jobs at the same time
+# each gets its own job_N directory.
+itr = SimulationIterator( wf, copy_paths=[starter_deck, engine_deck],
+                          max_workers=4, cleanup=True )
+
+design_points = [ { 'E': 190000., 'THICK': 1.5 },
+                  { 'E': 230000., 'THICK': 2.0 } ]
+
+# run the jobs
+evals = itr.solve_parallel( design_points  )
+
+for vals, out in zip( design_points, evals ):
+    print( vals, '->', out['d3plot']['n5'] )
+```
+
+`solve_parallel` returns one result dict per design point, in the order given —
+the same results a serial run produces, only faster. In a terminal the batch
+reports itself as a progress bar, one step per finished job, with the jobs
+running at that moment named after it:
+
+```
+Study_Iter:  50% 3/6 [00:42<00:41, 13.9s/job, job_3, job_4, job_5]
+Study_Iter:  83% 5/6 [01:09<00:13, 13.7s/job, job_5]
+Study_Iter: 100% 6/6 [01:22<00:00, 13.8s/job]
+```
+
+The progress bar uses tqdm and is shown only when stderr is a terminal.
+
+Independently of the bar, every run writes `status.json` files into its work
+directories, which another process can follow at any time.
+
+
+## Example problems
+The `examples` directory holds runnable scripts, each demonstrating one part of
+the workflow. Run them from the project root.
+
+ - `dyna_spring.py` — an LS-DYNA workflow: the `*PARAMETER` values of a deck are
+   set from the variables, the job is submitted, and nodal displacements and
+   coordinates are read back from the d3plot.
+ - `jinja_dyna.py` — the same, for a deck parameterised with Jinja markup
+   (`JinjaReplace`) instead of `*PARAMETER` cards.
+ - `radioss.py` — an OpenRadioss workflow: starter and engine decks, job
+   submission, and results extraction from the d3plot it writes.
+ - `openfoam_example.py` — an OpenFOAM workflow: mesh creation and solve
+   (`blockMesh`, `icoFoam`), then extraction of a pressure field.
+ - `discover_graph.py` — inspecting a graph before running it, with
+   `parameters()` and `outputs()`. No solver needed.
+ - `remote/` — remote execution over gRPC: a self-contained client and server in
+   one script (`remote_execution.py`), and an OpenFOAM server in a container
+   (`openfoam_remote_server.py`, `openfoam_remote_example.py`,
+   `Dockerfile.openfoam`). See `remote/README.md`.
+
+The LS-DYNA, OpenRadioss and OpenFOAM examples follow the same pattern, so an
+example written for one solver is easy to move to another. The decks they use
+are in `tests` and `models`; the solver itself has to be installed and on the
+path.
 
 
 ## License

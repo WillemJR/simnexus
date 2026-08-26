@@ -330,6 +330,17 @@ back in the order the design points were given.  Only the sweep methods
 (``collect_for_varrange``, ``collect_for_expdes``) fan out; ``solve`` is a
 single design point and always runs in the calling process.
 
+In a terminal the batch reports itself as a ``tqdm`` bar — one step per
+finished job, with the jobs running at that moment named after it::
+
+    Study_Iter:  50% 3/6 [00:01<00:03,  1.07s/job, job_3, job_4, job_5]
+
+The bar appears when tqdm is installed (``pip install simnexus[progress]``)
+and stderr is a terminal, so it never litters a log file; pass
+``progress_bar=True``/``False`` to ``solve_parallel`` to decide explicitly.
+It is a convenience for watching a run go by — the ``status.json`` files
+are written either way.
+
 Job directories are numbered by the calling process alone, so the jobs
 cannot collide over a number, and each job leaves its results in its own
 directory as usual — ``results_for``, ``collect`` and ``reuse_existing``

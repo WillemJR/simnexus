@@ -116,6 +116,30 @@ def test_failing_job_aborts_the_sweep(tmp_path, monkeypatch):
     assert root['state'] == 'failed'
 
 
+def test_progress_bar_reports_the_jobs(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+
+    itr = _iterator('Bar', max_workers=2)
+    itr.solve_parallel([{'x': 1}, {'x': 2}, {'x': 3}], progress_bar=True)
+
+    err = capsys.readouterr().err
+    assert 'Bar_Iter' in err        # the bar is labelled with the iterator
+    assert '3/3' in err             # and ends on the last job
+    assert 'job_' in err            # jobs running are named after the bar
+
+
+def test_progress_bar_can_be_switched_off(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+
+    itr = _iterator('Quiet', max_workers=2)
+    itr.solve_parallel([{'x': 1}, {'x': 2}], progress_bar=False)
+    assert capsys.readouterr().err == ''
+
+    # the default is quiet too when stderr is not a terminal, as here
+    itr.solve_parallel([{'x': 3}])
+    assert capsys.readouterr().err == ''
+
+
 def test_parallel_sweep_reuses_existing_jobs(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
 
