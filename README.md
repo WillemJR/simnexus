@@ -276,9 +276,13 @@ Study_Iter:  50%|█████████████            | 3/6 [00:42
 
 Each job's bar is fed from the `status.json` that job writes, so it follows the
 job through its actions, and follows the solver's percent-complete while one
-runs. The bars use tqdm and are shown only when stderr is a terminal. A
-hand-written action can report its own progress the same way, with
-`self.report_progress(fraction, message)`.
+runs. The bars use tqdm and are shown only when stderr is a terminal — pass
+`progress_bar=True`/`False` to `solve_parallel`, `collect_for_expdes` or
+`collect_for_varrange` to decide explicitly. A hand-written action can report
+its own progress the same way, with `self.report_progress(fraction, message)`.
+
+So that the bars keep their lines, a job running in parallel writes its stdout
+and stderr to `job_N/job.log` instead of to the terminal.
 
 Independently of the bar, every run writes `status.json` files into its work
 directories, which another process can follow at any time.

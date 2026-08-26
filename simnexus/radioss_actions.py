@@ -1,5 +1,6 @@
 
 import os
+import contextlib
 import json
 import glob
 import subprocess
@@ -175,7 +176,12 @@ class RadiossAnalysisBase:
             raise SimNexusError( 'Install vortex_radioss.animtod3plot from \'https://www.vortex-cae.com/vortex-radioss\'.' ) from err
 
         try:
-            readAndConvert( str( Path.cwd().joinpath( root_name) )  )
+            # readAndConvert prints its progress; keep it out of the
+            # terminal (and off a parallel study's progress bars) by
+            # putting it in a log beside the other conversion logs.
+            with open( 'd3plot_conversion.stdout', 'w' ) as out:
+                with contextlib.redirect_stdout( out ):
+                    readAndConvert( str( Path.cwd().joinpath( root_name) )  )
         except Exception as e:
             logger.error(f"Cannot convert OpenRadioss output to d3plot file: {e}")
 
@@ -251,7 +257,7 @@ class RadiossAnalysis(WorkAction,RadiossAnalysisBase):
 
 
     def _create_vtk_file( self ):
-        print( 'Converting openRadioss to vtk files' )
+        logger.info( 'Converting openRadioss to vtk files' )
 
         out_file = open( 'vtk_conversion.stdout' , 'w' )
         err_file = open( 'vtk_conversion.stderr' , 'w')
@@ -271,14 +277,14 @@ class RadiossAnalysis(WorkAction,RadiossAnalysisBase):
 
 
     def _create_csv_file( self ):
-        print( 'Converting openRadioss to csv files' )
+        logger.info( 'Converting openRadioss to csv files' )
 
         out_file = open( 'csv_conversion.stdout' , 'w' )
         err_file = open( 'csv_conversion.stderr' , 'w')
 
         hist_files = glob.glob(RADIOSS_ROOT_NAME+'T*')
         for tf in hist_files:
-            print( 'Converting', tf )
+            logger.info( f'Converting {tf}' )
             subprocess.run( args=['th_to_csv_linux64_gf '+ tf], shell=True, stdout=out_file, stderr=err_file )
 
         out_file.close()
@@ -334,6 +340,7 @@ class RadiossAnalysis(WorkAction,RadiossAnalysisBase):
         ]
         if self.create_d3plot:
             files.append( 'd3plot*' )
+            files.append( 'd3plot_conversion.stdout' )
         if self.create_vtk:
             files.append( RADIOSS_ROOT_NAME + '_*.vtk' )
         if self.create_csv:

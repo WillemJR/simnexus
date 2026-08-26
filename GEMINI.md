@@ -122,13 +122,16 @@ OptimizationResults/
 ├── jobs_index.json
 ├── job_0/             
 │   ├── iter_variables.json
-│   └── actions_output.pkl
+│   ├── actions_output.pkl
+│   └── job.log          (only when the job ran in parallel: its stdout/stderr)
 ├── job_1/              
 │   ├── iter_variables.json
-│   └── actions_output.pkl
+│   ├── actions_output.pkl
+│   └── job.log
 ├── job_{n}/              
 │   ├── iter_variables.json
-│   └── actions_output.pkl
+│   ├── actions_output.pkl
+│   └── job.log
 
 
 The {NAME} is a name of a directory that is input to the program, typically the name of the graph.
@@ -170,8 +173,10 @@ group labels cannot be recovered that way. A sweep runs one design point at a ti
 each in a forked process with its own job directory (`solve` is a single design point
 and always runs in the calling process). Only the parent allocates job numbers and
 writes the index, so the numbering cannot race; in a terminal the batch also reports itself
-as optional `tqdm` bars (`solve_parallel(..., progress_bar=...)`): one counting the jobs and one
-per running job, fed from that job's own `status.json`; a job that fails terminates the jobs
+as optional `tqdm` bars (`progress_bar=...` on `solve_parallel`, `collect_for_expdes` and
+`collect_for_varrange`): one counting the jobs and one per running job, fed from
+that job's own `status.json`, with each job's stdout/stderr redirected into
+`job_N/job.log` so the terminal belongs to the bars; a job that fails terminates the jobs
 still running and raises `AsyncActionError`, as a failing design point aborts a serial
 sweep. The index recognises and numbers job
 directories by their name prefix, so it must agree with `SimulationIterator.JNAME`:

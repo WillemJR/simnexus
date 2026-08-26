@@ -53,14 +53,17 @@ ACTIONS_OUTPUT_PATH = 'actions_output.pkl'
 ITER_VARIABLES_PATH = 'iter_variables.json'
 STATUS_PATH = 'status.json'
 JOBS_INDEX_PATH = 'jobs_index.json'
+JOB_LOG_PATH = 'job.log'
 
 # Files that record a run's outcome. Cleanup never removes these: deleting
 # them would break reuse_existing/results_for (actions_output.pkl,
-# iter_variables.json), the job index, or a GUI polling the progress file.
+# iter_variables.json), the job index, a GUI polling the progress file, or
+# the log a parallel job wrote instead of the terminal.
 PROTECTED_FROM_CLEANUP = ( ACTIONS_OUTPUT_PATH,
                            ITER_VARIABLES_PATH,
                            STATUS_PATH,
-                           JOBS_INDEX_PATH )
+                           JOBS_INDEX_PATH,
+                           JOB_LOG_PATH )
 
 
 class Cleanup:

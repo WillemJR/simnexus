@@ -51,7 +51,7 @@ import numpy as np
 
 from simnexus.actions import WorkAction, _display_path, _copy_path_nodes
 from simnexus.args import ( ACTIONS_OUTPUT_PATH, ITER_VARIABLES_PATH,
-                           JOBS_INDEX_PATH, STATUS_PATH, Cleanup )
+                           JOBS_INDEX_PATH, JOB_LOG_PATH, STATUS_PATH, Cleanup )
 from simnexus.cleanup import clean_run_dir
 from simnexus.errors import ( ActionNameError, AsyncActionError, ParameterError,
                               MissingPathError, DataNotFoundError )
@@ -71,6 +71,79 @@ MATCH_ATOL = 1.0e-12
 
 # how often the per-job bars are refreshed from the jobs' status files
 BAR_POLL_INTERVAL = 0.3
+
+# kept alive for the life of a forked child, so the file behind the
+# redirected descriptors is not closed while they are still in use
+_CHILD_LOG = None
+
+
+def _redirect_child_output( job_dir ):
+    """
+    Send a forked job's stdout and stderr to a file in its own job
+    directory.
+
+    A child inherits the terminal, and everything it writes there -- a
+    solver wrapper's conversion messages, the log records of a root logger
+    configured before the fork, tqdm's own teardown of the bars the child
+    inherited -- lands on top of the batch's progress bars, which hold
+    their lines by position and cannot recover from an unexpected write.
+    Writing to the job directory instead leaves the terminal to the bars
+    and gives each job a log of its own, which is the more useful place
+    for it anyway.
+
+    The redirect is done on the file descriptors rather than on
+    ``sys.stdout``/``sys.stderr``, so the solvers' subprocesses and the
+    logging handlers built before the fork follow it too.
+    """
+    global _CHILD_LOG
+    _CHILD_LOG = open( Path( job_dir ) / JOB_LOG_PATH, 'w', buffering=1 )
+
+    for stream, fd in ( ( sys.stdout, 1 ), ( sys.stderr, 2 ) ):
+        try:
+            stream.flush()
+        except ( AttributeError, OSError, ValueError ):
+            pass
+        try:
+            os.dup2( _CHILD_LOG.fileno(), fd )
+        except OSError:                     # no such descriptor: nothing to move
+            pass
+
+    # sys.stdout/sys.stderr are not always the file behind fd 1/2 -- a
+    # notebook, an IDE console or a test harness puts an object of its own
+    # there, whose writes would still reach the terminal (and whose fileno()
+    # may not even exist). Point those at the log as well.
+    if not _wraps_fd( sys.stdout, 1 ):
+        sys.stdout = _CHILD_LOG
+    if not _wraps_fd( sys.stderr, 2 ):
+        sys.stderr = _CHILD_LOG
+
+    _silence_inherited_bars()
+
+
+def _silence_inherited_bars():
+    """Stop the parent's progress bars from repainting in a forked child.
+
+    A fork copies the parent's live tqdm bars along with everything else,
+    and tqdm keeps them in a class-level registry: anything written through
+    ``tqdm.write`` in the child -- a log record, once the parent has tqdm's
+    logging redirect open -- would redraw all of them into the child's log.
+    The child has no terminal to draw on, so drop them.
+    """
+    try:
+        from tqdm import tqdm
+    except ImportError:
+        return
+    for bar in list( getattr( tqdm, '_instances', () ) ):
+        bar.disable = True
+        tqdm._instances.discard( bar )
+
+
+def _wraps_fd( stream, fd ):
+    """True when writing to this stream writes to that file descriptor."""
+    try:
+        return stream.fileno() == fd
+    except ( AttributeError, OSError, ValueError ):
+        return False        # no descriptor of its own (StringIO, capsys, ...)
 
 
 class _JobBar:
@@ -99,6 +172,7 @@ class _JobBar:
         self._bar = None
         self._tqdm = None
         self._jobs = {}         # job name -> [bar, StatusWatcher, position]
+        self._redirect = None   # tqdm's logging redirect, while bars are up
         if enabled is False:
             return
         try:
@@ -112,6 +186,16 @@ class _JobBar:
             return          # nobody is watching a redirected stream
         self._tqdm = tqdm
         self._bar = tqdm( total=total, desc=desc, unit='job', position=0 )
+
+        # A log record written straight to stderr would land on top of the
+        # bars, which hold their lines by position; tqdm's redirect routes
+        # the handlers through tqdm.write for as long as the bars are up.
+        try:
+            from tqdm.contrib.logging import logging_redirect_tqdm
+        except ImportError:
+            return
+        self._redirect = logging_redirect_tqdm()
+        self._redirect.__enter__()
 
     def running( self, job_paths ):
         """Give every job running now a bar of its own, and take away the
@@ -167,6 +251,9 @@ class _JobBar:
             self._bar.set_postfix_str( f'{job_name} failed' )
 
     def close( self ):
+        if self._redirect is not None:
+            self._redirect.__exit__( None, None, None )
+            self._redirect = None
         for bar, _, _ in self._jobs.values():
             bar.close()
         self._jobs.clear()
@@ -730,6 +817,11 @@ class SimulationIterator(WorkAction):
             ( 'iter_variables.json   (this design\'s variable values)', [] ),
             ( 'actions_output.pkl   (this design\'s action outputs)', [] ),
         ]
+        if self.max_workers > 1:
+            # a job that runs in a forked process writes its output here
+            # instead of to the terminal, which the progress bars own
+            job_children.append(
+                ( f'{JOB_LOG_PATH}   (this job\'s stdout and stderr)', [] ) )
         job_children += _copy_path_nodes( self.copy_paths )
         job_children += self.graph._work_dir_entries( cleanup )
         children = [
@@ -1062,6 +1154,7 @@ class SimulationIterator(WorkAction):
 
         def run_child( job_dir, val_dict, job_name ):
             try:
+                _redirect_child_output( job_dir )
                 self._run_job( job_dir, val_dict )
                 clean_run_dir( self.graph, job_dir, self.cleanup )
             except BaseException as err:
@@ -1350,7 +1443,8 @@ class SimulationIterator(WorkAction):
 
 
 
-    def collect_for_varrange( self, var_range_dict, dependent_pars=None, groups=None ):
+    def collect_for_varrange( self, var_range_dict, dependent_pars=None,
+                              groups=None, progress_bar=None ):
         """
         Creates a combination of var_range_dict. Input is not a experimental design.
 
@@ -1362,6 +1456,10 @@ class SimulationIterator(WorkAction):
             dependent_pars (dict) : variable name, expression.
             groups (str|list) : group label(s) for the jobs of this sweep,
                 overriding the iterator's default.
+            progress_bar (bool) : passed to ``solve_parallel`` when the
+                design points run in parallel; ignored for a serial sweep,
+                which has no bars. The default None shows them when tqdm is
+                installed and stderr is a terminal.
 
         Returns:
             par_val_dict (dict): parameter names, value list
@@ -1371,7 +1469,8 @@ class SimulationIterator(WorkAction):
         iterators_values = var_range_dict.values()
         exp_des =  [p for p in product(*iterators_values)]
         var_names = [key for key in var_range_dict.keys() ]
-        return self.collect_for_expdes( exp_des, var_names, dependent_pars, groups=groups )
+        return self.collect_for_expdes( exp_des, var_names, dependent_pars,
+                                        groups=groups, progress_bar=progress_bar )
 
     def _design_values( self, combination, var_names, dependent_pars ):
         """The variable values of one design point: the combination itself
@@ -1384,7 +1483,8 @@ class SimulationIterator(WorkAction):
             pars_vals.update( dp_dict )
         return pars_vals
 
-    def collect_for_expdes( self, exp_des, var_names, dependent_pars=None, groups=None ):
+    def collect_for_expdes( self, exp_des, var_names, dependent_pars=None,
+                            groups=None, progress_bar=None ):
         """
         Evaluate every design point of an experimental design, one at a
         time or ``max_workers`` at a time (see the constructor). The
@@ -1395,6 +1495,10 @@ class SimulationIterator(WorkAction):
             exp_des
             groups (str|list) : group label(s) for the jobs of this sweep,
                 overriding the iterator's default.
+            progress_bar (bool) : passed to ``solve_parallel`` when the
+                design points run in parallel; ignored for a serial sweep,
+                which has no bars. The default None shows them when tqdm is
+                installed and stderr is a terminal.
 
         Returns:
             par_val_dict (dict): parameter names, value list
@@ -1415,7 +1519,8 @@ class SimulationIterator(WorkAction):
         if self.max_workers > 1 and len( design_points ) > 1:
             logger.debug( f'\n\tRunning {len(design_points)} evaluations, '
                           f'{self.max_workers} at a time' )
-            list_of_evals = self.solve_parallel( design_points, groups )
+            list_of_evals = self.solve_parallel( design_points, groups,
+                                                 progress_bar=progress_bar )
         else:
             list_of_evals = []
             for iexp, pars_vals in enumerate( design_points ):

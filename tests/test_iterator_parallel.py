@@ -6,7 +6,7 @@ import time
 import pytest
 
 from simnexus.actions import MathEvaluation, WorkAction
-from simnexus.args import JOBS_INDEX_PATH, STATUS_PATH
+from simnexus.args import JOB_LOG_PATH, JOBS_INDEX_PATH, STATUS_PATH
 from simnexus.errors import AsyncActionError, ParameterError
 from simnexus.graph_actions import WorkFlow
 from simnexus.simulation_iterator import SimulationIterator
@@ -19,6 +19,13 @@ class Sleeper(WorkAction):
     def solve(self, val_dict=None):
         time.sleep(self.DELAY)
         return val_dict.get('x', 0) if val_dict else 0
+
+
+class Chatty(WorkAction):
+    """Writes to stdout the way the solver wrappers do."""
+    def solve(self, val_dict=None):
+        print('chatter from the job')
+        return 1
 
 
 class FailsOnThree(WorkAction):
@@ -139,6 +146,46 @@ def test_progress_bar_can_be_switched_off(tmp_path, monkeypatch, capsys):
     # the default is quiet too when stderr is not a terminal, as here
     itr.solve_parallel([{'x': 3}])
     assert capsys.readouterr().err == ''
+
+
+def test_collect_passes_the_progress_bar_flag(tmp_path, monkeypatch, capsys):
+    """progress_bar=True reaches solve_parallel from collect_for_varrange,
+    even though stderr is not a terminal under pytest."""
+    monkeypatch.chdir(tmp_path)
+
+    itr = _iterator('Threaded', max_workers=2)
+    itr.collect_for_varrange({'x': [1, 2, 3]}, progress_bar=True)
+
+    err = capsys.readouterr().err
+    assert 'Threaded_Iter' in err   # the batch bar
+    assert '3/3' in err
+    assert '  job_0' in err         # and a job bar under it
+
+
+def test_collect_default_stays_quiet_off_a_terminal(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    _iterator('Quiet2', max_workers=2).collect_for_varrange({'x': [1, 2]})
+    assert capsys.readouterr().err == ''
+
+
+def test_child_output_goes_to_the_job_log(tmp_path, monkeypatch, capfd):
+    """A job's own printing must not reach the terminal, where it would
+    break the bars' line positions. capfd, not capsys: the redirect is done
+    on the file descriptors, so the test has to capture them."""
+    monkeypatch.chdir(tmp_path)
+
+    wf = WorkFlow('Logged', actions=[Chatty('chat')])
+    itr = SimulationIterator(wf, max_workers=2)
+    itr.solve_parallel([{'x': 1}, {'x': 2}], progress_bar=False)
+
+    captured = capfd.readouterr()
+    assert 'chatter' not in captured.out
+    assert 'chatter' not in captured.err
+
+    # the results directory is named after the graph; '_Iter' is the
+    # iterator action's own name, which is what labels the bar
+    log = tmp_path / 'Logged' / 'job_0' / JOB_LOG_PATH
+    assert log.exists() and 'chatter' in log.read_text()
 
 
 def test_parallel_sweep_reuses_existing_jobs(tmp_path, monkeypatch):

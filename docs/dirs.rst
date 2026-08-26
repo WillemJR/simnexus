@@ -347,9 +347,16 @@ inside ``solve``.
 
 The bars appear when tqdm is installed (``pip install simnexus[progress]``)
 and stderr is a terminal, so they never litter a log file; pass
-``progress_bar=True``/``False`` to ``solve_parallel`` to decide explicitly.
+``progress_bar=True``/``False`` to ``solve_parallel``,
+``collect_for_expdes`` or ``collect_for_varrange`` to decide explicitly.
 They are a convenience for watching a run go by — the ``status.json`` files
 are written either way.
+
+So that the bars keep their lines, a job running in parallel does not write
+to the terminal: its stdout and stderr (the solver wrappers' messages, its
+log records) are redirected into ``job_N/job.log``, which cleanup never
+removes. A job run serially still writes to the terminal, where there are
+no bars to disturb.
 
 Job directories are numbered by the calling process alone, so the jobs
 cannot collide over a number, and each job leaves its results in its own
