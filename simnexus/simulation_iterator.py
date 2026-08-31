@@ -167,7 +167,7 @@ class _JobBar:
     # tqdm puts ', ' in front of {postfix}, so the job's message goes in
     # the description instead, padded to keep the bars lined up
     JOB_BAR_FORMAT = '  {desc} {percentage:3.0f}%|{bar}|'
-    DESC_WIDTH = 40
+    DESC_WIDTH = 46
 
     def __init__( self, total, desc, enabled=None ):
         self._bar = None

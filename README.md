@@ -275,14 +275,14 @@ running right now:
 
 ```
 Study_Iter:  50%|█████████████            | 3/6 [00:42<00:41, 13.9s/job]
-  job_3  rad: time 12.9 of 40 (97%)         32%|█████████▎                   |
-  job_4  rad: time 11.4 of 40 (86%)         28%|████████                     |
-  job_5  rad: time  2.1 of 40 (16%)          5%|█▍                           |
+  job_3  rad 1 of 3: time 12.9 of 40 (97%)        32%|███████▎               |
+  job_4  rad 1 of 3: time 11.4 of 40 (86%)        28%|██████▍                |
+  job_5  rad 1 of 3: time  2.1 of 40 (16%)         5%|█▏                     |
 ```
 
-Each job's bar is fed from the `status.json` that the job writes, so it follows the
-job through its actions, and the solver's percent-complete follows the number of 
-jobs completed.
+Each job's bar is fed from the `status.json` that job writes, so it follows the
+job through its actions. The iterator's own bar, at the top, counts jobs: its
+percentage is how many of the batch have finished.
 
 The bars use tqdm and are shown only when stderr is a terminal.
 

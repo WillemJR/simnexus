@@ -565,15 +565,21 @@ def job_fraction( status ):
     yet.
 
     The fraction is therefore the *job's*, while the message belongs to the
-    one action running now; the action's own percentage is appended to the
-    message (``'rad: time 80 of 100 (80%)'``) so the two cannot be read as
-    the same number -- a solver 80% through the first of three actions
-    leaves the job at 27%.
+    one action running now. So that the two cannot be read as the same
+    thing, the message says which action of how many is running and how far
+    that action itself has got::
+
+        rad 1 of 3: time 80 of 100 (80%)
+
+    -- a solver 80% through the first of three actions, which leaves the
+    job, and the bar, at 27%. The count is the action's place in the
+    graph's action list, which is the order they appear in the status file.
     """
     actions = ( status or {} ).get( 'actions' ) or {}
     if not actions:
         return None, None
 
+    names = list( actions )
     done = 0.0
     message = None
     for name, entry in actions.items():
@@ -584,7 +590,10 @@ def job_fraction( status ):
             fraction = entry.get( 'fraction' )
             if fraction:
                 done += fraction
-            message = f"{name}: {entry['message']}" if entry.get( 'message' ) else name
+            where = f'{names.index( name ) + 1} of {len( names )}'
+            message = f'{name} {where}'
+            if entry.get( 'message' ):
+                message += f": {entry['message']}"
             if fraction is not None:
                 message += f' ({fraction*100:.0f}%)'
     return done / len( actions ), message
