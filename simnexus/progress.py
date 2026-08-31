@@ -47,9 +47,11 @@ follow a single job)::
       }
     }
 
-The ``fraction`` and ``message`` fields are reserved for solver actions
-reporting percent-complete (parsed from their stdout files); they stay
-``null`` until that is implemented.
+The ``fraction`` and ``message`` fields carry an action's own
+percent-complete: solver actions fill them from their stdout files, and an
+action of your own does so with ``self.report_progress(...)``. They stay
+``null`` for an action that does not report, or whose output cannot be
+parsed.
 """
 
 import json
@@ -561,6 +563,12 @@ def job_fraction( status ):
     makes that a single number for the job, which is what a per-job
     progress bar needs. Returns ``(None, None)`` when the file says nothing
     yet.
+
+    The fraction is therefore the *job's*, while the message belongs to the
+    one action running now; the action's own percentage is appended to the
+    message (``'rad: time 80 of 100 (80%)'``) so the two cannot be read as
+    the same number -- a solver 80% through the first of three actions
+    leaves the job at 27%.
     """
     actions = ( status or {} ).get( 'actions' ) or {}
     if not actions:
@@ -577,6 +585,8 @@ def job_fraction( status ):
             if fraction:
                 done += fraction
             message = f"{name}: {entry['message']}" if entry.get( 'message' ) else name
+            if fraction is not None:
+                message += f' ({fraction*100:.0f}%)'
     return done / len( actions ), message
 
 

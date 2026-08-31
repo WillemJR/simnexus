@@ -45,6 +45,7 @@ import json
 import time
 import pickle
 import numbers
+from collections.abc import Iterable, Mapping
 from itertools import product
 
 import numpy as np
@@ -166,7 +167,7 @@ class _JobBar:
     # tqdm puts ', ' in front of {postfix}, so the job's message goes in
     # the description instead, padded to keep the bars lined up
     JOB_BAR_FORMAT = '  {desc} {percentage:3.0f}%|{bar}|'
-    DESC_WIDTH = 34
+    DESC_WIDTH = 40
 
     def __init__( self, total, desc, enabled=None ):
         self._bar = None
@@ -996,6 +997,10 @@ class SimulationIterator(WorkAction):
         """The design point completed with the default value of every
         parameter the caller did not give a value for."""
         if val_dict is None: val_dict = {}
+        if not isinstance( val_dict, Mapping ):
+            raise ParameterError(
+                f'A design point is a {{variable name: value}} dict, '
+                f'not {type(val_dict).__name__}.' )
 
         pl = self.parameter_list if self.parameter_list is not None else self.parameters()
         for def_par in pl:
@@ -1099,6 +1104,31 @@ class SimulationIterator(WorkAction):
 
         return ret
 
+    @staticmethod
+    def _as_design_points( design_points ):
+        """The designs to ``solve_parallel`` should be a list not a dict.
+        """
+        if isinstance( design_points, Mapping ):
+            raise ParameterError(
+                'solve_parallel() evaluates a batch of design points, not the '
+                'single {variable name: value} dict solve() takes. Use solve() '
+                'for one design point, or pass [val_dict] to run it as a batch '
+                'of one.' )
+
+        if isinstance( design_points, (str, bytes) ) or \
+           not isinstance( design_points, Iterable ):
+            raise ParameterError(
+                'solve_parallel() takes a sequence of {variable name: value} '
+                f'dicts, not {type(design_points).__name__}.' )
+
+        design_points = list( design_points )   # an iterator is fine too
+        for iexp, pars_vals in enumerate( design_points ):
+            if not isinstance( pars_vals, Mapping ):
+                raise ParameterError(
+                    f'Design point {iexp} is a {type(pars_vals).__name__}, not '
+                    'a {variable name: value} dict.' )
+        return design_points
+
     def solve_parallel( self, design_points, groups=None, progress_bar=None ):
         """
         Evaluate a batch of design points ``max_workers`` at a time, one
@@ -1142,7 +1172,14 @@ class SimulationIterator(WorkAction):
         Returns:
             list: one ``{action name: value}`` dict per design point, in the
             order the design points were given.
+
+        Raises:
+            ParameterError: if the batch is not a sequence of design points
+                -- notably when a single ``{variable name: value}`` dict is
+                handed over, as ``solve`` takes.
         """
+        design_points = self._as_design_points( design_points )
+
         import multiprocessing
         try:
             ctx = multiprocessing.get_context( 'fork' )

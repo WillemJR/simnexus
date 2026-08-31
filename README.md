@@ -49,6 +49,9 @@ See also the docs directory.
 pip install simnexus
 ```
 
+SimNexus has so far only been tested on
+Linux and WSL; it may well work on other platforms, but that has not been verified.
+
 
 ## Usage
 See also the documentation and the examples directory.
@@ -272,20 +275,16 @@ running right now:
 
 ```
 Study_Iter:  50%|█████████████            | 3/6 [00:42<00:41, 13.9s/job]
-  job_3  rad: time 12.9 of 40         32%|█████████                          |
-  job_4  rad: time 11.4 of 40         28%|████████                           |
-  job_5  rad: time  2.1 of 40          5%|█▌                                 |
+  job_3  rad: time 12.9 of 40 (97%)         32%|█████████▎                   |
+  job_4  rad: time 11.4 of 40 (86%)         28%|████████                     |
+  job_5  rad: time  2.1 of 40 (16%)          5%|█▍                           |
 ```
 
-Each job's bar is fed from the `status.json` that job writes, so it follows the
-job through its actions, and follows the solver's percent-complete while one
-runs. The bars use tqdm and are shown only when stderr is a terminal — pass
-`progress_bar=True`/`False` to `solve_parallel`, `collect_for_expdes` or
-`collect_for_varrange` to decide explicitly. A hand-written action can report
-its own progress the same way, with `self.report_progress(fraction, message)`.
+Each job's bar is fed from the `status.json` that the job writes, so it follows the
+job through its actions, and the solver's percent-complete follows the number of 
+jobs completed.
 
-So that the bars keep their lines, a job running in parallel writes its stdout
-and stderr to `job_N/job.log` instead of to the terminal.
+The bars use tqdm and are shown only when stderr is a terminal.
 
 Independently of the bar, every run writes `status.json` files into its work
 directories, which another process can follow at any time.

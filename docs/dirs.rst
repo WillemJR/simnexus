@@ -334,9 +334,9 @@ In a terminal the batch reports itself as ``tqdm`` bars: one counting the
 jobs of the batch, and under it a bar per job running right now::
 
     Study_Iter:  50%|█████████████            | 3/6 [00:42<00:41, 13.9s/job]
-      job_3  rad: time 12.9 of 40         32%|█████████                          |
-      job_4  rad: time 11.4 of 40         28%|████████                           |
-      job_5  rad: time  2.1 of 40          5%|█▌                                 |
+      job_3  rad: time 12.9 of 40 (97%)         32%|█████████▎                   |
+      job_4  rad: time 11.4 of 40 (86%)         28%|████████                     |
+      job_5  rad: time  2.1 of 40 (16%)          5%|█▍                           |
 
 A job's bar is fed from the ``status.json`` that job writes, so it follows
 the job through its actions and shows a solver's percent-complete while one
@@ -344,6 +344,11 @@ runs (:func:`simnexus.progress.job_fraction` is what turns those action
 states into the one number the bar needs). An action of your own reports
 itself the same way, by calling ``self.report_progress(fraction, message)``
 inside ``solve``.
+
+The two percentages on a job's line mean different things: the one in
+brackets is how far the action named in the message has got, while the
+bar's own percentage is the whole job, averaged over its actions -- a
+solver 97% through the first of three actions leaves the job at 32%.
 
 The bars appear when tqdm is installed (``pip install simnexus[progress]``)
 and stderr is a terminal, so they never litter a log file; pass

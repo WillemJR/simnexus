@@ -200,3 +200,28 @@ def test_parallel_sweep_reuses_existing_jobs(tmp_path, monkeypatch):
     assert len(itr.reused_jobs) == 3
     # nothing was run again, so no new job directories
     assert len(list((tmp_path / 'Reuse').glob('job_*'))) == 3
+
+
+def test_solve_parallel_rejects_a_single_design_point(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+    itr = _iterator('OneDict', max_workers=2)
+    with pytest.raises(ParameterError, match='solve'):
+        itr.solve_parallel({'x': 1})
+
+    # ... which is the batch of one it was meant to be
+    assert itr.solve_parallel([{'x': 1}]) == [{'x': 1, 'calc': 10}]
+
+
+def test_solve_parallel_rejects_a_batch_that_is_not_design_points(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+    itr = _iterator('NotDicts', max_workers=2)
+    with pytest.raises(ParameterError):
+        itr.solve_parallel([1, 2, 3])
+    with pytest.raises(ParameterError):
+        itr.solve_parallel(3)
+
+    # an iterator of design points is a sequence for this purpose
+    assert itr.solve_parallel(iter([{'x': 1}, {'x': 2}])) == [
+        {'x': 1, 'calc': 10}, {'x': 2, 'calc': 20}]

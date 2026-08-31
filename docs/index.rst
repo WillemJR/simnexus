@@ -32,6 +32,12 @@ Key Features
 - **Remote Execution**: Submit computational subgraphs to remote computing resources while maintaining local workflow coordination
 - **Discoverability**: Query any graph for its inputs and outputs without running it — solver actions read their parameterised input files to report variable names, types, and default values
 
+Requirements
+------------
+
+SimNexus has so far only been tested on
+Linux and WSL; it may well work on other platforms, but that has not been verified.
+
 Typical Workflow
 ----------------
 

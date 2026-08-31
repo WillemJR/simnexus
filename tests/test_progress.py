@@ -212,7 +212,9 @@ def test_job_fraction_averages_over_the_actions():
         'read':   {'state': 'pending'}}}
     fraction, message = progress.job_fraction(status)
     assert fraction == pytest.approx(1.5 / 3)      # one done, one half done
-    assert message == 'solver: time 5 of 10'       # what it is busy with
+    # what it is busy with, and how far that action itself has got -- the
+    # fraction above is the job's, which is the smaller number
+    assert message == 'solver: time 5 of 10 (50%)'
 
     # a running action without a fraction still names itself
     status['actions']['solver'] = {'state': 'running'}
