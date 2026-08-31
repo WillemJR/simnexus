@@ -14,8 +14,7 @@ It supports tasks from from input preparation and
 remote execution to results extraction and post-processing.
 
 
-SimNexus has a native support for
-solvers like LS-DYNA, OpenRadioss, and OpenFOAM. 
+SimNexus has a native support for solvers like LS-DYNA, OpenRadioss, and OpenFOAM. In addition OpenRadioss using LS-DYNA input is supported as a special case.
 
 ## Key Features
 
@@ -53,8 +52,11 @@ pip install simnexus
 ## Usage
 See also the documentation and the examples directory.
 
+Note that OpenFOAM, LS-DYNA and OpenRadioss workflows follow the same pattern.
+
 ### OpenRadioss
-An example for OpenRadioss is given below. The OpenFOAM, LS-DYNA and OpenRadioss workflows follows the same pattern.
+An example for OpenRadioss is given below.
+An example using LS-DYNA input is given the examples directory.
 
 ```
 starter_deck = Path('models/cube_TYPE7_0000.rad')
@@ -96,7 +98,7 @@ print("Available results.", ret.keys() )
 ```
 
 ### OpenFOAM
-An example for OpenFOAM is given below. The OpenFOAM, LS-DYNA and OpenRadioss workflows follows the same pattern.
+An example for OpenFOAM is given below.
 
 ```
 import logging
@@ -295,8 +297,9 @@ the workflow. Run them from the project root.
  - `dyna_spring.py` — an LS-DYNA workflow: the `*PARAMETER` values of a deck are
    set from the variables, the job is submitted, and nodal displacements and
    coordinates are read back from the d3plot.
- - `jinja_dyna.py` — the same, for a deck parameterised with Jinja markup
-   (`JinjaReplace`) instead of `*PARAMETER` cards.
+ - `jinja_dyna.py` — an LS-DYNA deck parameterised with Jinja markup
+   (`JinjaReplace`) instead of `*PARAMETER` cards, run through OpenRadioss with
+   `RadiossUsingDynaInput`.
  - `radioss.py` — an OpenRadioss workflow: starter and engine decks, job
    submission, and results extraction from the d3plot it writes.
  - `openfoam_example.py` — an OpenFOAM workflow: mesh creation and solve

@@ -135,6 +135,31 @@ workflow.  This works for any solver — the use of jinja is never required:
 about types or defaults, so they come back as ``UnknownVariable`` with a
 value of ``None`` — unlike the parameter cards of a deck, which carry both.
 
+``examples/jinja_dyna.py`` chains the same two actions for an LS-DYNA
+keyword deck, with ``RadiossUsingDynaInput`` as the solver action so the
+substituted deck is run by OpenRadioss:
+
+.. code-block:: python
+
+    from simnexus.jinja_actions import JinjaReplace
+    from simnexus.radioss_using_dyna_inp import RadiossUsingDynaInput
+    from simnexus.graph_actions import WorkFlow, WorkArea
+
+    wf = WorkFlow('JR_WorkFlow')
+
+    # substitutes {{E}} and {{SIG_Y}} and writes the deck the solver reads
+    wf.add_action( JinjaReplace( name='prepare_deck',
+                                 input_file_path='tests/par_tens.k',
+                                 output_file_path='edited.k',
+                                 val_format="%10.3g" ) )
+
+    wf.add_action( RadiossUsingDynaInput( name='RADIOSS',
+                                          cmd='rad_dyna_inp',
+                                          input_path='edited.k' ) )
+
+    wa = WorkArea( wf )
+    ret = wa.solve( {'E': 210.0, 'SIG_Y': 310.0} )
+
 
 OpenFOAM
 ----------------------------------
