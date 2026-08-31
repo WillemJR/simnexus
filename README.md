@@ -13,6 +13,16 @@ The module is particularly suited for simulations that span multiple domains, su
 It supports tasks from from input preparation and
 remote execution to results extraction and post-processing.
 
+A workflow is a directed graph of actions, and the graph is how dependencies
+are specified: an action waits for the actions whose results it needs, so the
+order of execution follows from the graph rather than from the order the
+actions were added.
+
+Multiple designs can be evaluated in parallel. 
+A simulation iterator evaluates the whole graph for several design points simultaneously, each in its own job directory.
+Within a single graph, independent branches can likewise run at the same time,
+each in its own process.
+
 
 SimNexus has a native support for solvers like LS-DYNA, OpenRadioss, and OpenFOAM. In addition OpenRadioss using LS-DYNA input is supported as a special case.
 
@@ -20,8 +30,10 @@ SimNexus has a native support for solvers like LS-DYNA, OpenRadioss, and OpenFOA
 
 - **Workflow Management**: Define simulation workflows as directed acyclic graphs (DAGs) where actions are executed based on dependency relationships and completion status of prerequisite tasks
 - **Native Solver Support**: Specify input parameter values and the results to extract for a supported solver.  Currently implemented are LS-DYNA and OpenRadioss for structural analysis, and OpenFOAM for computational fluid dynamics
-- **Parallel Execution**: Evaluate several design points of a study concurrently, each job in its own directory with its own progress bar
+- **Parallel Execution**: Evaluate several design points of a study concurrently, each job in its own directory with its own progress bar; within one graph, independent branches run at the same time (`asynch=True`)
+- **Results Extraction**: Read from the solvers' result databases in the graph. Supported are: LS-DYNA d3plot, OpenRadioss VTK and time-history CSV, and OpenFOAM fields and histories.
 - **Remote Execution**: Submit computational subgraphs to remote computing resources while maintaining local workflow coordination
+- **Custom Actions**: Add an operation of your own by subclassing `WorkAction` and writing `solve(val_dict)`; it then behaves like any built-in action.
 - **Discoverability**: Query any graph for its inputs and outputs without running it — solver actions read their parameterised input files to report variable names, types, and default values
 
 ## Typical Workflow
@@ -36,11 +48,10 @@ SimNexus streamlines the complexity of managing heterogeneous simulation environ
 
 
 ## Documentation
-(Path to be added. One provided is not yet active)
+(The link provided is not yet active)
 
 [Online documentation is available here](https://willemjr.github.io/simnexus/)
 
-See also the docs directory.
 
 
 ## Installation
@@ -253,13 +264,18 @@ design points that many at a time, one process per job:
 ```
 # using wf -- an existing workflow 
 
-# Create a simulation iteration that runs four jobs at the same time
-# each gets its own job_N directory.
+# Create a simulation iteration that runs four jobs at the same time,
+# each in its own job_N directory. cleanup=True deletes the bulk solver
+# output (here the d3plot) of a job once its graph has run, so the
+# extractions below still get their data but the study does not fill the
+# disk.
 itr = SimulationIterator( wf, copy_paths=[starter_deck, engine_deck],
                           max_workers=4, cleanup=True )
 
-design_points = [ { 'E': 190000., 'THICK': 1.5 },
-                  { 'E': 230000., 'THICK': 2.0 } ]
+design_points = [ { 'E': 190000. },
+                  { 'E': 210000. },
+                  { 'E': 230000. },
+                  { 'E': 250000. } ]
 
 # run the jobs
 evals = itr.solve_parallel( design_points  )
@@ -274,10 +290,10 @@ itself as a bar counting the jobs of the batch, and under it one bar per job
 running right now:
 
 ```
-Study_Iter:  50%|█████████████            | 3/6 [00:42<00:41, 13.9s/job]
-  job_3  rad 1 of 3: time 12.9 of 40 (97%)        32%|███████▎               |
-  job_4  rad 1 of 3: time 11.4 of 40 (86%)        28%|██████▍                |
-  job_5  rad 1 of 3: time  2.1 of 40 (16%)         5%|█▏                     |
+Radioss_WorkFlow_Iter:  25%|██▌       | 1/4 [00:14<00:43, 14.5s/job]
+  job_1  rad 1 of 3: time 12.9 of 40 (97%)        32%|███████▎               |
+  job_2  rad 1 of 3: time 11.4 of 40 (86%)        29%|██████▋                |
+  job_3  d3plot 2 of 3                            67%|███████████████▍       |
 ```
 
 Each job's bar is fed from the `status.json` that job writes, so it follows the
@@ -288,6 +304,24 @@ The bars use tqdm and are shown only when stderr is a terminal.
 
 Independently of the bar, every run writes `status.json` files into its work
 directories, which another process can follow at any time.
+
+
+### Debug output
+
+simnexus logs through the standard `logging` module, one logger per module
+under the `simnexus` name, so the usual configuration applies:
+
+```python
+import logging
+logging.basicConfig( level=logging.DEBUG )                # everything
+
+logging.basicConfig( level=logging.WARNING )              # or simnexus alone
+logging.getLogger( 'simnexus' ).setLevel( logging.DEBUG )
+```
+
+The solvers' own output is not logged: it is redirected to files in the run
+directory (`*.stdout`, `*.stderr`), and a job running in parallel writes what
+it prints to `job_N/job.log` so it does not disturb the progress bars.
 
 
 ## Example problems
