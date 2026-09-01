@@ -21,6 +21,15 @@ to mathematical computations.
 Once you have an action defined, you can call the 'solve()' method
 to execute.
 
+The input to 'solve()' method, supplied by the user, is
+a dictionary containing the variable values; 
+for example, ``{'var_A': 3.1, 'var_B': 7 }``.
+The input to a lower level 'solve()' method, supplied by the graph, is
+a dictionary containing 
+the variable values supplied to the toplevel 'solve()' call together
+with the outputs of the previous actions in the graph;
+for example, ``{'var_A': 3.1, 'var_B': 7, 'action_Z': array([2, 1, 2])}``.
+
 The return value of the 'solve()' method depends on the action; for example,
 for a d3plot database extraction it may return the extracted data
 as a numpy array.
@@ -48,6 +57,7 @@ You can create your own action by subclassing WorkAction
 and defining the action in the 'solve()' method.
 The optional ``description`` argument documents what the action returns.
 If omitted, the class docstring is used.
+See the previous section for a description of the solve method.
 
 .. code-block:: python
 

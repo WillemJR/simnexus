@@ -6,17 +6,20 @@ with native support for LS-DYNA, OpenRadioss, and OpenFOAM.
 
 ## Overview
 
-SimNexus enables the automation and coordination of
+`SimNexus` enables the automation and coordination of
 multi-physics simulation workflows.
 The module is particularly suited for simulations that span multiple domains, such as combined structural and fluid dynamics analyses.
-
 It supports tasks from from input preparation and
 remote execution to results extraction and post-processing.
 
-A workflow is a directed graph of actions, and the graph is how dependencies
-are specified: an action waits for the actions whose results it needs, so the
-order of execution follows from the graph rather than from the order the
-actions were added.
+A design variant is defined using variables 
+and evaluated using a directed graph of actions.
+The design variables can be user defined or defined
+inside the input decks of the supported solvers using e.g. a \*PARAMETER keyword.
+An action is any processing step such as mesh creation, an FEA simulation,
+results extraction, or computations; while
+the graph specifies the dependencies between actions.
+An action therefore waits for the other actions it depends on.
 
 Multiple designs can be evaluated in parallel. 
 A simulation iterator evaluates the whole graph for several design points simultaneously, each in its own job directory.
@@ -24,27 +27,32 @@ Within a single graph, independent branches can likewise run at the same time,
 each in its own process.
 
 
-SimNexus has a native support for solvers like LS-DYNA, OpenRadioss, and OpenFOAM. In addition OpenRadioss using LS-DYNA input is supported as a special case.
+`SimNexus` has a native support for solvers like LS-DYNA, OpenRadioss, and OpenFOAM. In addition OpenRadioss using LS-DYNA input is supported as a special case.
 
 ## Key Features
 
 - **Workflow Management**: Define simulation workflows as directed acyclic graphs (DAGs) where actions are executed based on dependency relationships and completion status of prerequisite tasks
 - **Native Solver Support**: Specify input parameter values and the results to extract for a supported solver.  Currently implemented are LS-DYNA and OpenRadioss for structural analysis, and OpenFOAM for computational fluid dynamics
-- **Parallel Execution**: Evaluate several design points of a study concurrently, each job in its own directory with its own progress bar; within one graph, independent branches run at the same time (`asynch=True`)
 - **Results Extraction**: Read from the solvers' result databases in the graph. Supported are: LS-DYNA d3plot, OpenRadioss VTK and time-history CSV, and OpenFOAM fields and histories.
+- **Parallel Execution**: Evaluate several design points of a study concurrently, each job in its own directory with its own progress bar; within one graph, independent branches run at the same time
 - **Remote Execution**: Submit computational subgraphs to remote computing resources while maintaining local workflow coordination
 - **Custom Actions**: Add an operation of your own by subclassing `WorkAction` and writing `solve(val_dict)`; it then behaves like any built-in action.
 - **Discoverability**: Query any graph for its inputs and outputs without running it — solver actions read their parameterised input files to report variable names, types, and default values
 
 ## Typical Workflow
 
-1. Configure input files for target solvers
-2. Define analysis actions and their dependencies
-3. Execute simulations on designated compute resources (local or remote)
-4. Extract relevant results from solver outputs
-5. Aggregate and summarize findings 
+The user usually need to:
 
-SimNexus streamlines the complexity of managing heterogeneous simulation environments, enabling researchers and engineers to focus on analysis rather than workflow orchestration.
+1. Parameterize input files for target solvers
+2. Define the actions and their dependencies
+
+The typical `simnexus` steps are:
+
+1. Update parameter values with the values for the current design
+2. Execute simulations on designated compute resources (local or remote), possibly in parallel
+3. Extract relevant results from solver outputs
+4. Aggregate, summarize, and postprocess findings 
+
 
 
 ## Documentation
@@ -60,8 +68,12 @@ SimNexus streamlines the complexity of managing heterogeneous simulation environ
 pip install simnexus
 ```
 
-SimNexus has so far only been tested on
-Linux and WSL; it may well work on other platforms, but that has not been verified.
+SimNexus has so far only been tested on Linux and WSL;
+Linux and WSL; it may well work on other platforms, only that this is currently being verified.
+
+The library uses lasso-python (including vortex-radioss and lasso.dyna) as
+well as dynakw for compatibility with LS-DYNA,
+and grpc for remote execution.
 
 
 ## Usage
@@ -340,6 +352,12 @@ the workflow. Run them from the project root.
    (`blockMesh`, `icoFoam`), then extraction of a pressure field.
  - `discover_graph.py` — inspecting a graph before running it, with
    `parameters()` and `outputs()`. No solver needed.
+ - `radioss_progress.py`, `radioss_progress_workarea.py`,
+   `radioss_progress_nested.py` — the same OpenRadioss run, which solves and
+   then reads its results back from VTK, in three shapes: as the progress bars
+   of a parallel study, as one run in a `WorkArea` followed from its
+   `status.json` with `StatusWatcher`, and as a study whose jobs each hold a
+   `WorkArea` in a subdirectory. Needs OpenRadioss.
  - `parallel_jobs.py` — a design study run with `solve_parallel`: the same six
    design points one at a time and then three at a time, with the timings, the
    job bar, and the `job_N` directories it leaves behind. No solver needed.

@@ -9,7 +9,7 @@
 project = 'simnexus'
 copyright = '2026, Willem Roux'
 author = 'Willem Roux'
-release = '1.1.2'
+release = '1.2.1'
 
 # ---
 import sys, os
@@ -39,3 +39,11 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 #html_theme = 'alabaster'
 html_theme = 'classic'
 html_static_path = ['_static']
+
+html_sidebars = {
+    '**': [
+        'globaltoc.html',   # Shows the global TOC across all pages
+        #'localtoc.html',    # Optional: Shows headings for the current page
+        'searchbox.html',   # Optional: Adds the search input bar
+    ]
+}

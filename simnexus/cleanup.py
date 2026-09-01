@@ -30,7 +30,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def build_plan( action, run_dir, cleanup ):
+def _build_plan( action, run_dir, cleanup ):
     """
     Work out what to delete, per directory, for an action subtree.
 
@@ -90,7 +90,7 @@ def _extend_unique( base, extra ):
     return out
 
 
-def apply_plan( plan, dry_run=False ):
+def _apply_plan( plan, dry_run=False ):
     """
     Delete the files a plan selects.
 
@@ -100,7 +100,7 @@ def apply_plan( plan, dry_run=False ):
     taking out the nested work area whose own files are being kept.
 
     Arguments:
-        plan (dict) : as returned by :func:`build_plan`.
+        plan (dict) : as returned by :func:`_build_plan`.
         dry_run (bool) : report without deleting.
     Returns:
         list : the paths removed (or that would be removed), as strings.
@@ -177,7 +177,7 @@ def clean_run_dir( action, run_dir, cleanup ):
     """
     if cleanup is None:
         return []
-    return apply_plan( build_plan( action, run_dir, cleanup ),
+    return _apply_plan( _build_plan( action, run_dir, cleanup ),
                        dry_run=cleanup.dry_run )
 
 

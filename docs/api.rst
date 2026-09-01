@@ -26,9 +26,6 @@ API Reference
 .. automodule:: simnexus.remote_actions
    :members:
 
-.. automodule:: simnexus.serialization
-   :members:
-
 .. automodule:: simnexus.progress
    :members:
 
