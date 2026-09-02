@@ -64,7 +64,7 @@ The typical `simnexus` steps are:
 ## Installation
 
 ```bash
-pip install simnexus
+pip install simnexus[remote,dyna,progress,dev]
 ```
 
 SimNexus has so far only been tested on Linux and WSL.
