@@ -1,22 +1,24 @@
 
-Running a graph in different directories
-========================================
-
-Creating directories and copying files
----------------------------------------
+Work areas and design studies
+=============================
 
 Solver actions such as ``DynaAnalysis``, ``RadiossAnalysis``, and
 ``OpenFOAMAnalysis`` expect their input files to be present in the
-current working directory when they run.  Two classes handle directory
-creation and file copying automatically: ``WorkArea`` and
-``SimulationIterator``.
+current working directory when they run, and they leave their output
+there.  Two classes decide where that directory is and what is kept from
+a run: a ``WorkArea`` evaluates a graph once in one directory; a
+``SimulationIterator`` evaluates it for every design point of a study,
+each in a numbered job directory of its own, and keeps an index of them.
+Both create the directory and copy the required files into it before the
+graph runs.
 
-``copy_paths`` is always specified on ``WorkArea`` or
-``SimulationIterator`` — not on individual solver actions.
+``copy_paths`` — the files and directories to copy in — is always given
+to the ``WorkArea`` or ``SimulationIterator``, not to the individual
+solver actions.
 
 
-WorkArea
---------
+WorkArea: one run in one directory
+----------------------------------
 
 ``WorkArea`` evaluates a graph in a dedicated directory.
 Each call to ``solve()`` cleans the directory and re-copies the required
@@ -54,14 +56,18 @@ directory path may contain ``~`` and environment variables; both are
 expanded automatically.
 
 
-SimulationIterator
-------------------
+SimulationIterator: a design study
+----------------------------------
 
 ``SimulationIterator`` evaluates a graph once per design point, placing
 each run in its own numbered subdirectory (``job_0``, ``job_1``, …).
 The required files are copied into each job directory before the graph
 runs.  Use this when you need to keep the results from every run, for
 example during a parameter study or optimisation.
+
+
+Job directories
+~~~~~~~~~~~~~~~
 
 .. code-block:: python
 
@@ -94,9 +100,13 @@ The resulting directory layout is::
     │   ├── iter_variables.json
     │   └── actions_output.pkl
 
-``variables_discovery`` appears when the iterator has to discover the
-variables itself: ``parameters()`` copies ``copy_paths`` there and reads
-the deck.  Passing ``parameter_list`` explicitly skips it.
+Each job records the variable values it was run with
+(``iter_variables.json``) and what its actions computed
+(``actions_output.pkl``); ``jobs_index.json`` at the root lists the jobs
+and is what the retrieval methods below use.  ``variables_discovery``
+appears when the iterator has to discover the variables itself:
+``parameters()`` copies ``copy_paths`` there and reads the deck.  Passing
+``parameter_list`` explicitly skips it.
 
 An existing results directory is added to.  Job numbers continue after
 whatever is already there — taken from the index and the directories on
@@ -112,6 +122,78 @@ Pass ``clean_start=True`` to delete the results directory (jobs, index
 and all) before starting::
 
     itr = SimulationIterator(wf, copy_paths=['path/to/spring.k'], clean_start=True)
+
+
+Running a sweep
+~~~~~~~~~~~~~~~
+
+``solve`` evaluates one design point.  A study is normally run as a
+sweep, which evaluates a whole set of them and returns the results side
+by side.  ``collect_for_varrange`` takes the values to try for each
+variable and evaluates every combination:
+
+.. code-block:: python
+
+    pars, out = itr.collect_for_varrange({'K': [100., 200., 300.],
+                                          'T': [10., 20.]})       # 6 jobs
+
+    pars['K']      # array([100., 100., 200., 200., 300., 300.])
+    pars['T']      # array([ 10.,  20.,  10.,  20.,  10.,  20.])
+    out['field']   # [<job_0 result>, <job_1 result>, ...]
+
+Two dictionaries come back: ``pars`` maps each variable name to an array
+of the values it took, one entry per job, and ``out`` maps each action
+name to a list of what that action computed, in the same order — the
+order the design points were generated in.  So ``pars['K'][i]``,
+``pars['T'][i]`` and ``out['field'][i]`` all describe the same job, and
+the two can be handed to a plotting routine as they are.  ``out`` also
+carries the variable values themselves (``out['K']``, as plain lists),
+since each job's output starts from the values it was given.  An action
+that returns a dictionary (a ``WorkArea`` nested in the graph, say) shows
+up as a dictionary of lists.
+
+``collect_for_expdes`` runs an experimental design you build yourself —
+a list of value tuples and the variable names they belong to — for a
+Latin hypercube, a sample from an optimiser, or any set of points that
+is not a full grid:
+
+.. code-block:: python
+
+    points = [(100., 10.), (150., 25.), (300., 15.)]
+    pars, out = itr.collect_for_expdes(points, ['K', 'T'])
+
+Both methods take ``dependent_pars``, a dictionary of variables computed
+from the swept ones by a Python expression, so a deck variable that must
+follow another can be kept in step without being swept itself::
+
+    pars, out = itr.collect_for_varrange({'K': [100., 200., 300.]},
+                                         dependent_pars={'T': 'K / 10.'})
+
+``solve_parallel`` is the third sweep method; it takes an explicit list of
+``{variable name: value}`` dictionaries and returns one result dictionary
+per point, and is what the other two use underneath.
+
+
+Running jobs in parallel
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+The jobs of a sweep run one at a time unless the iterator is given
+``max_workers``, which evaluates that many design points at once, each in
+a child process with its own job directory:
+
+.. code-block:: python
+
+    itr = SimulationIterator(wf, copy_paths=['path/to/spring.k'], max_workers=4)
+    pars, out = itr.collect_for_varrange({'K': [100., 200., 300., 400., 500.]})
+
+The results, the job directories and the index are the same as with the
+default ``max_workers=1``, and come back in the same order.  See
+:doc:`parallel` for the progress bars, the failure semantics and what a
+child process needs on Windows.
+
+
+Naming the job directories
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The job directories are named ``job_0 … job_N``; the prefix comes from
 the class attribute ``SimulationIterator.JNAME`` and can be changed if
@@ -135,6 +217,103 @@ recorded in ``jobs_index.json``, which is what the retrieval methods
 below use.
 
 
+Retrieving past runs
+--------------------
+
+``jobs_index.json`` at the results root maps each job directory to the
+variable values it was run with, its state, and any group labels::
+
+    { "jobs": [ { "job": "job_0",
+                  "groups": [ "baseline" ],
+                  "variables": { "K": 100.0 },
+                  "state": "done",
+                  "created_at": 1753.0, "updated_at": 1755.0 } ] }
+
+Point a new ``SimulationIterator`` at an existing results directory and
+ask it for results by variable value.  Nothing is executed:
+
+.. code-block:: python
+
+    itr = SimulationIterator(wf, work_area_path='SpringWorkFlow')
+
+    out  = itr.results_for({'K': 100.0})    # the stored actions_output.pkl
+    path = itr.find_job(where={'K': 100.0}) # SpringWorkFlow/job_0
+
+``results_for`` prefers the job whose variables are exactly the ones
+given, and otherwise accepts an unambiguous partial match, so
+``results_for({'K': 100.0})`` works in a study that also varied ``T``
+as long as only one job has that ``K``.  It raises ``DataNotFoundError``
+when no job matches and when several do.
+
+The index is a cache, never the authority.  ``itr.job_index(rebuild=True)``
+re-derives it by reading the job directories, so result trees created
+before the index existed keep working; only the group labels — which
+exist nowhere else — are lost if the file is deleted.
+
+
+Grouping runs
+-------------
+
+A job may carry any number of group labels.  Set a default for the
+iterator, per sweep, or per job — the most specific wins:
+
+.. code-block:: python
+
+    itr = SimulationIterator(wf, groups='baseline')       # default for all jobs
+    itr.collect_for_varrange({'K': [100., 200.]})         # -> 'baseline'
+    itr.collect_for_varrange({'K': [300.]}, groups='stiff')
+    itr.solve({'K': 400.}, groups=['stiff', 'hand_check'])
+    itr.groups = 'later_runs'                             # from here on
+
+Because the labels are metadata rather than directories, runs can be
+grouped long after they finished, and one job can belong to several
+groups:
+
+.. code-block:: python
+
+    itr.add_groups('converged', where={'K': 100.0})
+    itr.add_groups('report', jobs=['job_0', 'job_3'])
+    itr.remove_groups('stiff', jobs=['job_2'])
+    itr.group_names()                    # ['baseline', 'converged', ...]
+
+Read a group back in the same form a sweep returns — so grouped runs can
+be plotted or post-processed like a fresh study:
+
+.. code-block:: python
+
+    pars, out = itr.collect(groups='baseline')
+    # pars: {'K': array([100., 200.])}, out: {'disp': [...], ...}
+
+    pars, out = itr.collect(groups=['baseline', 'converged'],
+                            match_all_groups=True)   # in both groups
+    jobs = itr.find_jobs(groups='report', state=None)
+
+
+Reusing completed runs
+----------------------
+
+With ``reuse_existing=True`` a design point that already has a completed
+job is not run again — its stored outputs are returned and its labels
+extended, while new design points run as usual:
+
+.. code-block:: python
+
+    itr = SimulationIterator(wf, work_area_path='SpringWorkFlow',
+                             reuse_existing=True, groups='study_2')
+    pars, out = itr.collect_for_varrange({'K': [100., 500.]})
+    itr.reused_jobs        # ['job_0']  — K=100 came off disk
+
+The flag only decides whether computed design points are skipped; adding
+to an existing results directory needs no flag.  Without it every design
+point given is run, appended after the jobs already there — so the same
+values can appear in several jobs, which is what you want when a deck or
+a solver version changed.  Note that reuse matches on the *complete* set
+of variable values, so a job that differs in any variable is treated as a
+different design point.
+
+A sweep that was aborted — by a failing job, or by you — is resumed the
+same way: run it again with ``reuse_existing=True`` and only the design
+points without a completed job are evaluated.
 
 
 Cleaning up bulk solver output
@@ -230,207 +409,3 @@ the predicted directory structure stays honest about what survives::
 
 The mark is per pattern, not per file: with ``keep=['d3plot']`` the
 ``d3plot*`` line is marked even though the first plot survives.
-
-
-
-Retrieving and grouping past runs
----------------------------------
-
-``jobs_index.json`` at the results root maps each job directory to the
-variable values it was run with, its state, and any group labels::
-
-    { "jobs": [ { "job": "job_0",
-                  "groups": [ "baseline" ],
-                  "variables": { "K": 100.0 },
-                  "state": "done",
-                  "created_at": 1753.0, "updated_at": 1755.0 } ] }
-
-**Retrieving results without running the graph.**  Point a new
-``SimulationIterator`` at an existing results directory and ask it for
-results by variable value.  Nothing is executed:
-
-.. code-block:: python
-
-    itr = SimulationIterator(wf, work_area_path='SpringWorkFlow')
-
-    out  = itr.results_for({'K': 100.0})    # the stored actions_output.pkl
-    path = itr.find_job(where={'K': 100.0}) # SpringWorkFlow/job_0
-
-``results_for`` prefers the job whose variables are exactly the ones
-given, and otherwise accepts an unambiguous partial match, so
-``results_for({'K': 100.0})`` works in a study that also varied ``T``
-as long as only one job has that ``K``.  It raises ``DataNotFoundError``
-when no job matches and when several do.
-
-**Grouping runs.**  A job may carry any number of group labels.  Set a
-default for the iterator, per sweep, or per job — the most specific wins:
-
-.. code-block:: python
-
-    itr = SimulationIterator(wf, groups='baseline')       # default for all jobs
-    itr.collect_for_varrange({'K': [100., 200.]})         # -> 'baseline'
-    itr.collect_for_varrange({'K': [300.]}, groups='stiff')
-    itr.solve({'K': 400.}, groups=['stiff', 'hand_check'])
-    itr.groups = 'later_runs'                             # from here on
-
-Because the labels are metadata rather than directories, runs can be
-grouped long after they finished, and one job can belong to several
-groups:
-
-.. code-block:: python
-
-    itr.add_groups('converged', where={'K': 100.0})
-    itr.add_groups('report', jobs=['job_0', 'job_3'])
-    itr.remove_groups('stiff', jobs=['job_2'])
-    itr.group_names()                    # ['baseline', 'converged', ...]
-
-Read a group back in the same form a sweep returns — so grouped runs can
-be plotted or post-processed like a fresh study:
-
-.. code-block:: python
-
-    pars, out = itr.collect(groups='baseline')
-    # pars: {'K': array([100., 200.])}, out: {'disp': [...], ...}
-
-    pars, out = itr.collect(groups=['baseline', 'converged'],
-                            match_all_groups=True)   # in both groups
-    jobs = itr.find_jobs(groups='report', state=None)
-
-**Reusing completed runs.**  With ``reuse_existing=True`` a design point
-that already has a completed job is not run again — its stored outputs
-are returned and its labels extended, while new design points run as
-usual:
-
-.. code-block:: python
-
-    itr = SimulationIterator(wf, work_area_path='SpringWorkFlow',
-                             reuse_existing=True, groups='study_2')
-    pars, out = itr.collect_for_varrange({'K': [100., 500.]})
-    itr.reused_jobs        # ['job_0']  — K=100 came off disk
-
-The flag only decides whether computed design points are skipped; adding
-to an existing results directory needs no flag.  Without it every design
-point given is run, appended after the jobs already there — so the same
-values can appear in several jobs, which is what you want when a deck or
-a solver version changed.  Note that reuse matches on the *complete* set
-of variable values, so a job that differs in any variable is treated as a
-different design point.
-
-**Running several jobs at once.**  ``max_workers`` evaluates that many
-design points at the same time, each in a child process with its own job
-directory:
-
-.. code-block:: python
-
-    itr = SimulationIterator(wf, copy_paths=['path/to/spring.k'], max_workers=4)
-    pars, out = itr.collect_for_varrange({'K': [100., 200., 300., 400., 500.]})
-
-The results are the same as with the default ``max_workers=1``, and come
-back in the order the design points were given.  Only the sweep methods
-(``collect_for_varrange``, ``collect_for_expdes``) fan out; ``solve`` is a
-single design point and always runs in the calling process.
-
-In a terminal the batch reports itself as ``tqdm`` bars: one counting the
-jobs of the batch, and under it a bar per job running right now::
-
-    Study_Iter:  50%|█████████████            | 3/6 [00:42<00:41, 13.9s/job]
-      job_3  rad 1 of 3: time 12.9 of 40 (97%)        32%|███████▎               |
-      job_4  rad 1 of 3: time 11.4 of 40 (86%)        28%|██████▍                |
-      job_5  rad 1 of 3: time  2.1 of 40 (16%)         5%|█▏                     |
-
-A job's bar is fed from the ``status.json`` that job writes, so it follows
-the job through its actions and shows a solver's percent-complete while one
-runs (:func:`simnexus.progress.job_fraction` is what turns those action
-states into the one number the bar needs). An action of your own reports
-itself the same way, by calling ``self.report_progress(fraction, message)``
-inside ``solve``.
-
-A job's line names the action running now and its place in the graph
-(``rad 1 of 3``), then that action's own message and percentage. The bar's
-own percentage is something else: the whole job, averaged over its actions
--- a solver 97% through the first of three actions leaves the job at 32%.
-
-The bars appear when tqdm is installed (``pip install simnexus[progress]``)
-and stderr is a terminal, so they never litter a log file; pass
-``progress_bar=True``/``False`` to ``solve_parallel``,
-``collect_for_expdes`` or ``collect_for_varrange`` to decide explicitly.
-They are a convenience for watching a run go by — the ``status.json`` files
-are written either way.
-
-So that the bars keep their lines, a job running in parallel does not write
-to the terminal: its stdout and stderr (the solver wrappers' messages, its
-log records) are redirected into ``job_N/job.log``, which cleanup never
-removes. A job run serially still writes to the terminal, where there are
-no bars to disturb.
-
-Job directories are numbered by the calling process alone, so the jobs
-cannot collide over a number, and each job leaves its results in its own
-directory as usual — ``results_for``, ``collect`` and ``reuse_existing``
-see no difference.  Each job writes its own ``status.json``, and the root
-``status.json`` lists the jobs running at that moment in ``current_jobs``,
-so :func:`simnexus.progress.watch_run` shows all of them at once.
-
-A job that fails aborts the sweep, as it does when the jobs run one after
-the other: the jobs still running are terminated, marked ``failed`` in the
-index, and ``AsyncActionError`` is raised with the failing job's
-traceback.  The jobs that completed before it keep their results, so the
-sweep can be resumed with ``reuse_existing=True``.
-
-Choose ``max_workers`` for what the machine can actually run: every job is
-a full graph, a solver action may use several cores of its own, and an
-``asynch`` graph adds processes inside each job.
-
-.. _start-methods:
-
-Child processes on Windows
---------------------------
-
-The two places simnexus runs work in another process — a sweep with
-``max_workers`` > 1, and an ``asynch`` graph — start their children with
-``fork`` where the platform has it and with ``spawn`` where it does not,
-which on Windows is always.  ``simnexus.util.parallel.get_context`` makes
-the choice.
-
-Under ``fork`` the child is a copy of the calling process and inherits
-everything: the graph, the imports, the logging configuration, the working
-directory.  Under ``spawn`` the child is a *fresh interpreter*, and the
-graph and its actions travel to it as a pickle.  That asks one thing of the
-caller: **keep the graph picklable, without the script.**  Define your
-action classes in a module the child can import — any ``.py`` file on
-``sys.path`` — not in the script that starts the run and not inside a
-function, and keep open files, sockets and database handles out of an
-action's attributes; build them in ``solve`` instead.  simnexus' own
-unpicklable state (progress locks, heartbeat threads, live child processes)
-is dropped and rebuilt for you.
-
-The script itself is not re-imported by the children (they need nothing
-from it), so it runs once, as written::
-
-    from simnexus.graph_actions import WorkFlow, SimulationIterator
-    from my_actions import Mesh, Solve       # an importable module
-
-    wf = WorkFlow('Study', actions=[Mesh('mesh'), Solve('run')])
-    itr = SimulationIterator(wf, max_workers=4)
-    pars, out = itr.collect_for_varrange({'K': [100., 200., 300.]})
-
-Had ``Mesh`` been defined in this script instead, the child could not find
-it, and simnexus refuses the start with a ``SpawnError`` naming the class
-rather than letting the child die on it.  Move the class into a module;
-or set ``SIMNEXUS_SPAWN_IMPORTS_MAIN=1`` to have every child re-import the
-script as stock multiprocessing does, in which case the script must not
-start the run at top level.
-
-Everything else is the same on both start methods: the job directories, the
-``status.json`` files, the ``job.log`` redirect, the progress bars, the
-index and the failure semantics.  Spawning is a little slower to start each
-job, which matters only for jobs that are themselves quick.
-
-Set ``SIMNEXUS_START_METHOD=spawn`` to use the Windows path on Linux — to
-reproduce a Windows problem, or in a process that has already started
-threads and must not fork.
-
-The index is a cache, never the authority.  ``itr.job_index(rebuild=True)``
-re-derives it by reading the job directories, so result trees created
-before the index existed keep working; only the group labels — which
-exist nowhere else — are lost if the file is deleted.
-

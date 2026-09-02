@@ -13,7 +13,7 @@ The diagram below illustrates a workflow where a single geometry creation step l
    :align: center
    :alt: Multi-solver workflow graph
 
-Using an action
+Actions
 ---------------
 An action defines an operation in the workflow.
 It can be anything from a geometry creation, an FEA analysis, 
@@ -51,7 +51,7 @@ parent's, so its values are reached as ``ret['child_graph']['value']``.
 You can chain actions to edit a mesh or extract results as described below.
 
 
-Defining a user action
+User actions
 -------------------------
 You can create your own action by subclassing WorkAction
 and defining the action in the 'solve()' method.
@@ -179,25 +179,16 @@ the work area or the d3plot reader they sit in.  Note that
 ``node_displacement`` is a three-component vector, so ``solver_diff`` is
 an array rather than a single number.
 
-**Branches can run at the same time.**  ``asynch=True`` evaluates
-independent actions — here the two work areas — in separate processes.
-The merge action still waits for both, because it was added with
-``parents=[rr, rs]``.  Leave ``asynch`` out to run the same graph
-sequentially.
-
-The flag belongs to the graph it is given to and is not inherited: a
-graph nested inside an ``asynch`` graph runs its own children one after
-the other unless it also sets ``asynch=True``.  The children run in the
-graph's own working directory, so branches that write files
-need a ``WorkArea`` each — as ``rr`` and ``rs`` have here — or they
-overwrite one another's decks and results.  Their results are sent back
-between processes and so must be picklable, and a branch that fails
-stops its running siblings and raises ``AsyncActionError``.  Note that
-this parallelises the actions of a single design point; the jobs of a
-``SimulationIterator`` are still evaluated one at a time.
-
-The children are forked where the platform has ``fork`` and spawned
-otherwise; see :ref:`start-methods` for what spawning asks of your actions.
+**The two solvers run at the same time.**  ``asynch=True`` starts
+independent actions — here the two solver work areas — in separate
+processes, so the design takes about as long as its slower solver rather
+than the sum of the two.  The merge action still waits for both, because
+it was added with ``parents=[rr, rs]``.  Leave ``asynch`` out to run the
+solvers one after the other.  The children run in the graph's own working
+directory, which is the other reason the solvers have a ``WorkArea`` each.
+:doc:`parallel` covers what else follows from the solvers running in
+separate processes, and how to run the *designs* of a study in parallel
+as well.
 
 Call ``dg.describe_workflow()`` to print the action tree and the
 directory structure the run will create, without running anything or

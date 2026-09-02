@@ -23,8 +23,9 @@ with native support for LS-DYNA, OpenRadioss, and OpenFOAM.
 
 
    actions_descr
-   vars
    dirs
+   vars
+   parallel
    discover
    exa
    remote

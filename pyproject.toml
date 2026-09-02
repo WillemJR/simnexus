@@ -43,9 +43,6 @@ dyna = [
 plot = [
     "matplotlib>=3.5",
 ]
-gui = [
-    "PySide6>=6.5",
-]
 progress = [
     "tqdm>=4.60",
 ]

@@ -8,8 +8,9 @@ remote execution to results extraction and post-processing.
 The module is particularly suited for simulations that span
 multiple domains, such as combined structural and fluid dynamics analyses.
 
-Multiple designs can be evaluated in parallel. 
-A simulation iterator evaluates the whole graph for several design points at once, each in its own job directory.
+The solvers a design needs can run at the same time, and a simulation
+iterator can evaluate the whole graph for several design points at once,
+each in its own job directory.
 
 `SimNexus` has a native support for solvers like LS-DYNA, OpenRadioss, and OpenFOAM. In addition OpenRadioss using LS-DYNA input is supported as a special case.
 
