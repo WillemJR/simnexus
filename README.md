@@ -56,7 +56,6 @@ The typical `simnexus` steps are:
 
 
 ## Documentation
-(The link provided is not yet active)
 
 [Online documentation is available here](https://willemjr.github.io/simnexus/)
 
