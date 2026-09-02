@@ -68,8 +68,8 @@ The typical `simnexus` steps are:
 pip install simnexus
 ```
 
-SimNexus has so far only been tested on Linux and WSL;
-Linux and WSL; it may well work on other platforms, only that this is currently being verified.
+SimNexus has so far only been tested on Linux and WSL.
+Windows testing is not yet complete; use WSL.
 
 The library uses lasso-python (including vortex-radioss and lasso.dyna) as
 well as dynakw for compatibility with LS-DYNA,

@@ -27,8 +27,8 @@ Key Features
 Requirements
 ------------
 
-`Simnexus` has so far only been tested on
-Linux and WSL; it may well work on other platforms, only that this is currently being verified.
+`Simnexus` has so far only been tested on Linux and WSL.
+Windows testing is not yet complete; use WSL.
 
 
 Typical Workflow

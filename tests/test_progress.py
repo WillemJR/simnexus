@@ -231,6 +231,9 @@ def test_is_alive_detects_stale_heartbeat():
     assert not progress.is_alive({})
 
 
+@pytest.mark.skipif(not hasattr(os, 'fork'),
+                    reason='fork-specific: on Windows an asynch child is spawned, '
+                           'which test_asynch_graph_reports_fractions covers')
 def test_forked_child_writes_sidecar_and_owner_merges():
     import multiprocessing
     with _in_tmp_dir() as tmp:
@@ -265,28 +268,36 @@ def test_forked_child_writes_sidecar_and_owner_merges():
         assert not list(Path(tmp).glob('.*' + progress.SIDECAR_SUFFIX))
 
 
+class AsyncFakeSolver(WorkAction):
+    """Reports fractions the way a solver action does.
+
+    At module level, not inside the test that uses it: an asynch action is
+    pickled to reach its child under the ``spawn`` start method (Windows),
+    and a class defined inside a function cannot be pickled.
+    """
+    def solve(self, val_dict=None):
+        from simnexus.progress import FileProgressTail
+        from simnexus.util import solver_progress
+
+        log = Path(f'{self.name}.stdout')
+        tail = FileProgressTail(self._progress_reporter, self.name, log,
+                                solver_progress.radioss_run_time,
+                                t_end=2.0, interval=0.05)
+        tail.start()
+        try:
+            for t in ('0.0000E+00', '1.0000E+00', '2.0000E+00'):
+                with open(log, 'a') as f:
+                    f.write(f' NC= 100 T= {t} DT= 1E-06\n')
+                time.sleep(0.3)
+        finally:
+            tail.stop()
+        return 1.0
+
+
 def test_asynch_graph_reports_fractions():
-    """End-to-end: an asynch graph's action runs in a forked child; its
+    """End-to-end: an asynch graph's action runs in a child process; its
     FileProgressTail fractions must reach status.json via sidecars."""
     import threading
-    from simnexus.progress import FileProgressTail
-    from simnexus.util import solver_progress
-
-    class AsyncFakeSolver(WorkAction):
-        def solve(self, val_dict=None):
-            log = Path(f'{self.name}.stdout')
-            tail = FileProgressTail(self._progress_reporter, self.name, log,
-                                    solver_progress.radioss_run_time,
-                                    t_end=2.0, interval=0.05)
-            tail.start()
-            try:
-                for t in ('0.0000E+00', '1.0000E+00', '2.0000E+00'):
-                    with open(log, 'a') as f:
-                        f.write(f' NC= 100 T= {t} DT= 1E-06\n')
-                    time.sleep(0.3)
-            finally:
-                tail.stop()
-            return 1.0
 
     saved = progress.HEARTBEAT_INTERVAL
     progress.HEARTBEAT_INTERVAL = 0.1   # merge sidecars quickly for the test

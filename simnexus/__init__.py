@@ -10,6 +10,7 @@ from simnexus.errors import (
     DataNotFoundError,
     SerializationError,
     AsyncActionError,
+    SpawnError,
 )
 
 from simnexus.args import Cleanup

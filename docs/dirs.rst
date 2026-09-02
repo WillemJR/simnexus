@@ -317,7 +317,7 @@ of variable values, so a job that differs in any variable is treated as a
 different design point.
 
 **Running several jobs at once.**  ``max_workers`` evaluates that many
-design points at the same time, each in a forked process with its own job
+design points at the same time, each in a child process with its own job
 directory:
 
 .. code-block:: python
@@ -379,6 +379,55 @@ sweep can be resumed with ``reuse_existing=True``.
 Choose ``max_workers`` for what the machine can actually run: every job is
 a full graph, a solver action may use several cores of its own, and an
 ``asynch`` graph adds processes inside each job.
+
+.. _start-methods:
+
+Child processes on Windows
+--------------------------
+
+The two places simnexus runs work in another process — a sweep with
+``max_workers`` > 1, and an ``asynch`` graph — start their children with
+``fork`` where the platform has it and with ``spawn`` where it does not,
+which on Windows is always.  ``simnexus.util.parallel.get_context`` makes
+the choice.
+
+Under ``fork`` the child is a copy of the calling process and inherits
+everything: the graph, the imports, the logging configuration, the working
+directory.  Under ``spawn`` the child is a *fresh interpreter*, and the
+graph and its actions travel to it as a pickle.  That asks one thing of the
+caller: **keep the graph picklable, without the script.**  Define your
+action classes in a module the child can import — any ``.py`` file on
+``sys.path`` — not in the script that starts the run and not inside a
+function, and keep open files, sockets and database handles out of an
+action's attributes; build them in ``solve`` instead.  simnexus' own
+unpicklable state (progress locks, heartbeat threads, live child processes)
+is dropped and rebuilt for you.
+
+The script itself is not re-imported by the children (they need nothing
+from it), so it runs once, as written::
+
+    from simnexus.graph_actions import WorkFlow, SimulationIterator
+    from my_actions import Mesh, Solve       # an importable module
+
+    wf = WorkFlow('Study', actions=[Mesh('mesh'), Solve('run')])
+    itr = SimulationIterator(wf, max_workers=4)
+    pars, out = itr.collect_for_varrange({'K': [100., 200., 300.]})
+
+Had ``Mesh`` been defined in this script instead, the child could not find
+it, and simnexus refuses the start with a ``SpawnError`` naming the class
+rather than letting the child die on it.  Move the class into a module;
+or set ``SIMNEXUS_SPAWN_IMPORTS_MAIN=1`` to have every child re-import the
+script as stock multiprocessing does, in which case the script must not
+start the run at top level.
+
+Everything else is the same on both start methods: the job directories, the
+``status.json`` files, the ``job.log`` redirect, the progress bars, the
+index and the failure semantics.  Spawning is a little slower to start each
+job, which matters only for jobs that are themselves quick.
+
+Set ``SIMNEXUS_START_METHOD=spawn`` to use the Windows path on Linux — to
+reproduce a Windows problem, or in a process that has already started
+threads and must not fork.
 
 The index is a cache, never the authority.  ``itr.job_index(rebuild=True)``
 re-derives it by reading the job directories, so result trees created

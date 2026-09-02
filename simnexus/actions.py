@@ -13,9 +13,37 @@ logger = logging.getLogger(__name__)
 from abc import ABC, abstractmethod
 
 from simnexus.util.observer import Subject, notify_observers
+from simnexus.util import parallel
 
 from simnexus.variables import Variable, UnknownVariable
 from simnexus.errors import ActionNameError, ParameterError, EvaluationError
+
+
+# key under which a child process stores its traceback in the shared result
+# dict of an asynchronous action
+ASYNC_ERROR_KEY = '__simnexus_async_error__'
+
+
+def _async_eval_worker( action, val_dict, result_dict ):
+    """
+    Body of the child process of an asynchronous action: run the action's
+    ``solve`` and leave the result (or the traceback) in the shared dict.
+
+    A module-level function rather than a closure inside
+    ``_observed_eval_async`` because under the ``spawn`` start method
+    (Windows) the target and its arguments are pickled to reach a fresh
+    interpreter, and a local function cannot be pickled. ``action`` is
+    passed explicitly for the same reason -- under ``fork`` the child would
+    have inherited it, under ``spawn`` it has to travel.
+    """
+    try:
+        e = action.solve( val_dict )
+    except BaseException as err:
+        import traceback
+        result_dict[ASYNC_ERROR_KEY] = (
+            f'{type(err).__name__}: {err}\n{traceback.format_exc()}' )
+        raise SystemExit( 1 )
+    result_dict[action.name] = e
 
 
 def validate_action_name( name ):
@@ -247,6 +275,26 @@ class WorkAction(Subject):
             self._progress_reporter.action_state( self.name, 'running',
                                                   fraction=fraction, message=message )
 
+    def __getstate__( self ):
+        """
+        Pickle the action without the handles that only mean something in
+        the process that created them.
+
+        An action crosses a process boundary whenever the work runs under
+        the ``spawn`` start method -- a job of a parallel
+        ``SimulationIterator`` or an ``asynch`` action on Windows -- where
+        the child is a fresh interpreter rather than a copy of this one.
+        ``_async_proc`` is a live ``multiprocessing.Process`` and cannot be
+        pickled at all; it belongs to the parent, which is where it is
+        joined and terminated. Everything else travels, including the
+        observers (the child re-runs the graph and its actions still notify
+        their parent graph inside that child) and ``_progress_reporter``
+        (which writes the child's sidecar files).
+        """
+        state = self.__dict__.copy()
+        state.pop( '_async_proc', None )
+        return state
+
     #@notify_observers
     def _observed_eval(self,  val_dict=None ):
         """
@@ -262,38 +310,31 @@ class WorkAction(Subject):
         return self._results 
 
     def _observed_eval_async(self, val_dict=None):
-        import multiprocessing
-        import threading
-
         """
         Asynchronously run solve in a separate process.
         Notifies observers only when the process finishes: with 'Done' on
         success, with 'Failed' when the child raised, crashed, or produced
         no result. The error text (with traceback) is kept on
         self._async_error for the enclosing graph to raise.
-        """
-        ERROR_KEY = '__simnexus_async_error__'
 
-        def eval_worker(val_dict, result_dict):
-            try:
-                e = self.solve(val_dict)
-            except BaseException as err:
-                import traceback
-                result_dict[ERROR_KEY] = (
-                    f'{type(err).__name__}: {err}\n{traceback.format_exc()}' )
-                raise SystemExit(1)
-            result_dict[self.name] = e
+        The start method comes from ``simnexus.util.parallel``: ``fork``
+        where the platform has it, ``spawn`` on Windows. Under ``spawn``
+        this action and the values handed to it are pickled to reach the
+        child, so an action holding something unpicklable can only run
+        asynchronously on a forking platform.
+        """
+        import threading
 
         def watcher(proc, result_dict):
             proc.join()
-            error = result_dict.get(ERROR_KEY)
+            error = result_dict.get(ASYNC_ERROR_KEY)
             if error is None and proc.exitcode != 0:
                 # hard death: segfault, oom-kill, terminate()
                 error = f'child process exited with code {proc.exitcode}'
             if error is None and self.name not in result_dict:
                 error = 'child process returned no result'
             results = dict(result_dict)
-            results.pop(ERROR_KEY, None)
+            results.pop(ASYNC_ERROR_KEY, None)
             # Update self._results in the main process
             self._results = results
             if error is not None:
@@ -304,10 +345,11 @@ class WorkAction(Subject):
                 self._notify_observers([self, 'Done'])
 
         self._async_error = None
-        manager = multiprocessing.Manager()
+        ctx = parallel.get_context()
+        manager = parallel.start_manager(ctx)
         result_dict = manager.dict(val_dict.copy() if val_dict else {})
-        p = multiprocessing.Process(target=eval_worker, args=(val_dict, result_dict))
-        p.start()
+        p = parallel.start_process(ctx, _async_eval_worker,
+                                   args=(self, val_dict, result_dict))
         self._async_proc = p
         # Start watcher thread to notify when done
         t = threading.Thread(target=watcher, args=(p, result_dict), daemon=True)

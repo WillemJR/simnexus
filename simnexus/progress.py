@@ -154,6 +154,34 @@ class StatusReporter:
             'actions': {},
         }
 
+    # ------------------------------------------------------------------
+    # crossing to a child process
+
+    def __getstate__( self ):
+        """Pickle the reporter without its synchronisation primitives.
+
+        Under the ``spawn`` start method (Windows, and Python 3.14 on
+        Linux) an action carries its reporter to the child as a pickle,
+        and a lock, an event and a running thread do not pickle. A child
+        needs none of them: it writes per-action sidecar files, one writer
+        per file and so without the lock, and it never heartbeats. Under
+        ``fork`` the child gets copies of these objects instead -- copies
+        it likewise never uses, the inherited lock possibly copied in a
+        locked state, which is why ``action_state`` keys off ``_owner_pid``
+        rather than off what it holds. ``_owner_pid`` travels with the
+        state, so a spawned child still recognises itself as a child.
+        """
+        state = self.__dict__.copy()
+        for key in ( '_lock', '_hb_thread', '_hb_stop' ):
+            state.pop( key, None )
+        return state
+
+    def __setstate__( self, state ):
+        self.__dict__.update( state )
+        self._lock = threading.Lock()
+        self._hb_thread = None
+        self._hb_stop = threading.Event()
+
     @property
     def active( self ):
         """False when another reporter in this process owns the directory

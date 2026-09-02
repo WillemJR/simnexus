@@ -11,7 +11,8 @@ with no solver installed. In a real study it would be a DynaAnalysis,
 RadiossAnalysis or OpenFOAMAnalysis, and the design points would be
 thicknesses, material parameters, or whatever is being varied.
 
-Run it in a terminal to see the tqdm job bar (pip install simnexus[progress]).
+Run it in a terminal to see the tqdm job bar (pip install simnexus[progress]);
+it needs example_actions.py next to it.
 It writes its results into Study_1/ and Study_3/ in the current directory;
 clean_start=True means a re-run starts from empty ones.
 """
@@ -26,29 +27,15 @@ from pathlib import Path
 # happens to be installed in the environment.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from simnexus.actions import WorkAction, MathEvaluation
+from simnexus.actions import MathEvaluation
 from simnexus.graph_actions import WorkFlow
 from simnexus.simulation_iterator import SimulationIterator
 
-JOB_SECONDS = 2.0       # how long the stand-in 'solver' pretends to run
+# The stand-in solver action lives in a module, not in this script: a job
+# running in a child process on Windows has to be able to import it.
+from example_actions import SleepySolver
 
-
-class SleepySolver(WorkAction):
-    """Stands in for a solver action, without needing a solver.
-
-    It reports how far it has got with report_progress(), which is what
-    makes the per-job progress bars move. The solver actions do the same
-    from the solver's own output.
-    """
-
-    STEPS = 10
-
-    def solve(self, val_dict=None):
-        for step in range(self.STEPS):
-            time.sleep(JOB_SECONDS / self.STEPS)
-            self.report_progress((step + 1) / self.STEPS,
-                                 f'step {step + 1} of {self.STEPS}')
-        return val_dict['K'] ** 0.5
+JOB_SECONDS = SleepySolver.seconds     # how long a job pretends to run
 
 
 def make_iterator(max_workers):
@@ -99,5 +86,4 @@ def run_example():
     print("\nresults_for({'K': 25.0}):", itr.results_for({'K': 25.0})['margin'])
 
 
-if __name__ == "__main__":
-    run_example()
+run_example()

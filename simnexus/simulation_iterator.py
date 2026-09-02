@@ -57,6 +57,7 @@ from simnexus.cleanup import clean_run_dir
 from simnexus.errors import ( ActionNameError, AsyncActionError, ParameterError,
                               MissingPathError, DataNotFoundError )
 from simnexus.progress import StatusReporter, StatusWatcher, job_fraction
+from simnexus.util import parallel
 import simnexus.args
 
 import logging
@@ -73,14 +74,14 @@ MATCH_ATOL = 1.0e-12
 # how often the per-job bars are refreshed from the jobs' status files
 BAR_POLL_INTERVAL = 0.3
 
-# kept alive for the life of a forked child, so the file behind the
+# kept alive for the life of a job's child process, so the file behind the
 # redirected descriptors is not closed while they are still in use
 _CHILD_LOG = None
 
 
 def _redirect_child_output( job_dir ):
     """
-    Send a forked job's stdout and stderr to a file in its own job
+    Send a job child process's stdout and stderr to a file in its own job
     directory.
 
     A child inherits the terminal, and everything it writes there -- a
@@ -95,6 +96,11 @@ def _redirect_child_output( job_dir ):
     The redirect is done on the file descriptors rather than on
     ``sys.stdout``/``sys.stderr``, so the solvers' subprocesses and the
     logging handlers built before the fork follow it too.
+
+    A spawned child (Windows) inherits neither the bars nor the parent's
+    logging configuration, so there is less to divert -- but it does
+    inherit the console, and the solvers it starts write to it, so the
+    redirect matters there just as much.
     """
     global _CHILD_LOG
     _CHILD_LOG = open( Path( job_dir ) / JOB_LOG_PATH, 'w', buffering=1 )
@@ -121,6 +127,31 @@ def _redirect_child_output( job_dir ):
     _silence_inherited_bars()
 
 
+def _run_job_in_child( iterator, job_dir, val_dict, job_name, errors ):
+    """
+    Body of the child process of one job of a parallel sweep: run the
+    graph in the job directory handed over, clean up after it, and leave
+    any traceback in the shared ``errors`` dict for the parent to raise.
+
+    A module-level function rather than a closure inside
+    ``solve_parallel`` because under the ``spawn`` start method (Windows)
+    the target and its arguments are pickled to reach a fresh interpreter,
+    and a local function cannot be pickled. The iterator is passed
+    explicitly for the same reason: under ``fork`` the child would have
+    inherited it, under ``spawn`` it has to travel (see
+    ``SimulationIterator.__getstate__``).
+    """
+    try:
+        _redirect_child_output( job_dir )
+        iterator._run_job( job_dir, val_dict )
+        clean_run_dir( iterator.graph, job_dir, iterator.cleanup )
+    except BaseException as err:
+        import traceback
+        errors[ job_name ] = ( f'{type(err).__name__}: {err}\n'
+                               f'{traceback.format_exc()}' )
+        raise SystemExit( 1 )
+
+
 def _silence_inherited_bars():
     """Stop the parent's progress bars from repainting in a forked child.
 
@@ -129,6 +160,9 @@ def _silence_inherited_bars():
     ``tqdm.write`` in the child -- a log record, once the parent has tqdm's
     logging redirect open -- would redraw all of them into the child's log.
     The child has no terminal to draw on, so drop them.
+
+    A spawned child (Windows) starts with an empty registry, so there is
+    nothing for this to find there.
     """
     try:
         from tqdm import tqdm
@@ -694,7 +728,9 @@ class SimulationIterator(WorkAction):
             every design point given, whether or not an equivalent job is
             already there.
         max_workers (int) : how many jobs of a sweep may run at the same
-            time, each in a forked process of its own. The default 1 runs
+            time, each in a child process of its own (forked where the
+            platform has fork, spawned on Windows -- see
+            ``simnexus.util.parallel``). The default 1 runs
             them one after the other. Only the sweep methods
             (``collect_for_expdes``, ``collect_for_varrange``) fan out;
             ``solve`` is one design point and always runs here. This
@@ -708,6 +744,11 @@ class SimulationIterator(WorkAction):
             traceback. Set it no higher than the machine can run solvers:
             each job is a full graph, and a solver action may itself use
             several cores (and an ``asynch`` graph several processes).
+            On a platform without fork (Windows) the child is a fresh
+            interpreter, so the graph and its actions must be picklable
+            and action classes must live in an importable module rather
+            than in the calling script (``SpawnError`` otherwise); the
+            child does not re-import the script.
 
     Returns:
         dict: Output from graph (it adds nothing).
@@ -767,6 +808,24 @@ class SimulationIterator(WorkAction):
         if sim_path.exists():  shutil.rmtree( sim_path )
         self._index = JobIndex( self.work_area_path, job_prefix=self.JNAME )
 
+    def __getstate__( self ):
+        """
+        Pickle the iterator for a job's child process, without the state
+        that belongs to the parent.
+
+        Under the ``spawn`` start method (Windows) a job's child is a fresh
+        interpreter and gets the iterator as a pickle rather than as a copy
+        of this process's memory. The run-level ``StatusReporter`` is
+        dropped: it owns the ``status.json`` at the *results root*, which
+        only the parent writes -- a child reports through the reporter its
+        own graph creates in the job directory. Under ``fork`` the child
+        inherits a copy it likewise never touches, so both start methods
+        behave the same.
+        """
+        state = super().__getstate__()
+        state['_status_reporter'] = None
+        return state
+
     # ------------------------------------------------------------------
     # the job index and JNAME have to agree
     #
@@ -819,7 +878,7 @@ class SimulationIterator(WorkAction):
             ( 'actions_output.pkl   (this design\'s action outputs)', [] ),
         ]
         if self.max_workers > 1:
-            # a job that runs in a forked process writes its output here
+            # a job that runs in a child process writes its output here
             # instead of to the terminal, which the progress bars own
             job_children.append(
                 ( f'{JOB_LOG_PATH}   (this job\'s stdout and stderr)', [] ) )
@@ -1015,7 +1074,7 @@ class SimulationIterator(WorkAction):
         the input files into it. Returns ``(job_name, job_dir)``.
 
         Always called in this process, also when the jobs themselves run in
-        forked children: the job number comes from the index and the
+        child processes: the job number comes from the index and the
         directories on disk, so allocating it anywhere else would let two
         jobs claim the same number and run in the same directory.
         """
@@ -1132,7 +1191,7 @@ class SimulationIterator(WorkAction):
     def solve_parallel( self, design_points, groups=None, progress_bar=None ):
         """
         Evaluate a batch of design points ``max_workers`` at a time, one
-        forked process per job -- the plural of ``solve``, which evaluates
+        child process per job -- the plural of ``solve``, which evaluates
         one design point here in this process.
 
         Used by ``collect_for_expdes``, and directly when the design points
@@ -1152,6 +1211,12 @@ class SimulationIterator(WorkAction):
         ``AsyncActionError`` is raised carrying the child's traceback. The
         jobs that finished keep their results, so the batch can be resumed
         with ``reuse_existing=True``.
+
+        The children are forked where the platform has fork and spawned
+        otherwise (Windows); ``simnexus.util.parallel`` chooses. Spawning
+        costs the graph having to be picklable -- with its action classes
+        in an importable module, since the child does not re-import the
+        calling script -- but the sweep is otherwise the same either way.
 
         Args:
             design_points (list) : one ``{variable name: value}`` dict per
@@ -1180,25 +1245,10 @@ class SimulationIterator(WorkAction):
         """
         design_points = self._as_design_points( design_points )
 
-        import multiprocessing
-        try:
-            ctx = multiprocessing.get_context( 'fork' )
-        except ValueError:      # platform without fork
-            ctx = multiprocessing.get_context()
+        ctx = parallel.get_context()
 
-        manager = ctx.Manager()
+        manager = parallel.start_manager( ctx )
         errors = manager.dict()
-
-        def run_child( job_dir, val_dict, job_name ):
-            try:
-                _redirect_child_output( job_dir )
-                self._run_job( job_dir, val_dict )
-                clean_run_dir( self.graph, job_dir, self.cleanup )
-            except BaseException as err:
-                import traceback
-                errors[ job_name ] = ( f'{type(err).__name__}: {err}\n'
-                                       f'{traceback.format_exc()}' )
-                raise SystemExit( 1 )
 
         results = [ None ] * len( design_points )
         queued = list( enumerate( design_points ) )
@@ -1222,9 +1272,9 @@ class SimulationIterator(WorkAction):
                             continue
 
                     job_name, job_dir = self._start_job( val_dict, job_groups )
-                    proc = ctx.Process( target=run_child,
-                                        args=( job_dir, val_dict, job_name ) )
-                    proc.start()
+                    proc = parallel.start_process(
+                        ctx, _run_job_in_child,
+                        args=( self, job_dir, val_dict, job_name, errors ) )
                     running[ job_name ] = ( proc, iexp )
                     self._current_job = job_name
                     logger.debug( f'Started {job_name} ({len(running)} running)' )

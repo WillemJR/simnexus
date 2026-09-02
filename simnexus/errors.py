@@ -43,3 +43,8 @@ class SerializationError(SimNexusError):
 
 class AsyncActionError(SimNexusError):
     """An action running asynchronously in a child process failed."""
+
+
+class SpawnError(SimNexusError):
+    """A child process could not be started under the ``spawn`` start method,
+    because something it needs is defined in the calling script."""
