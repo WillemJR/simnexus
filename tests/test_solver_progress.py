@@ -190,10 +190,11 @@ def test_nested_graph_forwards_owner_reporter():
         outer = WorkFlow('Outer', actions=[inner])
         outer.solve({})
 
-        # the solver reported into the owning (outer) graph's status file
+        # the solver reported into the owning (outer) graph's status file;
+        # the sub-graph itself is pass-through and holds no entry there
         st = json.loads(Path(STATUS_PATH).read_text())
         assert st['name'] == 'Outer'
-        assert st['actions']['Inner']['state'] == 'done'
+        assert list(st['actions']) == ['inner_solver']
         assert st['actions']['inner_solver']['state'] == 'done'
         assert any(f is not None for f in solver.seen_fractions)
 

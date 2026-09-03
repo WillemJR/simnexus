@@ -201,7 +201,10 @@ class _JobBar:
     # tqdm puts ', ' in front of {postfix}, so the job's message goes in
     # the description instead, padded to keep the bars lined up
     JOB_BAR_FORMAT = '  {desc} {percentage:3.0f}%|{bar}|'
-    DESC_WIDTH = 46
+    # wide enough for the message of a graph running several actions at
+    # once ('3 of 5 running: rad_a (80%), rad_b (34%)'); tqdm shrinks the
+    # bar itself to whatever the terminal has left
+    DESC_WIDTH = 56
 
     def __init__( self, total, desc, enabled=None ):
         self._bar = None
@@ -1015,6 +1018,20 @@ class SimulationIterator(WorkAction):
                    'jobs_done': self.run_iter,
                    'current_job': self._current_job,
                    'current_jobs': list( running_jobs ) }
+
+        # An iterator nested inside a graph is not pass-through -- its jobs
+        # have directories and status files of their own -- so it holds one
+        # entry in the enclosing graph's file rather than showing the
+        # actions of a job there. Say which job is running in it, with the
+        # fraction of the batch where the total is known (a sweep; an
+        # iterator inside a graph is asked for one design point at a time).
+        fraction = self.run_iter / self.jobs_total if self.jobs_total else None
+        message = self._current_job
+        if message and self.jobs_total:
+            message = f'{message} ({self.run_iter} of {self.jobs_total})'
+        if message:
+            self.report_progress( fraction=fraction, message=message )
+
         if self._status_reporter is None:
             self._status_reporter = StatusReporter( self.name, directory=self.work_area_path )
             self._status_reporter.start( actions=None, state=state, **fields )

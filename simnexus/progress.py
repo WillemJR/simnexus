@@ -14,6 +14,9 @@ Writer side (used internally by ``DirectedGraph`` and
 * ``StatusReporter`` -- owns the ``status.json`` of one directory, writes
   it on every state change, and keeps a heartbeat timestamp fresh from a
   daemon thread so a reader can tell a slow run from a dead one.
+* ``MultiReporter`` -- reports to several of those at once, which is how
+  a graph inside a ``WorkArea`` fills both the work area's own file and
+  the file of the graph that encloses it.
 
 Reader side (for the GUI):
 
@@ -74,8 +77,8 @@ SIDECAR_SUFFIX = '.progress.json'
 
 # A directory has one owning reporter per process: a graph nested inside
 # another graph runs in the same directory and must not clobber the owner's
-# file. The nested graph's reporter simply becomes a no-op; the nested graph
-# still shows up as a single action in the owner's file.
+# file. The nested graph's reporter simply becomes a no-op and the graph
+# reports its actions through the owner's reporter instead.
 _owned_paths = set()
 _owned_lock = threading.Lock()
 
@@ -141,7 +144,13 @@ class StatusReporter:
                 _owned_paths.add( self.path )
                 self._active = True
 
-        self._own_actions = set()   # actions registered via start()
+        # Actions whose state this process has actually set. Only for those
+        # does the owner keep authority over the state when merging the
+        # sidecar files of a child process (see _merge_sidecars): an action
+        # inside a pass-through container that ran in a child process is
+        # registered by start() but driven only in that child, so its
+        # sidecar is what the state has to come from.
+        self._driven = set()
 
         now = time.time()
         self._status = {
@@ -202,7 +211,7 @@ class StatusReporter:
             self._status['state'] = 'running'
             self._status['started_at'] = time.time()
             if actions is not None:
-                self._own_actions = set( actions )
+                self._driven = set()
                 self._status['actions'] = {
                     a: { 'state': 'pending', 'fraction': None, 'message': None }
                     for a in actions }
@@ -226,6 +235,31 @@ class StatusReporter:
             entry['state'] = state
             entry['fraction'] = fraction
             entry['message'] = message
+            self._driven.add( action )
+            self._write()
+
+    def fail_running( self, actions, message=None ):
+        """Mark as failed those of ``actions`` that are still running.
+
+        Used when the process that was reporting them died -- an asynch
+        work area that crashed, or one terminated because a sibling
+        failed. Actions that already reached a terminal state keep it, and
+        ones that never started stay 'pending'; only what was in flight
+        becomes 'failed'. Sidecars are merged first, so a child's own last
+        word wins over this.
+        """
+        if not self._active: return
+        if os.getpid() != self._owner_pid: return
+        with self._lock:
+            self._merge_sidecars()
+            for action in actions:
+                entry = self._status['actions'].get( action )
+                if entry is None or entry.get( 'state' ) != 'running':
+                    continue
+                self._status['actions'][action] = { 'state': 'failed',
+                                                    'fraction': None,
+                                                    'message': message }
+                self._driven.add( action )
             self._write()
 
     def update( self, **fields ):
@@ -277,11 +311,12 @@ class StatusReporter:
 
     def _merge_sidecars( self ):
         """Fold child-process sidecar files into the actions dict. Caller
-        holds self._lock. For actions this reporter tracks, the owner keeps
-        authority over the *state* and takes only fraction/message while
-        the action is running; a sidecar for a terminal action is deleted.
-        Unknown actions (from a graph nested inside an asynch action) are
-        adopted wholesale, state included."""
+        holds self._lock. For actions this process drives itself, the owner
+        keeps authority over the *state* and takes only fraction/message
+        while the action is running; a sidecar for a terminal action is
+        deleted. Actions it never drives -- those of a graph nested inside
+        an asynch action, and those of a pass-through container that ran in
+        a child process -- are adopted wholesale, state included."""
         try:
             parts = list( self.path.parent.glob( '.*' + SIDECAR_SUFFIX ) )
         except OSError:
@@ -293,9 +328,9 @@ class StatusReporter:
             except ( OSError, ValueError, KeyError ):
                 continue
             entry = self._status['actions'].get( aname )
-            if aname not in self._own_actions:
-                # action of a graph nested inside an asynch action: this
-                # reporter never sets its state, so the sidecar is
+            if aname not in self._driven:
+                # an action this process never sets the state of: the child
+                # that runs it is the only one that knows, so the sidecar is
                 # authoritative (state included)
                 self._status['actions'][aname] = {
                     'state': data.get( 'state', 'running' ),
@@ -321,6 +356,47 @@ class StatusReporter:
         except OSError as err:
             logger.warning( f'Could not write status file {self.path}: {err}' )
             return False
+
+
+class MultiReporter:
+    """
+    Reports the same action states to several status files at once.
+
+    A graph inside a ``WorkArea`` has two audiences: its own
+    ``status.json`` in the work-area directory (which a GUI, or a
+    standalone ``WorkArea``, follows on its own) and the ``status.json`` of
+    the graph that encloses the work area -- a job directory, typically,
+    whose file is what the per-job progress bars read. The work area itself
+    holds no entry there (it is pass-through, see
+    ``WorkAction._progress_names``), so without this the enclosing file
+    would say nothing at all while the solver inside runs.
+
+    Only what a graph does *to an action* is forwarded -- reporting where
+    it is, and failing what a dead child process left running. Starting and
+    finishing a status file belong to the reporter that owns it. ``active``
+    tells ``FileProgressTail`` and ``_RemoteProgressPoller`` there is
+    somewhere to report to.
+
+    Arguments:
+        reporters (list) : the reporters to write to; inactive ones (and
+            ``None``) are dropped, and reporting is in the given order.
+    """
+
+    def __init__( self, reporters ):
+        self.reporters = [ r for r in reporters if r is not None and r.active ]
+
+    @property
+    def active( self ):
+        return bool( self.reporters )
+
+    def action_state( self, action, state, fraction=None, message=None ):
+        for reporter in self.reporters:
+            reporter.action_state( action, state, fraction=fraction,
+                                   message=message )
+
+    def fail_running( self, actions, message=None ):
+        for reporter in self.reporters:
+            reporter.fail_running( actions, message=message )
 
 
 class FileProgressTail:
@@ -593,15 +669,20 @@ def job_fraction( status ):
     yet.
 
     The fraction is therefore the *job's*, while the message belongs to the
-    one action running now. So that the two cannot be read as the same
-    thing, the message says which action of how many is running and how far
-    that action itself has got::
+    action running now. So that the two cannot be read as the same thing,
+    the message says which action of how many is running and how far that
+    action itself has got::
 
         rad 1 of 3: time 80 of 100 (80%)
 
     -- a solver 80% through the first of three actions, which leaves the
     job, and the bar, at 27%. The count is the action's place in the
     graph's action list, which is the order they appear in the status file.
+
+    An ``asynch`` graph runs several actions at once, and then the message
+    names them all with their own percentages instead::
+
+        3 of 5 running: rad_a (80%), rad_b (34%), post
     """
     actions = ( status or {} ).get( 'actions' ) or {}
     if not actions:
@@ -609,7 +690,7 @@ def job_fraction( status ):
 
     names = list( actions )
     done = 0.0
-    message = None
+    running = []
     for name, entry in actions.items():
         state = entry.get( 'state' )
         if state in ( 'done', 'failed' ):
@@ -618,12 +699,24 @@ def job_fraction( status ):
             fraction = entry.get( 'fraction' )
             if fraction:
                 done += fraction
-            where = f'{names.index( name ) + 1} of {len( names )}'
-            message = f'{name} {where}'
-            if entry.get( 'message' ):
-                message += f": {entry['message']}"
-            if fraction is not None:
-                message += f' ({fraction*100:.0f}%)'
+            running.append( ( name, entry, fraction ) )
+
+    if not running:
+        message = None
+    elif len( running ) == 1:
+        name, entry, fraction = running[0]
+        message = f'{name} {names.index( name ) + 1} of {len( names )}'
+        if entry.get( 'message' ):
+            message += f": {entry['message']}"
+        if fraction is not None:
+            message += f' ({fraction*100:.0f}%)'
+    else:
+        # several actions at once: their own messages would not fit, so
+        # each contributes only its name and its percentage
+        parts = [ name if fraction is None else f'{name} ({fraction*100:.0f}%)'
+                  for name, _, fraction in running ]
+        message = ( f'{len( running )} of {len( names )} running: '
+                    + ', '.join( parts ) )
     return done / len( actions ), message
 
 

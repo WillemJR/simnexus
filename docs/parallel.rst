@@ -96,7 +96,9 @@ too, with a *terminated: a sibling action failed* message) and raises
 The progress of an ``asynch`` graph is reported like any other graph's:
 each child writes what it knows about its own action to a sidecar file
 that the graph merges into its ``status.json``, so each solver's
-percent-complete shows up there while it runs, next to the others.
+percent-complete shows up there while it runs, next to the others. A child
+that is a ``WorkArea`` reports the actions *inside* it the same way, so the
+graph's file names the solvers rather than the areas wrapping them.
 
 
 Design study jobs: ``max_workers``
@@ -158,6 +160,20 @@ A job's line names the action running now and its place in the graph
 (``rad 1 of 3``), then that action's own message and percentage. The bar's
 own percentage is something else: the whole job, averaged over its actions
 -- a solver 97% through the first of three actions leaves the job at 32%.
+
+When several actions run at once -- the ``asynch`` graph above -- the line
+names them all with their own percentages instead, since none of them is
+*the* action running now::
+
+      job_3  3 of 5 running: rad_a (80%), rad_b (34%), post   28%|██████▍   |
+
+A solver wrapped in a ``WorkArea`` is followed just as closely. A work
+area, like a sub-graph, holds no entry of its own in the enclosing
+``status.json``: it reports the actions inside it there, as well as into
+the ``status.json`` it writes in its own directory. So a job's bar shows
+the solver in the work area rather than sitting at nothing until the whole
+area is finished, and it makes no difference to the bars whether the
+solvers of a study are wrapped in work areas or not.
 
 The bars appear when tqdm is installed (``pip install simnexus[progress]``)
 and stderr is a terminal, so they never litter a log file; pass

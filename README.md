@@ -307,9 +307,11 @@ Radioss_WorkFlow_Iter:  25%|██▌       | 1/4 [00:14<00:43, 14.5s/job]
   job_3  d3plot 2 of 3                            67%|███████████████▍       |
 ```
 
-Each job's bar is fed from the `status.json` that job writes, so it follows the
-job through its actions. The iterator's own bar, at the top, counts jobs: its
-percentage is how many of the batch have finished.
+In the above there is a progress bar for the iterator and a bar
+for each of the jobs currently running.
+Each job's bar is read from the `status.json` that job writes.
+The iterator's bar, at the top, counts jobs: its percentage
+is how many of the batch have finished.
 
 The bars use tqdm and are shown only when stderr is a terminal.
 

@@ -74,10 +74,13 @@ def test_nested_graph_does_not_clobber_owner():
         outer.solve({})
 
         # one file, owned by the outer graph; the inner graph reports its
-        # own actions through the owner's reporter (names stay unique)
+        # own actions through the owner's reporter (names stay unique).
+        # The sub-graph is pass-through: it holds no entry of its own, so
+        # the file counts the actions and nothing else.
         st = _read_status()
         assert st['name'] == 'Outer'
-        assert st['actions']['Inner']['state'] == 'done'
+        assert 'Inner' not in st['actions']
+        assert list(st['actions']) == ['a', 'deep']
         assert st['actions']['deep']['state'] == 'done'
 
 
@@ -88,6 +91,85 @@ def test_workarea_status_in_work_area_dir():
         area.solve({})
         st = _read_status(Path('WFArea') / STATUS_PATH)
         assert st['name'] == 'WFArea' and st['state'] == 'done'
+
+
+class PeekAtStatus(WorkAction):
+    """Reports a fraction from inside a work area, then reads back what the
+    two status files say about it while it is still running."""
+    def solve(self, val_dict=None):
+        self.report_progress(fraction=0.5, message='halfway')
+        return {'here':  json.loads(Path(STATUS_PATH).read_text()),
+                'above': json.loads((Path('..') / STATUS_PATH).read_text())}
+
+
+def test_workarea_progress_passes_through_to_the_enclosing_graph():
+    with _in_tmp_dir():
+        inner = WorkFlow('Inner', actions=[PeekAtStatus('deep')])
+        outer = DirectedGraph('Outer')
+        outer.add_action(WorkArea(inner))
+        outer.add_action(PlusOne('after'))
+        out = outer.solve({})
+
+        # the work area holds no entry of its own; what is inside it does
+        st = _read_status()
+        assert 'Inner_WorkArea' not in st['actions']
+        assert list(st['actions']) == ['deep', 'after']
+        assert st['actions']['deep']['state'] == 'done'
+
+        seen = out['Inner_WorkArea']['deep']
+        # the work area still writes a file of its own, with its own actions
+        assert seen['here']['name'] == 'Inner'
+        assert list(seen['here']['actions']) == ['deep']
+        assert seen['here']['actions']['deep']['fraction'] == 0.5
+        # ... and the same progress reaches the enclosing graph's file, which
+        # is the one a per-job progress bar reads
+        assert seen['above']['name'] == 'Outer'
+        assert seen['above']['actions']['deep']['fraction'] == 0.5
+        assert seen['above']['actions']['deep']['message'] == 'halfway'
+        assert seen['above']['actions']['after']['state'] == 'pending'
+
+
+def test_workarea_in_a_job_reports_into_the_job_status():
+    with _in_tmp_dir():
+        inner = WorkFlow('Run', actions=[PlusOne('deep')])
+        job = WorkFlow('It', actions=[WorkArea(inner), PlusOne('after')])
+        SimulationIterator(job).solve({})
+
+        # the job's file -- the one the job bar reads -- counts the two
+        # actions, not the work area wrapping one of them
+        st = _read_status(Path('It') / 'job_0' / STATUS_PATH)
+        assert list(st['actions']) == ['deep', 'after']
+        assert st['actions']['deep']['state'] == 'done'
+        assert (Path('It') / 'job_0' / 'Run' / STATUS_PATH).exists()
+
+
+class PeekAtEnclosingGraph(WorkAction):
+    """From inside a job of a nested study, read the status file of the
+    graph that holds the study: two levels up, past the job directory and
+    the study's results root."""
+    def solve(self, val_dict=None):
+        return json.loads((Path('..') / '..' / STATUS_PATH).read_text())
+
+
+def test_nested_iterator_keeps_one_entry_and_names_its_job():
+    """A study is the opposite of a work area: its jobs have directories
+    and status files of their own, so it holds one entry in the enclosing
+    graph's file and reports the job it is busy with into it."""
+    with _in_tmp_dir():
+        study = SimulationIterator(WorkFlow('Inner',
+                                            actions=[PeekAtEnclosingGraph('peek')]))
+        outer = DirectedGraph('Outer')
+        outer.add_action(study)
+        outer.add_action(PlusOne('after'))
+        out = outer.solve({})
+
+        st = _read_status()
+        assert list(st['actions']) == [study.name, 'after']
+        assert st['actions'][study.name]['state'] == 'done'
+
+        seen = out[study.name]['peek']['actions'][study.name]
+        assert seen['state'] == 'running'
+        assert seen['message'] == 'job_0'
 
 
 def test_iterator_root_and_job_status():
@@ -223,6 +305,20 @@ def test_job_fraction_averages_over_the_actions():
     assert message == 'solver 2 of 3'
 
 
+def test_job_fraction_names_every_running_action():
+    """An asynch graph runs several actions at once; the message names them
+    all, since none of them is 'the' current action."""
+    status = {'actions': {
+        'prep':  {'state': 'done'},
+        'rad_a': {'state': 'running', 'fraction': 0.8, 'message': 'time 8 of 10'},
+        'rad_b': {'state': 'running', 'fraction': 0.34},
+        'post':  {'state': 'running'},
+        'read':  {'state': 'pending'}}}
+    fraction, message = progress.job_fraction(status)
+    assert fraction == pytest.approx((1 + 0.8 + 0.34) / 5)
+    assert message == '3 of 5 running: rad_a (80%), rad_b (34%), post'
+
+
 def test_is_alive_detects_stale_heartbeat():
     now = time.time()
     assert progress.is_alive({'heartbeat_interval': 5.0, 'updated_at': now})
@@ -330,6 +426,49 @@ def test_asynch_graph_reports_fractions():
         progress.HEARTBEAT_INTERVAL = saved
 
 
+def test_asynch_work_areas_report_the_actions_inside_them():
+    """Two solvers running at once, each in a work area of its own (the
+    shape parallel branches need, since they share a directory otherwise).
+    Each work area runs in a child process, so the actions inside it reach
+    the owner's status.json as sidecar files -- and the owner must take
+    their state from there, having never set it itself."""
+    import threading
+
+    saved = progress.HEARTBEAT_INTERVAL
+    progress.HEARTBEAT_INTERVAL = 0.1   # merge sidecars quickly for the test
+    try:
+        with _in_tmp_dir() as tmp:
+            g = DirectedGraph('AG', asynch=True)
+            g.add_action(WorkArea(WorkFlow('Wa', actions=[AsyncFakeSolver('sol_a')])))
+            g.add_action(WorkArea(WorkFlow('Wb', actions=[AsyncFakeSolver('sol_b')])))
+
+            status = Path(tmp) / STATUS_PATH
+            seen = {'sol_a': [], 'sol_b': []}
+            worker = threading.Thread(target=g.solve, args=({},))
+            worker.start()
+            while worker.is_alive():
+                try:
+                    actions = json.loads(status.read_text())['actions']
+                except (FileNotFoundError, json.JSONDecodeError, KeyError):
+                    actions = {}
+                for name, fractions in seen.items():
+                    entry = actions.get(name) or {}
+                    if entry.get('fraction') is not None:
+                        fractions.append(entry['fraction'])
+                time.sleep(0.05)
+            worker.join()
+
+            st = json.loads(status.read_text())
+            assert 'Wa_WorkArea' not in st['actions']
+            assert list(st['actions']) == ['sol_a', 'sol_b']
+            for name, fractions in seen.items():
+                assert fractions, f'no fractions from {name} observed'
+                assert st['actions'][name]['state'] == 'done'
+            assert not list(Path(tmp).glob('.*' + progress.SIDECAR_SUFFIX))
+    finally:
+        progress.HEARTBEAT_INTERVAL = saved
+
+
 class SlowPlusOne(WorkAction):
     def solve(self, val_dict=None):
         time.sleep(3.0)
@@ -373,6 +512,27 @@ def test_asynch_crashed_child_reports_failed():
         st = _read_status()
         assert st['state'] == 'failed'
         assert st['actions']['crasher']['state'] == 'failed'
+
+
+def test_asynch_work_area_failure_fails_what_it_left_running():
+    """A work area holds no entry to mark failed -- but the actions inside
+    it do, and a child process that is terminated cannot report them
+    itself, so the graph fails whatever they left running."""
+    with _in_tmp_dir():
+        g = DirectedGraph('AWF', asynch=True)
+        g.add_action(WorkArea(WorkFlow('Wbad', actions=[Failing('bad')])))
+        g.add_action(WorkArea(WorkFlow('Wslow', actions=[SlowPlusOne('slow')])))
+
+        with pytest.raises(AsyncActionError):
+            g.solve({})
+
+        st = _read_status()
+        assert st['state'] == 'failed'
+        assert list(st['actions']) == ['bad', 'slow']
+        assert st['actions']['bad']['state'] == 'failed'
+        # terminated with its work area, not left 'running' for ever
+        assert st['actions']['slow']['state'] == 'failed'
+        assert 'terminated' in (st['actions']['slow']['message'] or '')
 
 
 def test_asynch_success_still_works():

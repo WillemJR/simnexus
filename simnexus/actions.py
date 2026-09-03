@@ -151,6 +151,11 @@ class WorkAction(Subject):
     # enclosing cleanup plan does not reach into them. See simnexus.cleanup.
     _cleans_own_dirs = False
 
+    # A container that only groups other actions holds no entry of its own
+    # in a status file; the actions inside it are reported instead. See
+    # _progress_names() below.
+    _progress_passthrough = False
+
     def __init__( self, name, cmd=None, copy_paths=None, lower_bound=None, upper_bound=None,
                   description=None, data_type = EvalType.NOT_SPECIFIED, keep=None ):
         """
@@ -482,6 +487,31 @@ class WorkAction(Subject):
         if name_list is None: name_list = []
         if self.name in name_list: raise ActionNameError( f"Duplicate actions name \'{self.name}\'" )
         name_list.append( self.name )
+
+    # ------------------------------------------------------------------
+    # Progress: which names an action occupies in a status file
+    # ------------------------------------------------------------------
+    def _progress_names( self ):
+        """
+        The action names this action contributes to the enclosing graph's
+        ``status.json``.
+
+        An ordinary action reports itself, so it holds one entry and the
+        graph sets its state. A container that only groups other actions --
+        a ``DirectedGraph`` or a ``WorkArea`` -- is *pass-through*: it holds
+        no entry of its own and reports the actions inside it instead, so a
+        work area does not sit at 0% for as long as the solver inside it
+        runs. Such containers set ``_progress_passthrough`` as well, which
+        is what tells the enclosing graph not to set a state for them.
+
+        A ``SimulationIterator`` and a ``RemoteAction`` are *not*
+        pass-through: they keep one entry and report their own fraction
+        into it (the jobs they have run, the progress of the remote graph).
+
+        Returns:
+            list : the names of the status entries this action fills.
+        """
+        return [ self.name ]
 
     # ------------------------------------------------------------------
     # Tree / directory-structure display

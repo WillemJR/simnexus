@@ -9,7 +9,7 @@ from simnexus.actions import WorkAction, _display_path, _copy_path_nodes
 from simnexus.args import Cleanup
 from simnexus.cleanup import clean_run_dir
 from simnexus.errors import ActionNameError, MissingPathError, AsyncActionError
-from simnexus.progress import StatusReporter
+from simnexus.progress import MultiReporter, StatusReporter
 from simnexus.util.observer import Observer
 # SimulationIterator lives in its own module (with the job index it relies
 # on) but is re-exported here: it is part of this module's public interface
@@ -47,6 +47,10 @@ class WorkArea(WorkAction):
     Returns:
         dict: Output from graph (it adds nothing).
     """
+
+    # the graph inside reports the actions; the work area holds no entry
+    # of its own (see WorkAction._progress_names)
+    _progress_passthrough = True
 
     def __init__( self, graph, work_area_path=None, copy_paths=None, cleanup=None ):
 
@@ -101,6 +105,9 @@ class WorkArea(WorkAction):
     def outputs(self):
         return self.graph.outputs()
 
+    def _progress_names( self ):
+        return self.graph._progress_names()
+
 
     def rm_rundir( self ):
         sim_path = self.work_area_path
@@ -130,6 +137,12 @@ class WorkArea(WorkAction):
         root_dir = Path.cwd()
         os.chdir( self.wa_path )
         logger.debug( f'Running in directory {self.wa_path}' )
+
+        # The graph writes its own status.json in here, and reports to the
+        # enclosing graph's file as well: a work area is pass-through for
+        # progress, so what the job directory shows is the solver inside it
+        # rather than one entry that sits at nothing until the area is done.
+        self.graph._progress_reporter = self._progress_reporter
 
         try:
             ret = self.graph.solve( val_dict )
@@ -224,6 +237,10 @@ class DirectedGraph(WorkAction, Observer):
         dict: Dictionary containing action_name:action_result pairs
     """ 
 
+    # a graph groups actions; those are what a status file shows, not the
+    # graph itself (see WorkAction._progress_names)
+    _progress_passthrough = True
+
     def __init__(self, name, asynch=False, work_area_path=None, cleanup=None):
         #self.adjacency_list = defaultdict(list)
         super().__init__( name, copy_paths=[] )
@@ -294,6 +311,7 @@ class DirectedGraph(WorkAction, Observer):
             if not hasattr(self, '_in_work_area') or not self._in_work_area:
                 self._in_work_area = True
                 try:
+                    self.work_area._progress_reporter = self._progress_reporter
                     return self.work_area.solve(val_dict)
                 finally:
                     self._in_work_area = False
@@ -315,16 +333,14 @@ class DirectedGraph(WorkAction, Observer):
         self.finished, self.started, self.failed = set(), set(), set()
 
         # progress for external consumers (e.g. a GUI process): a status.json
-        # in the run directory, updated on every action state change
+        # in the run directory, updated on every action state change. The
+        # entries are the actions, not the containers holding them: a child
+        # that is itself a graph or a work area is pass-through and registers
+        # what is inside it instead (see WorkAction._progress_names).
         reporter = StatusReporter( self.name )
-        reporter.start( actions=list( self.child_actions.keys() ) )
+        reporter.start( actions=self._progress_names() )
 
-        # A graph nested inside an owning graph's directory has an inactive
-        # reporter; report through the owner's instead, so this graph's
-        # action states and solver fractions still reach the status file.
-        report_to = reporter if reporter.active else self._progress_reporter
-        if report_to is None:
-            report_to = reporter
+        report_to = self._report_to( reporter )
 
         reported_done = set()
 
@@ -333,7 +349,7 @@ class DirectedGraph(WorkAction, Observer):
             Copies self.finished: async watcher threads mutate it."""
             newly_done = set( self.finished ) - reported_done
             for done_name in newly_done:
-                report_to.action_state( done_name, 'done' )
+                self._report_action( report_to, done_name, 'done' )
                 reported_done.add( done_name )
             return bool( newly_done )
 
@@ -355,7 +371,7 @@ class DirectedGraph(WorkAction, Observer):
                         if node.name not in self.started:
                             current_name = nname
                             node._progress_reporter = report_to
-                            report_to.action_state( nname, 'running' )
+                            self._report_action( report_to, nname, 'running' )
                             if self.asynch:
                                 node._observed_eval_async(in_dict.copy())
                             else:
@@ -387,13 +403,59 @@ class DirectedGraph(WorkAction, Observer):
             # actions that did complete before the failure still show as done
             _sweep_done()
             if current_name is not None and current_name not in self.finished:
-                report_to.action_state( current_name, 'failed' )
+                self._report_action( report_to, current_name, 'failed' )
             reporter.finish( 'failed' )
             raise
 
         reporter.finish( 'done' )
         return val_dict
 
+
+    def _report_to( self, reporter ):
+        """
+        Where this graph's action states go.
+
+        Its own reporter when it owns the run directory's ``status.json``,
+        and the enclosing graph's when it does not -- a graph nested in the
+        same directory has an inactive reporter of its own, so its actions
+        and solver fractions still reach the owner's file. A graph inside a
+        ``WorkArea`` has both: its own file in the work area, and the file
+        of the graph enclosing the work area, which is the one a job's
+        progress bar reads and which the work area itself no longer
+        occupies an entry in.
+        """
+        inherited = self._progress_reporter
+        if not reporter.active:
+            return inherited if inherited is not None else reporter
+        if inherited is None or inherited is reporter:
+            return reporter
+        return MultiReporter( [ reporter, inherited ] )
+
+    def _report_action( self, report_to, nname, state, message=None ):
+        """
+        Set one child's state in the status file.
+
+        A pass-through child -- a sub-graph, a work area -- has no entry of
+        its own to set: the actions inside it report their own states,
+        through this graph's reporter or through both files. Failure is the
+        exception. The child may have died in a child process (an asynch
+        work area that crashed, or one terminated because a sibling
+        failed), and then nothing in there could report itself, so whatever
+        it left running is marked failed here.
+        """
+        node = self.child_actions[nname]
+        if not node._progress_passthrough:
+            report_to.action_state( nname, state, message=message )
+        elif state == 'failed':
+            report_to.fail_running( node._progress_names(), message=message )
+
+    def _progress_names( self ):
+        """The actions of this graph, each container among them replaced
+        by what is inside it."""
+        names = []
+        for ch in self.child_actions.values():
+            names.extend( ch._progress_names() )
+        return names
 
     def _abort_on_async_failure( self, report_to, sweep_done ):
         """
@@ -407,15 +469,15 @@ class DirectedGraph(WorkAction, Observer):
         for fname in failed_names:
             err = getattr( self.child_actions[fname], '_async_error', None )
             first_line = str( err ).splitlines()[0] if err else None
-            report_to.action_state( fname, 'failed', message=first_line )
+            self._report_action( report_to, fname, 'failed', message=first_line )
 
         for sname in self.started - set( self.finished ) - failed_names:
             proc = getattr( self.child_actions[sname], '_async_proc', None )
             if proc is not None and proc.is_alive():
                 proc.terminate()
                 proc.join( timeout=2.0 )
-            report_to.action_state( sname, 'failed',
-                                    message='terminated: a sibling action failed' )
+            self._report_action( report_to, sname, 'failed',
+                                 message='terminated: a sibling action failed' )
 
         first = sorted( failed_names )[0]
         err = getattr( self.child_actions[first], '_async_error', None )
