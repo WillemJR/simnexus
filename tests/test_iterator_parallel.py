@@ -123,6 +123,43 @@ def test_failing_job_aborts_the_sweep(tmp_path, monkeypatch):
     assert root['state'] == 'failed'
 
 
+def test_solve_parallel_reports_its_own_batch(tmp_path, monkeypatch):
+    """A batch run directly, not through collect_for_*, still says how many
+    jobs it has and that it finished."""
+    monkeypatch.chdir(tmp_path)
+
+    itr = _iterator('Direct', max_workers=2)
+    itr.solve_parallel([{'x': 1}, {'x': 2}, {'x': 3}], progress_bar=False)
+
+    root = json.loads((tmp_path / 'Direct' / STATUS_PATH).read_text())
+    assert root['jobs_total'] == 3
+    assert root['jobs_done'] == 3
+    assert root['state'] == 'done'
+    assert root['current_jobs'] == []
+
+
+def test_failed_batch_stops_claiming_jobs_are_running(tmp_path, monkeypatch):
+    """The jobs terminated because another one failed cannot report
+    themselves -- their processes are gone -- so the parent does it."""
+    monkeypatch.chdir(tmp_path)
+
+    wf = WorkFlow('Cut', actions=[FailsOnThree('maybe'), Sleeper('slow')])
+    itr = SimulationIterator(wf, max_workers=3)
+
+    with pytest.raises(AsyncActionError):
+        itr.solve_parallel([{'x': 1}, {'x': 3}, {'x': 2}], progress_bar=False)
+
+    root = json.loads((tmp_path / 'Cut' / STATUS_PATH).read_text())
+    assert root['state'] == 'failed'
+    assert root['current_jobs'] == []      # nothing is running any more
+
+    for job in sorted((tmp_path / 'Cut').glob('job_*')):
+        st = json.loads((job / STATUS_PATH).read_text())
+        states = {k: v['state'] for k, v in st['actions'].items()}
+        assert st['state'] == 'failed', (job.name, st)
+        assert 'running' not in states.values(), (job.name, states)
+
+
 def test_progress_bar_reports_the_jobs(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
 

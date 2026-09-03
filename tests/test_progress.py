@@ -204,6 +204,118 @@ def test_iterator_collect_sets_totals_and_done():
         assert root['state'] == 'done'
 
 
+def test_batch_counts_start_from_zero_each_sweep():
+    """jobs_done is the count of the batch being run, not of everything the
+    iterator has ever run: a second sweep of three used to report six."""
+    with _in_tmp_dir():
+        itr = SimulationIterator(WorkFlow('Batches', actions=[PlusOne('a')]))
+        status = Path('Batches') / STATUS_PATH
+
+        itr.collect_for_varrange({'V': [1, 2, 3]})
+        root = _read_status(status)
+        assert (root['jobs_done'], root['jobs_total']) == (3, 3)
+        assert root['state'] == 'done'
+
+        itr.collect_for_varrange({'V': [4, 5, 6]})
+        root = _read_status(status)
+        assert (root['jobs_done'], root['jobs_total']) == (3, 3)
+
+        # a design point of the caller's own belongs to no batch, so there
+        # is no total to count it against
+        itr.solve({'V': 9})
+        root = _read_status(status)
+        assert root['jobs_total'] is None
+        assert root['state'] == 'idle'
+
+
+def test_a_finished_study_releases_its_results_root():
+    """A study that has run lets go of its status.json, so a later study on
+    the same directory owns it and is the one a reader sees."""
+    with _in_tmp_dir():
+        first = SimulationIterator(WorkFlow('Again', actions=[PlusOne('a')]))
+        first.collect_for_varrange({'V': [1, 2]})
+        assert first._status_reporter is None       # finished and released
+
+        # started over, while the first iterator is still in scope
+        second = SimulationIterator(WorkFlow('Again', actions=[PlusOne('a')]),
+                                    clean_start=True)
+        second.collect_for_varrange({'V': [1, 2, 3]})
+        root = _read_status(Path('Again') / STATUS_PATH)
+        assert root['state'] == 'done'
+        assert (root['jobs_done'], root['jobs_total']) == (3, 3)
+
+        # and one that adds to the same results directory takes it over too
+        third = SimulationIterator(WorkFlow('Again', actions=[PlusOne('a')]))
+        third.solve({'V': 7})
+        root = _read_status(Path('Again') / STATUS_PATH)
+        assert root['jobs_done'] == 1
+        assert root['current_job'] == 'job_3'
+
+
+def test_reuse_leaves_run_level_progress_to_the_caller():
+    """Reusing a job must not report the run itself: inside a parallel
+    batch that would claim the batch idle while other jobs are running."""
+    with _in_tmp_dir():
+        first = SimulationIterator(WorkFlow('Reuse', actions=[PlusOne('a')]))
+        first.collect_for_varrange({'V': [1, 2]})
+
+        later = SimulationIterator(WorkFlow('Reuse', actions=[PlusOne('a')]),
+                                   reuse_existing=True)
+        assert later._reuse({'V': 1}, []) is not None
+        assert later._status_reporter is None       # nothing reported here
+
+        # the caller is what reports it, and solve() does
+        later.solve({'V': 1})
+        root = _read_status(Path('Reuse') / STATUS_PATH)
+        assert root['state'] == 'idle'
+        assert root['jobs_done'] == 2
+
+
+def test_a_new_reporter_takes_a_directory_over():
+    with _in_tmp_dir() as tmp:
+        old = progress.StatusReporter('Old', directory=tmp)
+        old.start(actions=['a'])
+
+        # a graph nested in an owned directory still stands aside
+        nested = progress.StatusReporter('Nested', directory=tmp)
+        assert not nested.active
+
+        # a new run of a study claims it instead, and the old reporter goes
+        # quiet rather than heartbeating over the new run's file
+        new = progress.StatusReporter('New', directory=tmp, takeover=True)
+        assert new.active and not old.active
+        new.start(actions=['b'])
+        old.action_state('a', 'done')              # a no-op now
+        assert list(_read_status()['actions']) == ['b']
+
+        old.finish('done')                         # must not disown 'new'
+        assert new.active
+        new.finish('done')
+
+
+def test_mark_failed_stamps_a_file_whose_writer_died():
+    with _in_tmp_dir() as tmp:
+        rep = progress.StatusReporter('Killed', directory=tmp,
+                                      heartbeat_interval=60.0)
+        rep.start(actions=['a', 'b'])
+        rep.action_state('a', 'running', fraction=0.5)
+        # the process is terminated here, with 'b' never started
+        progress.mark_failed(Path(tmp) / STATUS_PATH, message='terminated')
+
+        st = _read_status()
+        assert st['state'] == 'failed'
+        assert st['actions']['a']['state'] == 'failed'
+        assert st['actions']['a']['message'] == 'terminated'
+        assert st['actions']['a']['fraction'] is None
+        assert st['actions']['b']['state'] == 'pending'   # it never ran
+
+        # a terminal file is left alone, and a missing one is not an error
+        progress.mark_failed(Path(tmp) / STATUS_PATH, message='again')
+        assert _read_status()['actions']['a']['message'] == 'terminated'
+        progress.mark_failed(Path(tmp) / 'no_such_status.json')
+        rep.finish('failed')
+
+
 def test_status_watcher_polls_changes():
     with _in_tmp_dir() as tmp:
         watcher = progress.StatusWatcher(Path(tmp) / STATUS_PATH)
@@ -514,14 +626,38 @@ def test_asynch_crashed_child_reports_failed():
         assert st['actions']['crasher']['state'] == 'failed'
 
 
+class SlowSaysItStarted(WorkAction):
+    """Announces itself in the directory above its work area, then runs on."""
+    MARKER = 'slow_started'
+
+    def solve(self, val_dict=None):
+        (Path('..') / self.MARKER).touch()
+        time.sleep(3.0)
+        return 1
+
+
+class FailsOnceSiblingRuns(WorkAction):
+    """Fails only once the sibling work area is actually running, so the
+    terminated-sibling path is reached whatever the start method: under
+    spawn a child takes long enough to boot that failing immediately would
+    cut the sibling short before it had reported anything."""
+
+    def solve(self, val_dict=None):
+        for _ in range(200):
+            if (Path('..') / SlowSaysItStarted.MARKER).exists():
+                break
+            time.sleep(0.05)
+        raise RuntimeError('boom')
+
+
 def test_asynch_work_area_failure_fails_what_it_left_running():
     """A work area holds no entry to mark failed -- but the actions inside
     it do, and a child process that is terminated cannot report them
     itself, so the graph fails whatever they left running."""
     with _in_tmp_dir():
         g = DirectedGraph('AWF', asynch=True)
-        g.add_action(WorkArea(WorkFlow('Wbad', actions=[Failing('bad')])))
-        g.add_action(WorkArea(WorkFlow('Wslow', actions=[SlowPlusOne('slow')])))
+        g.add_action(WorkArea(WorkFlow('Wbad', actions=[FailsOnceSiblingRuns('bad')])))
+        g.add_action(WorkArea(WorkFlow('Wslow', actions=[SlowSaysItStarted('slow')])))
 
         with pytest.raises(AsyncActionError):
             g.solve({})

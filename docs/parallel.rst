@@ -194,6 +194,21 @@ lists the jobs running at that moment in ``current_jobs``, so
 with :class:`simnexus.progress.RunWatcher` — shows all of them at once,
 from another process if need be.
 
+The root file's counts are the *batch's*: ``jobs_total`` is the number of
+design points this sweep was given and ``jobs_done`` counts from zero, so
+running a second sweep on the same iterator starts the count again rather
+than carrying on from the first.  A bare ``solve()`` is one design point
+and belongs to no batch, so it reports ``jobs_total`` as null.  A sweep
+ends by writing its final state and letting go of the results root, which
+is what lets a re-run of the same study — a new ``SimulationIterator`` on
+the same directory — take the file over and be the run a watcher sees.
+
+When a job fails and the others are terminated with it, the terminated
+jobs cannot report themselves: the parent marks each of their
+``status.json`` files failed (every action that was running with them) and
+empties ``current_jobs``, so the status files and ``jobs_index.json``
+agree about what happened.
+
 
 .. _start-methods:
 

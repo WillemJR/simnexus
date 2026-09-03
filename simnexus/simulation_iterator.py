@@ -56,7 +56,8 @@ from simnexus.args import ( ACTIONS_OUTPUT_PATH, ITER_VARIABLES_PATH,
 from simnexus.cleanup import clean_run_dir
 from simnexus.errors import ( ActionNameError, AsyncActionError, ParameterError,
                               MissingPathError, DataNotFoundError )
-from simnexus.progress import StatusReporter, StatusWatcher, job_fraction
+from simnexus.progress import ( StatusReporter, StatusWatcher, job_fraction,
+                                mark_failed )
 from simnexus.util import parallel
 import simnexus.args
 
@@ -780,10 +781,14 @@ class SimulationIterator(WorkAction):
 
         self._check_names( [] )
 
-        self.run_iter = 0
-        self.jobs_total = None          # known when collect_for_expdes runs
+        self.run_iter = 0               # jobs processed; zeroed by a batch
+        self.jobs_total = None          # size of the batch running, if any
         self._status_reporter = None    # created on first solve()
         self._current_job = None        # last job directory started
+        # True while a sweep (collect_for_* / solve_parallel) is running, so
+        # the solve() calls a serial sweep makes leave its batch counts
+        # alone while a solve() of the caller's own clears them
+        self._in_batch = False
 
         self.max_workers = int( max_workers )
         if self.max_workers < 1:
@@ -807,6 +812,11 @@ class SimulationIterator(WorkAction):
         self.description = f'Simulation iterator for graph {graph.name}'
 
     def rm_rundir( self ):
+        # the results root is about to go: end the run status first, so no
+        # heartbeat writes into the deleted tree and the next run of this
+        # study can own the directory again
+        self._finish_status( 'done' )
+
         sim_path = self.work_area_path
         if sim_path.exists():  shutil.rmtree( sim_path )
         self._index = JobIndex( self.work_area_path, job_prefix=self.JNAME )
@@ -1003,6 +1013,30 @@ class SimulationIterator(WorkAction):
         """
         return self.work_area_path.joinpath( self.JNAME + str( self._index.next_job_number() ) )
 
+    def _start_batch( self, jobs_total ):
+        """Begin a batch of design points: the job counts a reader sees
+        are the batch's, so they start from zero here rather than counting
+        on from whatever this iterator ran before."""
+        self.run_iter = 0
+        self.jobs_total = jobs_total
+        self._in_batch = True
+
+    def _finish_status( self, state='done' ):
+        """End the run-level status: final state, heartbeat stopped, and
+        the results root released so the next run -- of this iterator or
+        another one on the same directory -- owns its own file. A later
+        call recreates the reporter, so an iterator stays usable.
+
+        The batch ends with it, whichever way it ended, so a design point
+        solved afterwards is not counted against a batch it had no part in.
+        Every way out of a sweep passes through here -- the end of it, and
+        the failure paths of ``solve`` and ``solve_parallel``.
+        """
+        self._in_batch = False
+        if self._status_reporter is not None:
+            self._status_reporter.finish( state )
+            self._status_reporter = None
+
     def _report_job( self, job_name ):
         """One job has become the current one (serial run)."""
         self._current_job = job_name
@@ -1013,7 +1047,14 @@ class SimulationIterator(WorkAction):
         a status.json at the results root with the job counts, the jobs
         running right now (``current_jobs``, more than one when
         ``max_workers`` > 1) and the last job started (``current_job``,
-        kept for readers that follow a single job)."""
+        kept for readers that follow a single job).
+
+        The counts are the current batch's (see ``_start_batch``), and
+        ``running_jobs`` is whatever is running at this moment -- every
+        caller has to pass what it knows, including the ones that did not
+        start a job themselves, or the file would claim a batch is idle
+        while its other jobs are still going.
+        """
         fields = { 'jobs_total': self.jobs_total,
                    'jobs_done': self.run_iter,
                    'current_job': self._current_job,
@@ -1033,7 +1074,13 @@ class SimulationIterator(WorkAction):
             self.report_progress( fraction=fraction, message=message )
 
         if self._status_reporter is None:
-            self._status_reporter = StatusReporter( self.name, directory=self.work_area_path )
+            # takeover: a new run of a study owns its results root, even
+            # when an earlier iterator object in this process still holds a
+            # reporter for it -- otherwise the new run would report nothing
+            # and the old reporter would go on heartbeating a stale file
+            self._status_reporter = StatusReporter( self.name,
+                                                    directory=self.work_area_path,
+                                                    takeover=True )
             self._status_reporter.start( actions=None, state=state, **fields )
         else:
             self._status_reporter.update( state=state, **fields )
@@ -1045,6 +1092,10 @@ class SimulationIterator(WorkAction):
         The job is re-labelled with this call's groups, so a design point
         computed for one study can be pulled into another without running
         the graph again.
+
+        Run-level progress is left to the caller: a reuse hit inside a
+        parallel batch must not report the batch as idle while its other
+        jobs are still running.
         """
         rec = self._index.find_exact( val_dict )
         if rec is None:
@@ -1064,9 +1115,8 @@ class SimulationIterator(WorkAction):
         self.reused_jobs.append( job_name )
         logger.debug( f'Reusing {job_name} for {val_dict}' )
 
-        self._report_job( job_name )
+        self._current_job = job_name
         self.run_iter += 1
-        self._report_status( [], state='idle' )
         return ret
 
     def _with_defaults( self, val_dict ):
@@ -1154,11 +1204,17 @@ class SimulationIterator(WorkAction):
 
         val_dict = self._with_defaults( val_dict )
 
+        if not self._in_batch:
+            # one design point of the caller's own, not part of a sweep:
+            # there is no batch for a reader to count it against
+            self.jobs_total = None
+
         job_groups = self._resolve_groups( groups )
 
         if self.reuse_existing:
             reused = self._reuse( val_dict, job_groups )
             if reused is not None:
+                self._report_status( [], state='idle' )
                 return reused
 
         job_name, job_dir = self._start_job( val_dict, job_groups )
@@ -1167,8 +1223,9 @@ class SimulationIterator(WorkAction):
         try:
             ret = self._run_job( job_dir, val_dict )
         except BaseException:
-            self._status_reporter.update( state='failed' )
             self._index.set_state( job_name, 'failed' )
+            self._report_status( [], state='failed' )
+            self._finish_status( 'failed' )
             raise
         self._index.set_state( job_name, 'done' )
 
@@ -1274,6 +1331,8 @@ class SimulationIterator(WorkAction):
         bar = _JobBar( len( design_points ), desc=self.name, enabled=progress_bar )
         last_bar_poll = 0.0
 
+        self._start_batch( len( design_points ) )
+
         try:
             while queued or running:
                 while queued and len( running ) < self.max_workers:
@@ -1286,6 +1345,10 @@ class SimulationIterator(WorkAction):
                         if reused is not None:
                             results[ iexp ] = reused
                             bar.step()
+                            # the count moved on; the jobs running now did not
+                            self._report_status(
+                                running,
+                                state='running' if running or queued else 'idle' )
                             continue
 
                     job_name, job_dir = self._start_job( val_dict, job_groups )
@@ -1342,10 +1405,14 @@ class SimulationIterator(WorkAction):
 
         if failure is not None:
             job_name, error = failure
-            if self._status_reporter is not None:
-                self._status_reporter.update( state='failed' )
+            # the jobs of this batch are all over: the one that failed, and
+            # the ones terminated with it (_abort_running_jobs stamped their
+            # own status files, which their killed processes could not)
+            self._report_status( [], state='failed' )
+            self._finish_status( 'failed' )
             raise AsyncActionError( f"Job '{job_name}' failed: {error}" )
 
+        self._finish_status( 'done' )
         return results
 
     def _abort_running_jobs( self, running ):
@@ -1357,6 +1424,10 @@ class SimulationIterator(WorkAction):
                 proc.terminate()
                 proc.join( timeout=2.0 )
             self._index.set_state( job_name, 'failed' )
+            # a terminated process cannot report itself, and its file would
+            # otherwise claim to be running for ever
+            mark_failed( self._index.job_path( job_name ) / STATUS_PATH,
+                         message='terminated: another job failed' )
             logger.warning( f'Terminated {job_name}: another job failed.' )
         running.clear()
 
@@ -1611,7 +1682,7 @@ class SimulationIterator(WorkAction):
         disp = []
         more_node_data = []
 
-        self.jobs_total = len( exp_des )
+        self._start_batch( len( exp_des ) )
 
         all_combinations = []
         design_points = []
@@ -1642,8 +1713,7 @@ class SimulationIterator(WorkAction):
 
         outcome = SimulationIterator.outcomes_as_lists( list_of_evals )
 
-        if self._status_reporter is not None:
-            self._status_reporter.update( state='done' )
+        self._finish_status( 'done' )
 
         all_combinations = np.array( all_combinations )
         par_val_dict = {key: None for key in var_names }

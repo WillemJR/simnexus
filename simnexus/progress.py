@@ -61,6 +61,7 @@ import json
 import os
 import threading
 import time
+import weakref
 from pathlib import Path
 
 from simnexus.args import STATUS_PATH
@@ -79,8 +80,20 @@ SIDECAR_SUFFIX = '.progress.json'
 # another graph runs in the same directory and must not clobber the owner's
 # file. The nested graph's reporter simply becomes a no-op and the graph
 # reports its actions through the owner's reporter instead.
-_owned_paths = set()
+#
+# Path -> weak reference to the reporter that owns it. Weak, so an owner
+# that was dropped without being finished (a workflow object that went out
+# of scope) does not hold its directory for the life of the process.
+_owned_paths = {}
 _owned_lock = threading.Lock()
+
+
+def _owner_of( path ):
+    """The live, still-active reporter of this path, if any. Caller holds
+    _owned_lock."""
+    ref = _owned_paths.get( path )
+    owner = ref() if ref is not None else None
+    return owner if owner is not None and owner._active else None
 
 
 def _write_json_atomic( path, data ):
@@ -125,9 +138,17 @@ class StatusReporter:
             later ``os.chdir`` calls do not move the file).
         heartbeat_interval (float) : seconds between heartbeat writes.
             Default is ``progress.HEARTBEAT_INTERVAL`` (read at call time).
+        takeover (bool) : claim the directory even when another reporter in
+            this process still owns it, stopping that one instead of going
+            quiet. A new run of a study takes its results root over this
+            way -- the previous run is over, and its reporter must not go
+            on heartbeating into the new run's file. The default False is
+            what a graph wants: a graph nested in an owned directory stays
+            a no-op and reports through the owner.
     """
 
-    def __init__( self, name, directory='.', heartbeat_interval=None ):
+    def __init__( self, name, directory='.', heartbeat_interval=None,
+                  takeover=False ):
         if heartbeat_interval is None:
             heartbeat_interval = HEARTBEAT_INTERVAL
         self.path = Path( directory ).resolve() / STATUS_PATH
@@ -138,10 +159,13 @@ class StatusReporter:
         self._hb_stop = threading.Event()
 
         with _owned_lock:
-            if self.path in _owned_paths:
+            owner = _owner_of( self.path )
+            if owner is not None and not takeover:
                 self._active = False
             else:
-                _owned_paths.add( self.path )
+                if owner is not None:
+                    owner._displace()
+                _owned_paths[ self.path ] = weakref.ref( self )
                 self._active = True
 
         # Actions whose state this process has actually set. Only for those
@@ -288,8 +312,18 @@ class StatusReporter:
                 except OSError:
                     pass
         with _owned_lock:
-            _owned_paths.discard( self.path )
+            ref = _owned_paths.get( self.path )
+            if ref is not None and ref() is self:
+                del _owned_paths[ self.path ]
         self._active = False
+
+    def _displace( self ):
+        """Another reporter has taken this directory over (a new run of
+        the same study). Stop reporting, and stop the heartbeat: the file
+        belongs to the new owner now. The status file itself is left
+        alone -- rewriting it here is exactly what must not happen."""
+        self._active = False
+        self._hb_stop.set()
 
     def _heartbeat( self ):
         while not self._hb_stop.wait( self.heartbeat_interval ):
@@ -534,6 +568,46 @@ class FileProgressTail:
         self.reporter.action_state( self.action_name, 'running',
                                     fraction=fraction,
                                     message=f'time {t:g} of {self.t_end:g}' )
+
+
+def mark_failed( status_path, message=None ):
+    """
+    Stamp a status file whose writer has died.
+
+    A process that is terminated -- a job of a parallel sweep cut short
+    because another job failed -- cannot report itself, and would leave a
+    file claiming to be running for ever. The parent that killed it calls
+    this instead: the run state becomes 'failed', and so does every action
+    that was still running. Actions that never started stay 'pending',
+    since they never ran, and a file already reporting a terminal state is
+    left as it is.
+
+    A missing or unreadable file is not an error (the job may have died
+    before writing one), and neither is a failed write: like every other
+    write here, reporting must never break a workflow.
+
+    Arguments:
+        status_path (str|Path) : the ``status.json`` to stamp.
+        message (str) : reason, recorded on the actions it fails.
+    """
+    path = Path( status_path )
+    try:
+        status = json.loads( path.read_text() )
+    except ( OSError, ValueError ):
+        return
+    if status.get( 'state' ) in ( 'done', 'failed' ):
+        return
+    status['state'] = 'failed'
+    for entry in ( status.get( 'actions' ) or {} ).values():
+        if entry.get( 'state' ) == 'running':
+            entry['state'] = 'failed'
+            entry['fraction'] = None
+            entry['message'] = message
+    status['updated_at'] = time.time()
+    try:
+        _write_json_atomic( path, status )
+    except OSError as err:
+        logger.warning( f'Could not write status file {path}: {err}' )
 
 
 def is_alive( status, grace=3.0 ):
