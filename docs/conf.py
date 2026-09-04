@@ -9,7 +9,7 @@
 project = 'simnexus'
 copyright = '2026, Willem Roux'
 author = 'Willem Roux'
-release = '1.2.1'
+release = '1.3.0'
 
 # ---
 import sys, os

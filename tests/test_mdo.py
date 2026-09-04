@@ -22,7 +22,7 @@ from simnexus.graph_actions import DirectedGraph
 import logging
 logging.basicConfig(filename='eval.log', filemode='w', level=logging.INFO )
 
-from simnexus.args import OptType, DYNA_BASE_FILE_NAME
+from simnexus.args import DYNA_BASE_FILE_NAME
 
 def create_wa( wa_id='' ):
     starter_deck = Path(__file__).parent.parent / 'models' / 'cube_TYPE7_0000.rad'

@@ -122,9 +122,6 @@ Long runs report progress through `status.json` files (`simnexus/progress.py`), 
 
 The results directory structure is needed to postprocess and display results.
 
-OptimizationResults/
-├── opt_hist.json
-
 {NAME}/
 ├── jobs_index.json
 ├── job_0/             
